@@ -1,0 +1,11 @@
+
+#ifdef __OBJC__
+    @import UIKit;
+    #import "CCodeLibrary/StringFunctions.h"
+    #import "CCodeLibrary/UIView+Constraints.h"
+    #import "CCodeLibrary/NVWebView.h"
+#endif
+
+#ifndef DEBUG
+    #define NSLog(s,...)
+#endif

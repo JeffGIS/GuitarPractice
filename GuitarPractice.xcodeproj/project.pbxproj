@@ -14,6 +14,8 @@
 		EB547D7C23D4195C009BE924 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EB547D7B23D4195C009BE924 /* Assets.xcassets */; };
 		EB547D7F23D4195C009BE924 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = EB547D7D23D4195C009BE924 /* LaunchScreen.storyboard */; };
 		EB547D8223D4195C009BE924 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = EB547D8123D4195C009BE924 /* main.m */; };
+		EB97D9EF27CD0F6A002C1BA1 /* libCCodeLibrary.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EB97D9EE27CD0F6A002C1BA1 /* libCCodeLibrary.a */; };
+		EB97D9F127CD30A9002C1BA1 /* libNVShapefileLibrary.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EB97D9F027CD30A9002C1BA1 /* libNVShapefileLibrary.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +31,9 @@
 		EB547D7E23D4195C009BE924 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		EB547D8023D4195C009BE924 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		EB547D8123D4195C009BE924 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		EB97D9EB27CD0C12002C1BA1 /* GuitarPractice-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GuitarPractice-Prefix.pch"; sourceTree = "<group>"; };
+		EB97D9EE27CD0F6A002C1BA1 /* libCCodeLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libCCodeLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		EB97D9F027CD30A9002C1BA1 /* libNVShapefileLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libNVShapefileLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,6 +41,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EB97D9EF27CD0F6A002C1BA1 /* libCCodeLibrary.a in Frameworks */,
+				EB97D9F127CD30A9002C1BA1 /* libNVShapefileLibrary.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -47,6 +54,7 @@
 			children = (
 				EB547D6E23D4195B009BE924 /* GuitarPractice */,
 				EB547D6D23D4195B009BE924 /* Products */,
+				EB97D9ED27CD0F6A002C1BA1 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -72,8 +80,18 @@
 				EB547D7D23D4195C009BE924 /* LaunchScreen.storyboard */,
 				EB547D8023D4195C009BE924 /* Info.plist */,
 				EB547D8123D4195C009BE924 /* main.m */,
+				EB97D9EB27CD0C12002C1BA1 /* GuitarPractice-Prefix.pch */,
 			);
 			path = GuitarPractice;
+			sourceTree = "<group>";
+		};
+		EB97D9ED27CD0F6A002C1BA1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				EB97D9F027CD30A9002C1BA1 /* libNVShapefileLibrary.a */,
+				EB97D9EE27CD0F6A002C1BA1 /* libCCodeLibrary.a */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -215,6 +233,7 @@
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREFIX_HEADER = "GuitarPractice/GuitarPractice-Prefix.pch";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
@@ -228,6 +247,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
+				NEW_SETTING = "";
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 			};
@@ -271,6 +291,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREFIX_HEADER = "GuitarPractice/GuitarPractice-Prefix.pch";
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -280,6 +301,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 13.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				NEW_SETTING = "";
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
 			};
