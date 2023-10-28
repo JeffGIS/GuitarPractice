@@ -16,6 +16,7 @@
 		EB547D8223D4195C009BE924 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = EB547D8123D4195C009BE924 /* main.m */; };
 		EB97D9EF27CD0F6A002C1BA1 /* libCCodeLibrary.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EB97D9EE27CD0F6A002C1BA1 /* libCCodeLibrary.a */; };
 		EB97D9F127CD30A9002C1BA1 /* libNVShapefileLibrary.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EB97D9F027CD30A9002C1BA1 /* libNVShapefileLibrary.a */; };
+		EBBBFD672AE5F8FC00A27F86 /* libNVCoordinateLibrary.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +35,7 @@
 		EB97D9EB27CD0C12002C1BA1 /* GuitarPractice-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GuitarPractice-Prefix.pch"; sourceTree = "<group>"; };
 		EB97D9EE27CD0F6A002C1BA1 /* libCCodeLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libCCodeLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB97D9F027CD30A9002C1BA1 /* libNVShapefileLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libNVShapefileLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libNVCoordinateLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,6 +44,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EB97D9EF27CD0F6A002C1BA1 /* libCCodeLibrary.a in Frameworks */,
+				EBBBFD672AE5F8FC00A27F86 /* libNVCoordinateLibrary.a in Frameworks */,
 				EB97D9F127CD30A9002C1BA1 /* libNVShapefileLibrary.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -88,6 +91,7 @@
 		EB97D9ED27CD0F6A002C1BA1 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */,
 				EB97D9F027CD30A9002C1BA1 /* libNVShapefileLibrary.a */,
 				EB97D9EE27CD0F6A002C1BA1 /* libCCodeLibrary.a */,
 			);

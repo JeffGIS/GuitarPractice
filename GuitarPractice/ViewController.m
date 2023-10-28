@@ -140,6 +140,14 @@
         [_appSoundPlayer play];
     }
 }
+long ConvertCoord (LPDPOINT DPoint, int from, int to)
+{
+    return 0;
+}
+int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
+{
+    return 0;
+}
 - (IBAction)markBeginTapped:(id)sender {
     _beginTime = _appSoundPlayer.currentTime;
 }
