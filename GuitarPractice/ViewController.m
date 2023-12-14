@@ -10,6 +10,7 @@
 
 @interface ViewController ()
 
+@property NSString * currentSongTitle;
 @end
 
 @implementation ViewController
@@ -31,6 +32,7 @@
     _beginTime = 86;
     [_currentPositionLabel setText:@""];
     [_slider setValue:0];
+    _currentSongTitle = @"";
  
 }
 
@@ -58,6 +60,26 @@
     [self setCurrentPositiion:NO];
 }
 
+- (IBAction)nextSongTapped:(id)sender {
+    NSString * url = [self getNextSong];
+    if (url)
+    {
+        _currentSongURL = [NSURL URLWithString:url];
+        [self startNewSong];
+    }
+    else
+    {
+        _currentSongTitle = @"";
+        url = [self getNextSong];
+        if (url)
+        {
+            _currentSongURL = [NSURL URLWithString:url];
+            [self startNewSong];
+        }
+    }
+}
+
+
 - (void)mediaPicker:(MPMediaPickerController *)mediaPicker didPickMediaItems:(MPMediaItemCollection *)mediaItemCollection
 {
     // Apply the chosen songs to the music player's queue.
@@ -66,39 +88,50 @@
     if (mediaItemCollection.items.count == 1)
     {
         _currentSong = mediaItemCollection.items[0];
-        
-        _songTitleLable.text = _currentSong.title;
+        _currentSongTitle = _currentSong.title;
         _currentSongURL = [_currentSong valueForProperty:MPMediaItemPropertyAssetURL];
-        AVAudioPlayer *newPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL: _currentSongURL error:nil];
-         _appSoundPlayer = newPlayer;
-        
-         // "Preparing to play" attaches to the audio hardware and ensures that playback
-         //        starts quickly when the user taps Play
-         [_appSoundPlayer prepareToPlay];
-         [_appSoundPlayer setVolume: 1.0];
-         [_appSoundPlayer setDelegate: self];
-        _slider.maximumValue = _currentSong.playbackDuration;
-        _slider.minimumValue = 0;
-        _slider.continuous = NO;
-        _currentTime = _appSoundPlayer.currentTime;
-        _beginTime = _currentTime;
-        _beginTimes = NSMutableArray.new;
-        _endTimes = NSMutableArray.new;
-        _currentSegment = 0;
-        _playButton.enabled=YES;
-        _beginButton.enabled=YES;
-        _endButton.enabled=YES;
-        _playSegmentButton.enabled=YES;
-        _loopSegmentButton.enabled=YES;
-        _nextSegmentButton.enabled=YES;
-        _priorSegmentButton.enabled=YES;
-        _stopButton.enabled=YES;
-        _saveButton.enabled=YES;
-        [self retrieveSong:_currentSong.title];
+        NSString * url = [_currentSongURL absoluteString];
+        [self saveSongURL:url
+                 forTitle:_currentSongTitle];
+        [self startNewSong];
 
     }
     [_picker dismissViewControllerAnimated:YES completion:nil] ;
     return;
+}
+
+- (void) startNewSong
+{
+    _songTitleLable.text = _currentSongTitle;
+
+    AVAudioPlayer *newPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL: _currentSongURL error:nil];
+     _appSoundPlayer = newPlayer;
+    
+     // "Preparing to play" attaches to the audio hardware and ensures that playback
+     //        starts quickly when the user taps Play
+     [_appSoundPlayer prepareToPlay];
+     [_appSoundPlayer setVolume: 1.0];
+     [_appSoundPlayer setDelegate: self];
+    _slider.maximumValue = _currentSong.playbackDuration;
+    _slider.minimumValue = 0;
+    _slider.continuous = NO;
+    _currentTime = _appSoundPlayer.currentTime;
+    _beginTime = _currentTime;
+    _beginTimes = NSMutableArray.new;
+    _endTimes = NSMutableArray.new;
+    _currentSegment = 0;
+    _playButton.enabled=YES;
+    _beginButton.enabled=YES;
+    _endButton.enabled=YES;
+    _playSegmentButton.enabled=YES;
+    _loopSegmentButton.enabled=YES;
+    _nextSegmentButton.enabled=YES;
+    _priorSegmentButton.enabled=YES;
+    _stopButton.enabled=YES;
+    _saveButton.enabled=YES;
+    [self retrieveSong:_currentSongTitle];
+    [self playTapped:nil];
+
 }
 - (IBAction)playTapped:(id)sender {
     [_appSoundPlayer stop];
@@ -109,6 +142,37 @@
     [self setCurrentPositiion:YES];
 }
 
+- (void) saveSongURL:(NSString *)url
+            forTitle:(NSString *)title
+{
+    BOOL opened = [self open];
+    NSString *cmd = [NSString stringWithFormat:@"INSERT OR REPLACE INTO SONGINFO VALUES('%@','%@')",title,url];
+    [self executeCmd:cmd];
+    [self close:opened];
+
+}
+
+- (NSString *) getNextSong
+{
+    BOOL opened = [self open];
+    NSString * rtn = nil;
+    NSString *query = [NSString stringWithFormat:@"SELECT Title,URL FROM SONGINFO WHERE Title > '%@'",_currentSongTitle];
+    
+    sqlite3_stmt *statement = NULL;
+    
+    SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
+    if (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        LPSTR title = sqlite3_column_text(statement, 0);
+        LPSTR url = sqlite3_column_text(statement, 1);
+        rtn = [NSString stringWithFormat:@"%s",url];
+        _currentSongTitle = [NSString stringWithFormat:@"%s",title];
+    }
+    SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
+
+    [self close:opened];
+    return rtn;
+}
 - (IBAction)markEndTapped:(id)sender {
     _endTime = _appSoundPlayer.currentTime;
     NSNumber *bTime = [NSNumber numberWithInt:_beginTime];
@@ -369,7 +433,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         long fileSize = (NSInteger)[NSFileManager.defaultManager attributesOfItemAtPath:songDB                                                                  error:nil].fileSize;
         
         rtn = TRUE;
-        if (!fileSize)
+        //if (!fileSize)
         {
             rtn = [self createSongsTable];
         }
@@ -381,6 +445,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     BOOL rtn = TRUE;
     NSString * cmd = @"CREATE TABLE IF NOT EXISTS SONGS ('Title' CHAR(256),'StartTime' INT,'EndTime' INT,  PRIMARY KEY (Title,StartTime))";
+    
+    rtn = [self executeCmd:cmd];
+    cmd = @"CREATE TABLE IF NOT EXISTS SONGINFO ('Title' CHAR(256),'URL' CHAR(1024),  PRIMARY KEY (Title))";
     
     rtn = [self executeCmd:cmd];
     return rtn;

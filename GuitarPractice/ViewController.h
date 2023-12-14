@@ -35,6 +35,7 @@
 
 - (IBAction)selectSongTapped:(id)sender;
 @property (weak, nonatomic) IBOutlet UILabel *songTitleLable;
+- (IBAction)nextSongTapped:(id)sender;
 - (IBAction)playTapped:(id)sender;
 - (IBAction)markEndTapped:(id)sender;
 - (IBAction)markBeginTapped:(id)sender;
