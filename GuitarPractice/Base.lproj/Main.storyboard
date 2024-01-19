@@ -79,7 +79,7 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="OWv-GW-gfU">
-                                <rect key="frame" x="83" y="601" width="249" height="51"/>
+                                <rect key="frame" x="83" y="568" width="249" height="51"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="32"/>
                                 <state key="normal" title="Stop"/>
@@ -88,7 +88,7 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CrY-BU-Nyf">
-                                <rect key="frame" x="83" y="660" width="249" height="51"/>
+                                <rect key="frame" x="83" y="616" width="249" height="51"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="32"/>
                                 <state key="normal" title="Save"/>
@@ -137,6 +137,15 @@
                                     <action selector="nextSongTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Mzz-uh-y05"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="3lz-1F-37j">
+                                <rect key="frame" x="83" y="665" width="249" height="51"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="32"/>
+                                <state key="normal" title="Select Photo"/>
+                                <connections>
+                                    <action selector="selectPhoto:" destination="BYZ-38-t0r" eventType="touchUpInside" id="wzA-rj-Uqf"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -151,6 +160,7 @@
                         <outlet property="playSegmentButton" destination="8yo-k7-dwi" id="USo-yG-kEd"/>
                         <outlet property="priorSegmentButton" destination="Tlp-15-wAG" id="Z2W-3F-sOB"/>
                         <outlet property="saveButton" destination="CrY-BU-Nyf" id="qrp-Ig-SIF"/>
+                        <outlet property="selectPhotoButton" destination="3lz-1F-37j" id="Rl2-Wa-Bfw"/>
                         <outlet property="slider" destination="pOx-ix-Z6F" id="d11-vL-Tbm"/>
                         <outlet property="songTitleLable" destination="JaH-lt-vyi" id="NbT-fb-fvH"/>
                         <outlet property="stopButton" destination="OWv-GW-gfU" id="VlG-nN-gXQ"/>

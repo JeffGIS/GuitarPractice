@@ -129,6 +129,7 @@
     _priorSegmentButton.enabled=YES;
     _stopButton.enabled=YES;
     _saveButton.enabled=YES;
+    _selectPhotoButton.enabled=YES;
     [self retrieveSong:_currentSongTitle];
     [self playTapped:nil];
 
@@ -501,4 +502,26 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _beginTime = _slider.value;
     [self setCurrentPositiion:YES];
 }
+
+
+- (IBAction)selectPhoto:(id)sender {
+    
+    
+    UIImagePickerController *picker = [[UIImagePickerController alloc] init];
+    picker.delegate = self;
+    picker.allowsEditing = YES;
+    picker.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
+
+    [self presentViewController:picker animated:YES completion:NULL];
+
+
+}
+- (void)imagePickerController:(UIImagePickerController *)picker
+didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> *)info
+{
+    int numPicked = info.count;
+    
+    return;
+}
+
 @end

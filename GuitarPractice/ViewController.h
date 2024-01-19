@@ -12,7 +12,7 @@
 #import <AudioToolbox/AudioToolbox.h>
 #import "CCodeLibrary/CCodeLibrary.h"
 
-@interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate>
+@interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,UIImagePickerControllerDelegate>
 
 @property AVAudioSession* audioSession;
 @property AVAudioPlayer *appSoundPlayer;
@@ -54,6 +54,9 @@
 @property (weak, nonatomic) IBOutlet UIButton *priorSegmentButton;
 @property (weak, nonatomic) IBOutlet UIButton *stopButton;
 @property (weak, nonatomic) IBOutlet UIButton *saveButton;
+@property (weak, nonatomic) IBOutlet UIButton *selectSongButton;
+@property (weak, nonatomic) IBOutlet UIButton *selectPhotoButton;
+- (IBAction)selectPhoto:(id)sender;
 @property (weak, nonatomic) IBOutlet UILabel *currentPositionLabel;
 - (IBAction)sliderExit:(id)sender;
 @property (weak, nonatomic) IBOutlet UISlider *slider;
