@@ -7,10 +7,36 @@
 //
 
 #import "ViewController.h"
+#import "CCodeLibrary/NVPopoverTableView.h"
+#import "CCodeLibrary/StringFunctions.h"
+
 
 @interface ViewController ()
-
+@property AVAudioSession* audioSession;
+@property AVAudioPlayer *appSoundPlayer;
+@property MPMediaItem * currentSong;
+@property int currentSongDuration;
+@property NSURL *currentSongURL;
+@property (nonatomic) MPMediaItemCollection      *userMediaItemCollection;
+@property (nonatomic) MPMusicPlayerController    *musicPlayer;
+@property MPMediaPickerController *picker;
+@property int currentTime;
+@property int beginTime;
+@property int endTime;
+@property NSMutableArray<NSNumber*> *beginTimes;
+@property NSMutableArray<NSNumber*> *endTimes;
+@property NSMutableArray<NSNumber*> *linkPrefixes;
+@property NSString *linkDirectory;
+@property int currentLinkPrefix;
+@property UIImage *currentImage;
 @property NSString * currentSongTitle;
+@property int numFilesForCurrentLink;
+@property NSString *currentLinkFile;
+@property int currentFileNum, currentNumFiles;
+@end
+
+@interface ViewController () <NVPopoverTableViewDelegate>
+@property NSData *imageData;
 @end
 
 @implementation ViewController
@@ -31,12 +57,21 @@
     [self setupApplicationAudio];
     _beginTime = 86;
     [_currentPositionLabel setText:@""];
-    [_slider setValue:0];
+    [self setSliderValue:0];
     _currentSongTitle = @"";
+    BOOL opened = [self open];
+    [self close:opened];
  
 }
+- (void) setSliderValue:(int) value
+{
+    [NSOperationQueue.mainQueue addOperationWithBlock:^{
+        [_slider setValue:value];
+    }];
+}
 
-- (IBAction) showMediaPicker: (id) senderx {
+- (IBAction) showMediaPicker
+{
 
     _picker = [[MPMediaPickerController alloc] initWithMediaTypes: MPMediaTypeAnyAudio];
     
@@ -49,14 +84,54 @@
     [self presentModalViewController: _picker animated: YES];
 }
 
+- (IBAction)selectSongTapped:(id)sender
+{
+    NSMutableArray *optionList = NSMutableArray.array;
 
-- (IBAction)selectSongTapped:(id)sender {
+    [optionList addObject:@"Add New Song"];
+    [optionList addObject:@"________________________"];
+    [self addSongsToList:optionList];
+    NVPopoverTableView *nvptv = [NVPopoverTableView showPopoverTableViewInView:self.view
+                                                                      delegate:self
+                                                                         title:@"Songs"
+                                                                     textArray:optionList
+                                                                 includeCancel:YES];
+    nvptv.allowsSubtitle = NO;
+}
+- (void)popoverTableViewDidCancel:(NVPopoverTableView *)popoverTableView
+{
+    [popoverTableView hide:YES];
+}
+- (void)popoverTableView:(NVPopoverTableView *)popoverTableView
+    didSelectRowWithText:(NSString *)text
+                 atIndex:(NSInteger)index
+{
+    if ([text isEqual:@"Add New Song"])
+    {
+        [popoverTableView hide:YES];
+        [self addNewSong];
+    }
+    else
+    {
+        NSString * url = [self getSong:text];
+        if (url)
+        {
+            _currentSongURL = [NSURL URLWithString:url];
+            [popoverTableView hide:YES];
+            [self startNewSong];
+        }
+
+    }
+}
+- (void) addNewSong
+{
     [_appSoundPlayer stop];
-    [_slider setValue:0];
+    [self setSliderValue:0];
     _inLoop = NO;
     _beginTimes = NSMutableArray.new;
     _endTimes = NSMutableArray.new;
-    [self showMediaPicker:sender];
+    _linkPrefixes = NSMutableArray.new;
+    [self showMediaPicker];
     [self setCurrentPositiion:NO];
 }
 
@@ -90,9 +165,11 @@
         _currentSong = mediaItemCollection.items[0];
         _currentSongTitle = _currentSong.title;
         _currentSongURL = [_currentSong valueForProperty:MPMediaItemPropertyAssetURL];
+        _currentSongDuration = _currentSong.playbackDuration;
         NSString * url = [_currentSongURL absoluteString];
         [self saveSongURL:url
-                 forTitle:_currentSongTitle];
+                 forTitle:_currentSongTitle
+                 duration:_currentSongDuration];
         [self startNewSong];
 
     }
@@ -106,19 +183,20 @@
 
     AVAudioPlayer *newPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL: _currentSongURL error:nil];
      _appSoundPlayer = newPlayer;
-    
+   
      // "Preparing to play" attaches to the audio hardware and ensures that playback
      //        starts quickly when the user taps Play
      [_appSoundPlayer prepareToPlay];
      [_appSoundPlayer setVolume: 1.0];
      [_appSoundPlayer setDelegate: self];
-    _slider.maximumValue = _currentSong.playbackDuration;
+    _slider.maximumValue = _currentSongDuration;
     _slider.minimumValue = 0;
     _slider.continuous = NO;
     _currentTime = _appSoundPlayer.currentTime;
     _beginTime = _currentTime;
     _beginTimes = NSMutableArray.new;
     _endTimes = NSMutableArray.new;
+    _linkPrefixes = NSMutableArray.new;
     _currentSegment = 0;
     _playButton.enabled=YES;
     _beginButton.enabled=YES;
@@ -139,15 +217,17 @@
     _appSoundPlayer.currentTime = 0;
     _inLoop = NO;
     _beginTime = 0;
-    _endTime = _currentSong.playbackDuration;
+    _endTime = _currentSongDuration;
     [self setCurrentPositiion:YES];
 }
 
 - (void) saveSongURL:(NSString *)url
             forTitle:(NSString *)title
+            duration:(int)duration
 {
     BOOL opened = [self open];
-    NSString *cmd = [NSString stringWithFormat:@"INSERT OR REPLACE INTO SONGINFO VALUES('%@','%@')",title,url];
+    NSString *title2 = [title stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+    NSString *cmd = [NSString stringWithFormat:@"INSERT OR REPLACE INTO SONGINFO (TITLE,URL,DURATION)VALUES('%@','%@',%i)",title2,url,duration];
     [self executeCmd:cmd];
     [self close:opened];
 
@@ -157,7 +237,8 @@
 {
     BOOL opened = [self open];
     NSString * rtn = nil;
-    NSString *query = [NSString stringWithFormat:@"SELECT Title,URL FROM SONGINFO WHERE Title > '%@'",_currentSongTitle];
+    NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+    NSString *query = [NSString stringWithFormat:@"SELECT Title,URL,Duration FROM SONGINFO WHERE Title > '%@'",title2];
     
     sqlite3_stmt *statement = NULL;
     
@@ -168,13 +249,61 @@
         LPSTR url = sqlite3_column_text(statement, 1);
         rtn = [NSString stringWithFormat:@"%s",url];
         _currentSongTitle = [NSString stringWithFormat:@"%s",title];
+        _currentSongDuration = sqlite3_column_int(statement, 2);
     }
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
 
     [self close:opened];
     return rtn;
 }
-- (IBAction)markEndTapped:(id)sender {
+- (NSString *) getSong:(NSString *)title
+{
+    BOOL opened = [self open];
+    NSString *title2 = [title stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+
+    NSString * rtn = nil;
+    NSString *query = [NSString stringWithFormat:@"SELECT Title,URL,Duration FROM SONGINFO WHERE Title == '%@'",title2];
+    
+    sqlite3_stmt *statement = NULL;
+    
+    SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
+    if (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        LPSTR title = sqlite3_column_text(statement, 0);
+        LPSTR url = sqlite3_column_text(statement, 1);
+        rtn = [NSString stringWithFormat:@"%s",url];
+        _currentSongTitle = [NSString stringWithFormat:@"%s",title];
+        _currentSongDuration = sqlite3_column_int(statement, 2);
+
+    }
+    SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
+
+    [self close:opened];
+    return rtn;
+}
+
+- (void) addSongsToList:(NSMutableArray *)array
+{
+    BOOL opened = [self open];
+    NSString *query = [NSString stringWithFormat:@"SELECT Title,URL FROM SONGINFO"];
+    
+    sqlite3_stmt *statement = NULL;
+    
+    SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
+    while (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        LPSTR title = sqlite3_column_text(statement, 0);
+        NSString *sTitle = [NSString stringWithCString:title];
+        [array addObject:sTitle];
+    }
+    SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
+
+    [self close:opened];
+    return;
+}
+- (IBAction)markEndTapped:(id)sender
+{
+    _currentLinkPrefix = -1;
     _endTime = _appSoundPlayer.currentTime;
     NSNumber *bTime = [NSNumber numberWithInt:_beginTime];
     NSNumber *eTime = [NSNumber numberWithInt:_endTime];
@@ -183,9 +312,27 @@
     _currentSegment = (int)_endTimes.count - 1;
     [self setCurrentPositiion:NO];
     BOOL opened = [self open];
-    NSString *cmd = [NSString stringWithFormat:@"INSERT INTO Songs VALUES('%@',%i,%i)",_currentSong.title,_beginTime,_endTime];
+    NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+
+    NSString *cmd = [NSString stringWithFormat:@"INSERT INTO CLIPS (TITLE,STARTTIME,ENDTIME) VALUES('%@',%i,%i)",title2,_beginTime,_endTime];
     [self executeCmd:cmd];
+    NSString *query = [NSString stringWithFormat:@"SELECT ID FROM CLIPS WHERE Title = '%@' AND STARTTIME = %i AND ENDTIME = %i",title2,_beginTime,_endTime];
+    
+    sqlite3_stmt *statement = NULL;
+    
+    SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
+    if (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        _currentLinkPrefix = sqlite3_column_int(statement, 0);
+        NSNumber *linkPrefix = [NSNumber numberWithInt:_currentLinkPrefix];
+        [_linkPrefixes addObject:linkPrefix];
+        _numFilesForCurrentLink = 0;
+
+    }
+    SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
+
     [self close:opened];
+ 
 }
 
 -(void) setCurrentPositiion:(BOOL)doPlay
@@ -198,7 +345,7 @@
     {
         [_appSoundPlayer stop];
         _appSoundPlayer.currentTime = _beginTime;
-        [_slider setValue:_beginTime];
+        [self setSliderValue:_beginTime];
         if (_timer)
             [_timer invalidate];
         _timer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
@@ -228,8 +375,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 - (void)checkTime:(NSTimer*)timer
 {
-    [_slider setValue:_appSoundPlayer.currentTime];
-     if (_inLoop && _appSoundPlayer.currentTime >= _endTime)
+    [self setSliderValue:_appSoundPlayer.currentTime];
+    if (_inLoop && _appSoundPlayer.currentTime >= _endTime)
     {
         [timer invalidate];
         [self loopSegmentTapped:nil];
@@ -252,7 +399,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _inLoop = NO;
         _beginTime = (int)_beginTimes[_currentSegment].integerValue;
         _endTime = (int)_endTimes[_currentSegment].integerValue;
+        _currentLinkPrefix = (int)_linkPrefixes[_currentSegment].integerValue;
+        _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
         [self setCurrentPositiion:YES];
+        if (_numFilesForCurrentLink > 0)
+            [self displayFileForLink:_linkPrefixes[0].intValue
+                            numFiles:_numFilesForCurrentLink];
 
     }
 }
@@ -264,7 +416,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _inLoop = NO;
         _beginTime = (int)_beginTimes[_currentSegment].integerValue;
         _endTime = (int)_endTimes[_currentSegment].integerValue;
+        _currentLinkPrefix = (int)_linkPrefixes[_currentSegment].integerValue;
+        _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
         [self setCurrentPositiion:YES];
+        if (_numFilesForCurrentLink > 0)
+            [self displayFileForLink:_linkPrefixes[0].intValue
+                            numFiles:_numFilesForCurrentLink];
 
     }
 }
@@ -424,10 +581,26 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (BOOL)open
 {
     BOOL rtn = FALSE;
+    BOOL delete = FALSE;
+    NSError *error = nil;
+
     if (!_isOpen)
     {
         NSString *documentsDirectory = UserDefaults.defaults.localFilePath;
-        NSString *songDB = [NSString stringWithFormat:@"%@/songs.slt",documentsDirectory];
+        NSString *errorText = @"";
+        if (error)
+            errorText = error.localizedDescription;
+        NSString *songsDirectory = [NSString stringWithFormat:@"%@/songs",documentsDirectory];
+        NSString *songDB = [NSString stringWithFormat:@"%@/songs/songs.slt",documentsDirectory];
+        _linkDirectory = [NSString stringWithFormat:@"%@/songs/links",documentsDirectory];
+        if (delete)
+            [NSFileManager.defaultManager removeItemAtPath:songsDirectory
+                                                     error:&error];
+        [NSFileManager.defaultManager createDirectoryAtPath:_linkDirectory
+                                withIntermediateDirectories:YES
+                                                 attributes:nil
+                                                      error:&error];
+
         _isOpen = !SQLOK(__FILE__,__LINE__,SQLite_Open(songDB.UTF8String, &_database), _database);
         NSLog(@"Database open");
         
@@ -445,12 +618,18 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (BOOL)createSongsTable
 {
     BOOL rtn = TRUE;
-    NSString * cmd = @"CREATE TABLE IF NOT EXISTS SONGS ('Title' CHAR(256),'StartTime' INT,'EndTime' INT,  PRIMARY KEY (Title,StartTime))";
+    NSString * cmd = @"DROP TABLE CLIPS;DROP TABLE SONGINFO;DROP TABLE SONGDOCS;";
+    //rtn = [self executeCmd:cmd];
     
+    cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('ID' INTEGER PRIMARY KEY,'Title' CHAR(256),'StartTime' INT,'EndTime' INT);CREATE INDEX IF NOT EXISTS idx_clips_title ON CLIPS (Title);";
     rtn = [self executeCmd:cmd];
-    cmd = @"CREATE TABLE IF NOT EXISTS SONGINFO ('Title' CHAR(256),'URL' CHAR(1024),  PRIMARY KEY (Title))";
+
+    cmd = @"CREATE TABLE IF NOT EXISTS SONGINFO ('Title' CHAR(256),'URL' CHAR(1024),'Duration' INT,  PRIMARY KEY (Title))";
+    rtn = [self executeCmd:cmd];
     
+    cmd = @"CREATE TABLE IF NOT EXISTS SONGDOCS ('Title' CHAR(256),'StartTime' INT,'EndTime' INT, 'Type' CHAR(16), 'Location' CHAR(1024), PRIMARY KEY (Title,StartTime,EndTime DESC));";
     rtn = [self executeCmd:cmd];
+    
     return rtn;
 }
 
@@ -475,27 +654,42 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (void) retrieveSong:(NSString*)title
 {
     BOOL opened = [self open];
-    
-    NSString *query = [NSString stringWithFormat:@"SELECT StartTime,EndTime FROM SONGS WHERE Title = '%@' ORDER BY StartTime",title];
+    NSString *title2 = [title stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+
+    NSString *query = [NSString stringWithFormat:@"SELECT StartTime,EndTime,ID FROM CLIPS WHERE Title = '%@' ORDER BY StartTime",title2];
     
     sqlite3_stmt *statement = NULL;
     
     SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
     _beginTimes = NSMutableArray.new;
     _endTimes = NSMutableArray.new;
+    _linkPrefixes = NSMutableArray.new;
     while (sqlite3_step(statement) == SQLITE_ROW)
     {
         int beginTime = sqlite3_column_int(statement, 0);
         int endTime = sqlite3_column_int(statement, 1);
+        int rowid = sqlite3_column_int(statement, 2);
         NSNumber *bTime = [NSNumber numberWithInt:beginTime];
         NSNumber *eTime = [NSNumber numberWithInt:endTime];
+        NSNumber *linkPrefix = [NSNumber numberWithInt:rowid];
         [_endTimes addObject:eTime];
         [_beginTimes addObject:bTime];
+        [_linkPrefixes addObject:linkPrefix];
     }
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
 
     [self close:opened];
     _currentSegment = 0;
+    if (_linkPrefixes.count > 0)
+        _currentLinkPrefix = _linkPrefixes[0].intValue;
+    else
+        _currentLinkPrefix = 0;
+    _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
+    if (_numFilesForCurrentLink > 0)
+        [self displayFileForLink:_linkPrefixes[0].intValue
+                        numFiles:_numFilesForCurrentLink];
+
+
     [self setCurrentPositiion:NO];
 }
 - (IBAction)sliderExit:(id)sender {
@@ -516,11 +710,109 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 
 }
+
+- (IBAction)cancelImagePicked:(id)sender {
+    [_saveImageButton setHidden:YES];
+    [_cancelImageButton setHidden:YES];
+    [_ImageDisplay setImage:nil];
+}
+
+- (int) getNextFileInPrefix:(int)prefix
+{
+    int rtn = 1;
+    NSFileManager *filemgr = [NSFileManager defaultManager];
+    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linkDirectory error: nil];
+    NSString *prefixText = [NSString stringWithFormat:@"%i",prefix];
+    for (NSString *file in allLinks)
+    {
+        NSString *beforeText = textBefor(file, @"_");
+        if ([beforeText isEqual:prefixText])
+            rtn++;
+    }
+    return rtn;
+}
+
+-(void) displayFileForLink:(int)fileNum
+                  numFiles:(int)numFiles
+{
+    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linkDirectory,_currentLinkPrefix,fileNum];
+    UIImage *image = [UIImage imageWithContentsOfFile:fileName];
+    [_ImageDisplay setImage:image];
+    [_priorFileButton setHidden:YES];
+    [_nextFileButton setHidden:YES];
+    if (fileNum > 1)
+        [_priorFileButton setHidden:NO];
+    if (fileNum < numFiles)
+        [_nextFileButton setHidden:NO];
+    _currentFileNum = fileNum;
+    _currentNumFiles = numFiles;
+    return;
+}
+
+- (int) getNumFilesInPrefix:(int)prefix
+{
+    int rtn = 0;
+    NSFileManager *filemgr = [NSFileManager defaultManager];
+    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linkDirectory error: nil];
+    NSString *prefixText = [NSString stringWithFormat:@"%i",prefix];
+    for (NSString *file in allLinks)
+    {
+        NSString *beforeText = textBefor(file, @"_");
+        if ([beforeText isEqual:prefixText])
+            rtn++;
+    }
+    return rtn;
+}
+- (NSString *) getFileInPrefix:(int)prefix
+                  fileInPrefix:(int)fileInPrefix
+{
+    NSString *rtn = nil;
+
+    NSFileManager *filemgr = [NSFileManager defaultManager];
+    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linkDirectory error: nil];
+    NSString *prefixText = [NSString stringWithFormat:@"%i",prefix];
+    NSString *fileInPrefixText = [NSString stringWithFormat:@"%i",fileInPrefix];
+    for (NSString *file in allLinks)
+    {
+        NSString *name = textBefor(file, @".");
+        NSString *beforeText = textBefor(name, @"_");
+        NSString *afterText = textAfter(name, @"_");
+        if ([beforeText isEqual:prefixText] && [afterText isEqual:fileInPrefixText])
+            rtn = file;
+    }
+    return rtn;
+}
+
+- (IBAction)saveImagePicked:(id)sender
+{
+    int fileInPrefix = [self getNextFileInPrefix:_currentLinkPrefix];
+    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linkDirectory,_currentLinkPrefix,fileInPrefix];
+    [UIImagePNGRepresentation(_currentImage) writeToFile:fileName atomically:YES];
+    [_saveImageButton setHidden:YES];
+    [_cancelImageButton setHidden:YES];
+    [_ImageDisplay setImage:nil];
+}
+
+- (IBAction)priorFileTapped:(id)sender {
+    [self displayFileForLink:_currentFileNum-1
+                    numFiles:_currentNumFiles];
+}
+
+- (IBAction)nextFileTapped:(id)sender {
+    [self displayFileForLink:_currentFileNum+1
+                    numFiles:_currentNumFiles];
+
+}
 - (void)imagePickerController:(UIImagePickerController *)picker
 didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> *)info
 {
-    int numPicked = info.count;
-    
+    [picker dismissModalViewControllerAnimated:YES];
+    NSURL *url = [info valueForKey:@"UIImagePickerControllerImageURL"];
+    _imageData = [NSData dataWithContentsOfURL:url];
+    _currentImage = [UIImage imageWithData:_imageData];
+    [_ImageDisplay setImage:_currentImage];
+    [_saveImageButton setHidden:NO];
+    [_cancelImageButton setHidden:NO];
     return;
 }
 

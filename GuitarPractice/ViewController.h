@@ -14,18 +14,6 @@
 
 @interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,UIImagePickerControllerDelegate>
 
-@property AVAudioSession* audioSession;
-@property AVAudioPlayer *appSoundPlayer;
-@property MPMediaItem * currentSong;
-@property NSURL *currentSongURL;
-@property (nonatomic) MPMediaItemCollection      *userMediaItemCollection;
-@property (nonatomic) MPMusicPlayerController    *musicPlayer;
-@property MPMediaPickerController *picker;
-@property int currentTime;
-@property int beginTime;
-@property int endTime;
-@property NSMutableArray<NSNumber*> *beginTimes;
-@property NSMutableArray<NSNumber*> *endTimes;
 @property int currentSegment;
 @property NSTimer *timer;
 @property sqlite3nv *database;
@@ -45,6 +33,7 @@
 - (IBAction)nextSegmentTapped:(id)sender;
 - (IBAction)priorSegmentTapped:(id)sender;
 - (IBAction)saveTapped:(id)sender;
+@property (weak, nonatomic) IBOutlet UIImageView *ImageDisplay;
 @property (weak, nonatomic) IBOutlet UIButton *playButton;
 @property (weak, nonatomic) IBOutlet UIButton *beginButton;
 @property (weak, nonatomic) IBOutlet UIButton *endButton;
@@ -56,6 +45,14 @@
 @property (weak, nonatomic) IBOutlet UIButton *saveButton;
 @property (weak, nonatomic) IBOutlet UIButton *selectSongButton;
 @property (weak, nonatomic) IBOutlet UIButton *selectPhotoButton;
+@property (weak, nonatomic) IBOutlet UIButton *saveImageButton;
+@property (weak, nonatomic) IBOutlet UIButton *cancelImageButton;
+@property (weak, nonatomic) IBOutlet UIButton *priorFileButton;
+@property (weak, nonatomic) IBOutlet UIButton *nextFileButton;
+- (IBAction)nextFileTapped:(id)sender;
+- (IBAction)priorFileTapped:(id)sender;
+- (IBAction)saveImagePicked:(id)sender;
+- (IBAction)cancelImagePicked:(id)sender;
 - (IBAction)selectPhoto:(id)sender;
 @property (weak, nonatomic) IBOutlet UILabel *currentPositionLabel;
 - (IBAction)sliderExit:(id)sender;
