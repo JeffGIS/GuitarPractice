@@ -33,9 +33,10 @@
 @property int numFilesForCurrentLink;
 @property NSString *currentLinkFile;
 @property int currentFileNum, currentNumFiles;
+@property NVWebView * webView;
 @end
 
-@interface ViewController () <NVPopoverTableViewDelegate>
+@interface ViewController () <NVPopoverTableViewDelegate, NVWebViewDelegate>
 @property NSData *imageData;
 @end
 
@@ -89,6 +90,7 @@
     NSMutableArray *optionList = NSMutableArray.array;
 
     [optionList addObject:@"Add New Song"];
+    [optionList addObject:@"Add New YouTube Video"];
     [optionList addObject:@"________________________"];
     [self addSongsToList:optionList];
     NVPopoverTableView *nvptv = [NVPopoverTableView showPopoverTableViewInView:self.view
@@ -110,6 +112,12 @@
     {
         [popoverTableView hide:YES];
         [self addNewSong];
+    }
+    if ([text isEqual:@"Add New YouTube Video"])
+    {
+        [popoverTableView hide:YES];
+        [self displayWebLink:@"www.youtube.com"];
+
     }
     else
     {
@@ -133,6 +141,11 @@
     _linkPrefixes = NSMutableArray.new;
     [self showMediaPicker];
     [self setCurrentPositiion:NO];
+}
+
+- (void) addNewYouTube
+{
+    
 }
 
 - (IBAction)nextSongTapped:(id)sender {
@@ -208,6 +221,7 @@
     _stopButton.enabled=YES;
     _saveButton.enabled=YES;
     _selectPhotoButton.enabled=YES;
+    _selectYouTubeVideoButton.enabled=YES;
     [self retrieveSong:_currentSongTitle];
     [self playTapped:nil];
 
@@ -254,6 +268,9 @@
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
 
     [self close:opened];
+    NSString *link = @"https://www.youtube.com/watch?v=ztXYnp1i_3c&t=02m00s";
+
+    [self displayWebLink:link];
     return rtn;
 }
 - (NSString *) getSong:(NSString *)title
@@ -698,6 +715,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 
 
+- (IBAction)selectYouTubeVideo:(id)sender {
+    [self displayWebLink:@"www.youtube.com"];
+}
+
 - (IBAction)selectPhoto:(id)sender {
     
     
@@ -803,6 +824,21 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                     numFiles:_currentNumFiles];
 
 }
+
+- (IBAction)selectCatalogTapped:(id)sender {
+}
+
+- (IBAction)saveYouTubeTapped:(id)sender {
+    
+    [self showHideStartTime:YES];
+    int startTimeMinutes = _startTimeMinutesInput.text.intValue;
+    int startTimeSeconds = _startTimeSecondsInput.text.intValue;
+    return;
+}
+
+- (IBAction)startTimeCancelTapped:(id)sender {
+    [self showHideStartTime:YES];
+}
 - (void)imagePickerController:(UIImagePickerController *)picker
 didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> *)info
 {
@@ -816,4 +852,45 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     return;
 }
 
+- (void) displayWebLink:(NSString *) link
+{
+    _ImageDisplay.backgroundColor = UIColor.whiteColor;
+    _webView = [NVWebView showWebViewInView:_ImageDisplay
+                                            urlString:link
+                                         withDelegate:self];
+    _webView.backgroundColor = UIColor.yellowColor;
+    _webView.returnButton.titleLabel.backgroundColor = UIColor.clearColor;
+    _webView.saveLinkButton.titleLabel.backgroundColor = UIColor.clearColor;
+    _webView.webView.configuration.allowsInlineMediaPlayback = true;
+    [_webView showSaveLinkButton];
+}
+
+- (BOOL)webViewDidReturn:(NVWebView *)webView
+                    link:(NSString *)linktext
+{
+    [webView hide:TRUE];
+    return TRUE;
+}
+- (BOOL)webViewDidReturn:(NVWebView *)webView
+                    withCurrentURL:(NSString *)linktext
+{
+    [_webView setURL:@""];
+    _webView = nil;
+    [self showHideStartTime:NO];
+    return TRUE;
+}
+
+-(void) showHideStartTime:(BOOL)showHide
+{
+    [_startTimeTitle setHidden:showHide];
+    [_startTimeMinutesTitle setHidden:showHide];
+    [_startTimeSecondsTitle setHidden:showHide];
+    [_startTimeMinutesInput setHidden:showHide];
+    [_startTimeSecondsInput setHidden:showHide];
+    [_startTimeMinutesStepper setHidden:showHide];
+    [_startTimeSecondsStepper setHidden:showHide];
+    [_startTimeSaveButton setHidden:showHide];
+    [_startTimeCancelButton setHidden:showHide];
+
+}
 @end
