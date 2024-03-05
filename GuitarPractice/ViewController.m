@@ -26,7 +26,8 @@
 @property NSMutableArray<NSNumber*> *beginTimes;
 @property NSMutableArray<NSNumber*> *endTimes;
 @property NSMutableArray<NSNumber*> *linkPrefixes;
-@property NSString *linkDirectory;
+@property NSString *collectionsDirectory;
+@property NSString *linksDirectory;
 @property int currentLinkPrefix;
 @property UIImage *currentImage;
 @property NSString * currentSongTitle;
@@ -34,6 +35,7 @@
 @property NSString *currentLinkFile;
 @property int currentFileNum, currentNumFiles;
 @property NVWebView * webView;
+@property NSString *currentCollection;
 @end
 
 @interface ViewController () <NVPopoverTableViewDelegate, NVWebViewDelegate>
@@ -59,18 +61,40 @@
     _beginTime = 86;
     [_currentPositionLabel setText:@""];
     [self setSliderValue:0];
+    _currentCollection = @"Songs";
+    _currentCollectionLabel.text = _currentCollection;
     _currentSongTitle = @"";
     BOOL opened = [self open];
     [self close:opened];
- 
+    [self createCollection:@"Blues Guitar"];
+    [self createCollection:@"Rock Guitar"];
+    [self createCollection:@"Acoustic Guitar"];
+    [self createCollection:@"Base Guitar"];
+    [self createCollection:@"Ukulele"];
+
+}
+
+-(BOOL) createCollection:(NSString *)name
+{
+    _currentCollection = name;
+    [self open];
+    [self close:TRUE];
+    return TRUE;
 }
 - (void) setSliderValue:(int) value
 {
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
-        [_slider setValue:value];
+        [self->_slider setValue:value];
     }];
 }
 
+-(NSArray *) getAllCollections
+{
+    NSFileManager *filemgr = [NSFileManager defaultManager];
+    NSArray *allCollections = [filemgr contentsOfDirectoryAtPath: _collectionsDirectory error: nil];
+    NSArray *sorted = [allCollections sortedArrayUsingSelector:@selector(compare:)];
+    return sorted;
+}
 - (IBAction) showMediaPicker
 {
 
@@ -82,7 +106,7 @@
     
     [[UIApplication sharedApplication] setStatusBarStyle: UIStatusBarStyleDefault animated:YES];
 
-    [self presentModalViewController: _picker animated: YES];
+    [self presentViewController: _picker animated:YES completion:nil];
 }
 
 - (IBAction)selectSongTapped:(id)sender
@@ -113,13 +137,18 @@
         [popoverTableView hide:YES];
         [self addNewSong];
     }
+    if ([text isEqual:@"Add New Collection"])
+    {
+        [popoverTableView hide:YES];
+        [self addNewSong];
+    }
     if ([text isEqual:@"Add New YouTube Video"])
     {
         [popoverTableView hide:YES];
         [self displayWebLink:@"www.youtube.com"];
 
     }
-    else
+    else if ([popoverTableView.title isEqual:@"Songs"])
     {
         NSString * url = [self getSong:text];
         if (url)
@@ -128,7 +157,12 @@
             [popoverTableView hide:YES];
             [self startNewSong];
         }
-
+    }
+    else if ([popoverTableView.title isEqual:@"Collections"])
+    {
+        _currentCollection = text;
+        _currentCollectionLabel.text = _currentCollection;
+        [popoverTableView hide:YES];
     }
 }
 - (void) addNewSong
@@ -607,13 +641,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         NSString *errorText = @"";
         if (error)
             errorText = error.localizedDescription;
-        NSString *songsDirectory = [NSString stringWithFormat:@"%@/songs",documentsDirectory];
-        NSString *songDB = [NSString stringWithFormat:@"%@/songs/songs.slt",documentsDirectory];
-        _linkDirectory = [NSString stringWithFormat:@"%@/songs/links",documentsDirectory];
+        _collectionsDirectory = [NSString stringWithFormat:@"%@/Collections",documentsDirectory];
+        NSString *songDB = [NSString stringWithFormat:@"%@/%@/songs.slt",_collectionsDirectory,_currentCollection];
+        _linksDirectory = [NSString stringWithFormat:@"%@/%@/links",_collectionsDirectory,_currentCollection];
         if (delete)
-            [NSFileManager.defaultManager removeItemAtPath:songsDirectory
+            [NSFileManager.defaultManager removeItemAtPath:_collectionsDirectory
                                                      error:&error];
-        [NSFileManager.defaultManager createDirectoryAtPath:_linkDirectory
+        [NSFileManager.defaultManager createDirectoryAtPath:_linksDirectory
                                 withIntermediateDirectories:YES
                                                  attributes:nil
                                                       error:&error];
@@ -621,10 +655,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _isOpen = !SQLOK(__FILE__,__LINE__,SQLite_Open(songDB.UTF8String, &_database), _database);
         NSLog(@"Database open");
         
-        long fileSize = (NSInteger)[NSFileManager.defaultManager attributesOfItemAtPath:songDB                                                                  error:nil].fileSize;
+        long fileSize = (NSInteger)[NSFileManager.defaultManager attributesOfItemAtPath:songDB
+                                                                                  error:nil].fileSize;
         
         rtn = TRUE;
-        //if (!fileSize)
+        if (!fileSize)
         {
             rtn = [self createSongsTable];
         }
@@ -635,16 +670,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (BOOL)createSongsTable
 {
     BOOL rtn = TRUE;
-    NSString * cmd = @"DROP TABLE CLIPS;DROP TABLE SONGINFO;DROP TABLE SONGDOCS;";
+    NSString * cmd = @"DROP TABLE CLIPS;DROP TABLE SONGINFO;";
     //rtn = [self executeCmd:cmd];
     
-    cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('ID' INTEGER PRIMARY KEY,'Title' CHAR(256),'StartTime' INT,'EndTime' INT);CREATE INDEX IF NOT EXISTS idx_clips_title ON CLIPS (Title);";
+    cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('ID' INTEGER PRIMARY KEY,'Type' CHAR(16), 'Title' CHAR(256),'StartTime' INT,'EndTime' INT);CREATE INDEX IF NOT EXISTS idx_clips_title ON CLIPS (Type,Title);";
     rtn = [self executeCmd:cmd];
 
-    cmd = @"CREATE TABLE IF NOT EXISTS SONGINFO ('Title' CHAR(256),'URL' CHAR(1024),'Duration' INT,  PRIMARY KEY (Title))";
-    rtn = [self executeCmd:cmd];
-    
-    cmd = @"CREATE TABLE IF NOT EXISTS SONGDOCS ('Title' CHAR(256),'StartTime' INT,'EndTime' INT, 'Type' CHAR(16), 'Location' CHAR(1024), PRIMARY KEY (Title,StartTime,EndTime DESC));";
+    cmd = @"CREATE TABLE IF NOT EXISTS SONGINFO ('Type' CHAR(16), 'Title' CHAR(256),'URL' CHAR(1024),'Duration' INT,  PRIMARY KEY (Type,Title))";
     rtn = [self executeCmd:cmd];
     
     return rtn;
@@ -742,7 +774,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     int rtn = 1;
     NSFileManager *filemgr = [NSFileManager defaultManager];
-    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linkDirectory error: nil];
+    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linksDirectory error: nil];
     NSString *prefixText = [NSString stringWithFormat:@"%i",prefix];
     for (NSString *file in allLinks)
     {
@@ -756,7 +788,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 -(void) displayFileForLink:(int)fileNum
                   numFiles:(int)numFiles
 {
-    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linkDirectory,_currentLinkPrefix,fileNum];
+    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linksDirectory,_currentLinkPrefix,fileNum];
     UIImage *image = [UIImage imageWithContentsOfFile:fileName];
     [_ImageDisplay setImage:image];
     [_priorFileButton setHidden:YES];
@@ -774,7 +806,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     int rtn = 0;
     NSFileManager *filemgr = [NSFileManager defaultManager];
-    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linkDirectory error: nil];
+    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linksDirectory error: nil];
     NSString *prefixText = [NSString stringWithFormat:@"%i",prefix];
     for (NSString *file in allLinks)
     {
@@ -790,7 +822,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     NSString *rtn = nil;
 
     NSFileManager *filemgr = [NSFileManager defaultManager];
-    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linkDirectory error: nil];
+    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linksDirectory error: nil];
     NSString *prefixText = [NSString stringWithFormat:@"%i",prefix];
     NSString *fileInPrefixText = [NSString stringWithFormat:@"%i",fileInPrefix];
     for (NSString *file in allLinks)
@@ -807,7 +839,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)saveImagePicked:(id)sender
 {
     int fileInPrefix = [self getNextFileInPrefix:_currentLinkPrefix];
-    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linkDirectory,_currentLinkPrefix,fileInPrefix];
+    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linksDirectory,_currentLinkPrefix,fileInPrefix];
     [UIImagePNGRepresentation(_currentImage) writeToFile:fileName atomically:YES];
     [_saveImageButton setHidden:YES];
     [_cancelImageButton setHidden:YES];
@@ -825,7 +857,28 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 }
 
-- (IBAction)selectCatalogTapped:(id)sender {
+- (IBAction)selectCollectionTapped:(id)sender {
+{
+        NSMutableArray *optionList = NSMutableArray.array;
+
+        [optionList addObject:@"Add New Collection"];
+        [optionList addObject:@"________________________"];
+        NSArray *collections = [self getAllCollections];
+        for (NSString * name in collections)
+        {
+            [optionList addObject:name];
+        }
+        
+        
+        NVPopoverTableView *nvptv = [NVPopoverTableView showPopoverTableViewInView:self.view
+                                                                          delegate:self
+                                                                             title:@"Collections"
+                                                                         textArray:optionList
+                                                                     includeCancel:YES];
+        nvptv.allowsSubtitle = NO;
+    }
+
+    
 }
 
 - (IBAction)saveYouTubeTapped:(id)sender {
@@ -878,6 +931,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _webView = nil;
     [self showHideStartTime:NO];
     return TRUE;
+//Slow blues https://www.youtube.com/watch?v=g7xM4QD2v2s
 }
 
 -(void) showHideStartTime:(BOOL)showHide

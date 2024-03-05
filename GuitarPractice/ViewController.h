@@ -50,7 +50,6 @@
 @property (weak, nonatomic) IBOutlet UIButton *cancelImageButton;
 @property (weak, nonatomic) IBOutlet UIButton *priorFileButton;
 @property (weak, nonatomic) IBOutlet UIButton *nextFileButton;
-@property (weak, nonatomic) IBOutlet UILabel *currentCatalog;
 @property (weak, nonatomic) IBOutlet UILabel *startTimeTitle;
 @property (weak, nonatomic) IBOutlet UILabel *startTimeMinutesTitle;
 @property (weak, nonatomic) IBOutlet UILabel *startTimeSecondsTitle;
@@ -60,9 +59,10 @@
 @property (weak, nonatomic) IBOutlet UIStepper *startTimeSecondsStepper;
 @property (weak, nonatomic) IBOutlet UIButton *startTimeSaveButton;
 @property (weak, nonatomic) IBOutlet UIButton *startTimeCancelButton;
+@property (weak, nonatomic) IBOutlet UILabel *currentCollectionLabel;
 - (IBAction)startTimeCancelTapped:(id)sender;
 - (IBAction)saveYouTubeTapped:(id)sender;
-- (IBAction)selectCatalogTapped:(id)sender;
+- (IBAction)selectCollectionTapped:(id)sender;
 - (IBAction)nextFileTapped:(id)sender;
 - (IBAction)priorFileTapped:(id)sender;
 - (IBAction)saveImagePicked:(id)sender;
