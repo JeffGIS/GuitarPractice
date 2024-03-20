@@ -10,6 +10,11 @@
 #import "CCodeLibrary/NVPopoverTableView.h"
 #import "CCodeLibrary/StringFunctions.h"
 
+typedef NS_ENUM(NSInteger, SongTypes)
+{
+    SONG,
+    YOUTUBEVIDEO,
+};
 
 @interface ViewController ()
 @property AVAudioSession* audioSession;
@@ -36,6 +41,8 @@
 @property int currentFileNum, currentNumFiles;
 @property NVWebView * webView;
 @property NSString *currentCollection;
+@property NSString * currentYouTubeLink;
+@property SongTypes currentSongType;
 @end
 
 @interface ViewController () <NVPopoverTableViewDelegate, NVWebViewDelegate>
@@ -153,9 +160,17 @@
         NSString * url = [self getSong:text];
         if (url)
         {
-            _currentSongURL = [NSURL URLWithString:url];
             [popoverTableView hide:YES];
-            [self startNewSong];
+            if (_currentSongType == SONG)
+            {
+                _currentSongURL = [NSURL URLWithString:url];
+                [self startNewSong];
+            }
+            else
+            {
+                _currentYouTubeLink = url;
+                [self startNewYouTubeVideo];
+            }
         }
     }
     else if ([popoverTableView.title isEqual:@"Collections"])
@@ -216,6 +231,7 @@
         NSString * url = [_currentSongURL absoluteString];
         [self saveSongURL:url
                  forTitle:_currentSongTitle
+                     ofType:SONG
                  duration:_currentSongDuration];
         [self startNewSong];
 
@@ -224,6 +240,11 @@
     return;
 }
 
+- (void) startNewYouTubeVideo
+{
+    [self displayWebLink:_currentYouTubeLink];
+
+}
 - (void) startNewSong
 {
     _songTitleLable.text = _currentSongTitle;
@@ -271,11 +292,12 @@
 
 - (void) saveSongURL:(NSString *)url
             forTitle:(NSString *)title
+              ofType:(SongTypes)type
             duration:(int)duration
 {
     BOOL opened = [self open];
     NSString *title2 = [title stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
-    NSString *cmd = [NSString stringWithFormat:@"INSERT OR REPLACE INTO SONGINFO (TITLE,URL,DURATION)VALUES('%@','%@',%i)",title2,url,duration];
+    NSString *cmd = [NSString stringWithFormat:@"INSERT OR REPLACE INTO SONGINFO (TITLE,TYPE,URL,DURATION)VALUES('%@',%i,'%@',%i)",title2,type,url,duration];
     [self executeCmd:cmd];
     [self close:opened];
 
@@ -286,7 +308,7 @@
     BOOL opened = [self open];
     NSString * rtn = nil;
     NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
-    NSString *query = [NSString stringWithFormat:@"SELECT Title,URL,Duration FROM SONGINFO WHERE Title > '%@'",title2];
+    NSString *query = [NSString stringWithFormat:@"SELECT Title,Type,URL,Duration FROM SONGINFO WHERE Title > '%@'",title2];
     
     sqlite3_stmt *statement = NULL;
     
@@ -294,10 +316,11 @@
     if (sqlite3_step(statement) == SQLITE_ROW)
     {
         LPSTR title = sqlite3_column_text(statement, 0);
-        LPSTR url = sqlite3_column_text(statement, 1);
+        LPSTR type = sqlite3_column_text(statement, 1);
+        LPSTR url = sqlite3_column_text(statement, 2);
         rtn = [NSString stringWithFormat:@"%s",url];
         _currentSongTitle = [NSString stringWithFormat:@"%s",title];
-        _currentSongDuration = sqlite3_column_int(statement, 2);
+        _currentSongDuration = sqlite3_column_int(statement, 3);
     }
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
 
@@ -313,7 +336,7 @@
     NSString *title2 = [title stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
 
     NSString * rtn = nil;
-    NSString *query = [NSString stringWithFormat:@"SELECT Title,URL,Duration FROM SONGINFO WHERE Title == '%@'",title2];
+    NSString *query = [NSString stringWithFormat:@"SELECT Title,Type, URL,Duration FROM SONGINFO WHERE Title = '%@'",title2];
     
     sqlite3_stmt *statement = NULL;
     
@@ -321,10 +344,11 @@
     if (sqlite3_step(statement) == SQLITE_ROW)
     {
         LPSTR title = sqlite3_column_text(statement, 0);
-        LPSTR url = sqlite3_column_text(statement, 1);
+        _currentSongType = sqlite3_column_int(statement, 1);
+        LPSTR url = sqlite3_column_text(statement, 2);
         rtn = [NSString stringWithFormat:@"%s",url];
         _currentSongTitle = [NSString stringWithFormat:@"%s",title];
-        _currentSongDuration = sqlite3_column_int(statement, 2);
+        _currentSongDuration = sqlite3_column_int(statement, 3);
 
     }
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
@@ -673,10 +697,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     NSString * cmd = @"DROP TABLE CLIPS;DROP TABLE SONGINFO;";
     //rtn = [self executeCmd:cmd];
     
-    cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('ID' INTEGER PRIMARY KEY,'Type' CHAR(16), 'Title' CHAR(256),'StartTime' INT,'EndTime' INT);CREATE INDEX IF NOT EXISTS idx_clips_title ON CLIPS (Type,Title);";
+    cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('ID' INTEGER PRIMARY KEY,'Title' CHAR(256),'Type' INT,'StartTime' INT,'EndTime' INT, 'URL' CHAR(256));CREATE INDEX IF NOT EXISTS idx_clips_title ON CLIPS (Title,StartTime);";
     rtn = [self executeCmd:cmd];
 
-    cmd = @"CREATE TABLE IF NOT EXISTS SONGINFO ('Type' CHAR(16), 'Title' CHAR(256),'URL' CHAR(1024),'Duration' INT,  PRIMARY KEY (Type,Title))";
+    cmd = @"CREATE TABLE IF NOT EXISTS SONGINFO ('Title' CHAR(256),'Type' INT,'URL' CHAR(1024),'Duration' INT,  PRIMARY KEY (Title))";
     rtn = [self executeCmd:cmd];
     
     return rtn;
@@ -883,14 +907,22 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (IBAction)saveYouTubeTapped:(id)sender {
     
-    [self showHideStartTime:YES];
+    [self showHideStartTime:NO
+                   withName:YES];
+
     int startTimeMinutes = _startTimeMinutesInput.text.intValue;
     int startTimeSeconds = _startTimeSecondsInput.text.intValue;
+    NSString *linkName = _linkName.text;
+    [self saveSongURL:_currentYouTubeLink 
+             forTitle:linkName
+               ofType:YOUTUBEVIDEO
+             duration:0];
     return;
 }
 
 - (IBAction)startTimeCancelTapped:(id)sender {
-    [self showHideStartTime:YES];
+    [self showHideStartTime:NO
+                   withName:YES];
 }
 - (void)imagePickerController:(UIImagePickerController *)picker
 didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> *)info
@@ -929,13 +961,16 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
 {
     [_webView setURL:@""];
     _webView = nil;
-    [self showHideStartTime:NO];
+    [self showHideStartTime:YES withName:YES];
+    _currentYouTubeLink = linktext;
     return TRUE;
 //Slow blues https://www.youtube.com/watch?v=g7xM4QD2v2s
 }
 
 -(void) showHideStartTime:(BOOL)showHide
+                 withName:(BOOL)withName
 {
+    showHide = !showHide;
     [_startTimeTitle setHidden:showHide];
     [_startTimeMinutesTitle setHidden:showHide];
     [_startTimeSecondsTitle setHidden:showHide];
@@ -945,6 +980,10 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     [_startTimeSecondsStepper setHidden:showHide];
     [_startTimeSaveButton setHidden:showHide];
     [_startTimeCancelButton setHidden:showHide];
-
+    if (withName)
+    {
+        [_linkNameLabel setHidden:showHide];
+        [_linkName setHidden:showHide];
+    }
 }
 @end

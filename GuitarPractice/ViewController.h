@@ -60,6 +60,8 @@
 @property (weak, nonatomic) IBOutlet UIButton *startTimeSaveButton;
 @property (weak, nonatomic) IBOutlet UIButton *startTimeCancelButton;
 @property (weak, nonatomic) IBOutlet UILabel *currentCollectionLabel;
+@property (weak, nonatomic) IBOutlet UITextField *linkName;
+@property (weak, nonatomic) IBOutlet UILabel *linkNameLabel;
 - (IBAction)startTimeCancelTapped:(id)sender;
 - (IBAction)saveYouTubeTapped:(id)sender;
 - (IBAction)selectCollectionTapped:(id)sender;
