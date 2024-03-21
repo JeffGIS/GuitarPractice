@@ -1,0 +1,7 @@
+# Uncomment the next line to define a global platform for your project
+platform :ios, '12.0'
+workspace 'AllProjects'
+  project 'GuitarPractice' do
+  pod "youtube-ios-player-helper", "~> 1.0.4"
+end
+

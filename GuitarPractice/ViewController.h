@@ -11,8 +11,9 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AudioToolbox/AudioToolbox.h>
 #import "CCodeLibrary/CCodeLibrary.h"
+#import "YTPlayerView.h"
 
-@interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,UIImagePickerControllerDelegate>
+@interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate>
 
 @property int currentSegment;
 @property NSTimer *timer;
@@ -62,6 +63,7 @@
 @property (weak, nonatomic) IBOutlet UILabel *currentCollectionLabel;
 @property (weak, nonatomic) IBOutlet UITextField *linkName;
 @property (weak, nonatomic) IBOutlet UILabel *linkNameLabel;
+@property(nonatomic, strong) IBOutlet YTPlayerView *playerView;
 - (IBAction)startTimeCancelTapped:(id)sender;
 - (IBAction)saveYouTubeTapped:(id)sender;
 - (IBAction)selectCollectionTapped:(id)sender;

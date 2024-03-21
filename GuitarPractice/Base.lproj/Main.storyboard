@@ -171,7 +171,7 @@
                                     <action selector="selectYouTubeVideo:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Afc-17-Mva"/>
                                 </connections>
                             </button>
-                            <imageView clipsSubviews="YES" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ooX-6g-nCp">
+                            <imageView hidden="YES" clipsSubviews="YES" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ooX-6g-nCp">
                                 <rect key="frame" x="422" y="84" width="944" height="932"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -290,6 +290,11 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <view hidden="YES" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7PG-09-qi4" customClass="YTPlayerView">
+                                <rect key="frame" x="422" y="84" width="944" height="940"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                            </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -309,6 +314,7 @@
                         <outlet property="nextSegmentButton" destination="shT-IL-a1e" id="uz5-4i-6QS"/>
                         <outlet property="playButton" destination="aNh-oE-4vz" id="U8h-oF-Wky"/>
                         <outlet property="playSegmentButton" destination="8yo-k7-dwi" id="USo-yG-kEd"/>
+                        <outlet property="playerView" destination="7PG-09-qi4" id="dh0-LJ-Rov"/>
                         <outlet property="priorFileButton" destination="WBG-Bh-6JV" id="x0h-0J-Dyz"/>
                         <outlet property="priorSegmentButton" destination="Tlp-15-wAG" id="Z2W-3F-sOB"/>
                         <outlet property="saveButton" destination="CrY-BU-Nyf" id="qrp-Ig-SIF"/>
@@ -335,6 +341,9 @@
         </scene>
     </scenes>
     <resources>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
         <systemColor name="systemGray2Color">
             <color red="0.68235294120000001" green="0.68235294120000001" blue="0.69803921570000005" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
