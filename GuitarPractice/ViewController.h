@@ -64,6 +64,10 @@
 @property (weak, nonatomic) IBOutlet UITextField *linkName;
 @property (weak, nonatomic) IBOutlet UILabel *linkNameLabel;
 @property(nonatomic, strong) IBOutlet YTPlayerView *playerView;
+@property (weak, nonatomic) IBOutlet UITextField *linkURLField;
+@property (weak, nonatomic) IBOutlet UILabel *linkURLLabel;
+@property (weak, nonatomic) IBOutlet UIButton *markStartButton;
+- (IBAction)markStartTapped:(id)sender;
 - (IBAction)startTimeCancelTapped:(id)sender;
 - (IBAction)saveYouTubeTapped:(id)sender;
 - (IBAction)selectCollectionTapped:(id)sender;
