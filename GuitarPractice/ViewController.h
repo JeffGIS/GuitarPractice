@@ -67,6 +67,13 @@
 @property (weak, nonatomic) IBOutlet UITextField *linkURLField;
 @property (weak, nonatomic) IBOutlet UILabel *linkURLLabel;
 @property (weak, nonatomic) IBOutlet UIButton *markStartButton;
+@property (weak, nonatomic) IBOutlet UIButton *pasteURLButton;
+@property (weak, nonatomic) IBOutlet UIButton *gotoYouTubeButton;
+@property (weak, nonatomic) IBOutlet UILabel *sliderTextLabel;
+@property (weak, nonatomic) IBOutlet UIButton *continueButton;
+- (IBAction)continueTapped:(id)sender;
+- (IBAction)gotoYouTubeTapped:(id)sender;
+- (IBAction)pasteURLTapped:(id)sender;
 - (IBAction)markStartTapped:(id)sender;
 - (IBAction)startTimeCancelTapped:(id)sender;
 - (IBAction)saveYouTubeTapped:(id)sender;
