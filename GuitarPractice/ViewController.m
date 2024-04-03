@@ -370,6 +370,12 @@ typedef NS_ENUM(NSInteger, SongTypes)
 - (IBAction)continueTapped:(id)sender {
     [self.playerView playVideo];
 }
+
+- (IBAction)stepAheadTapped:(id)sender {
+}
+
+- (IBAction)stepBackTapped:(id)sender {
+}
 - (void) startNewSong
 {
     _songTitleLable.text = _currentSongTitle;
@@ -680,6 +686,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 
 - (IBAction)loopSegmentTapped:(id)sender {
+    if (_currentSegment >= 0 && _beginTimes.count > _currentSegment)
+    {
+        _beginTime = (int)_beginTimes[_currentSegment].integerValue/10.0;
+        _endTime = (int)_endTimes[_currentSegment].integerValue/10.0;
+    }
     _inLoop = YES;
     if (_currentSongType == SONG)
     {

@@ -71,6 +71,10 @@
 @property (weak, nonatomic) IBOutlet UIButton *gotoYouTubeButton;
 @property (weak, nonatomic) IBOutlet UILabel *sliderTextLabel;
 @property (weak, nonatomic) IBOutlet UIButton *continueButton;
+@property (weak, nonatomic) IBOutlet UIButton *stepAheadButton;
+@property (weak, nonatomic) IBOutlet UIButton *stepBackButton;
+- (IBAction)stepBackTapped:(id)sender;
+- (IBAction)stepAheadTapped:(id)sender;
 - (IBAction)continueTapped:(id)sender;
 - (IBAction)gotoYouTubeTapped:(id)sender;
 - (IBAction)pasteURLTapped:(id)sender;
