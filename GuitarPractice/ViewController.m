@@ -103,7 +103,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
                        ofType:YOUTUBEVIDEO
                      duration:self.currentSongDuration
                     startTime:self.currentYTTime];
-            [self retrieveSong:self.YouTubeName];
+            [self retrieveSong:self.YouTubeName setTimes:YES];
             self.slider.maximumValue = self.currentSongDuration;
             self.slider.minimumValue = 0;
 
@@ -368,6 +368,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 
 - (IBAction)continueTapped:(id)sender {
+    [self.playerView playVideo];
 }
 - (void) startNewSong
 {
@@ -401,7 +402,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _saveButton.enabled=YES;
     _selectPhotoButton.enabled=YES;
     _selectYouTubeVideoButton.enabled=YES;
-    [self retrieveSong:_currentSongTitle];
+    [self retrieveSong:_currentSongTitle setTimes:YES];
     [self playTapped:nil];
 
 }
@@ -528,7 +529,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_endTimes addObject:eTime];
     [_beginTimes addObject:bTime];
     _currentSegment = (int)_endTimes.count - 1;
-    [self setCurrentPositiion:NO];
     BOOL opened = [self open];
     NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
 
@@ -551,6 +551,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 
     [self close:opened];
     _beginTime = _endTime;
+    [self retrieveSong:title2 setTimes:NO];
  
 }
 
@@ -561,7 +562,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     if (!_endTimes.count)
         label = @"";
     [_currentPositionLabel setText:label];
-    if (doPlay)
+    
     {
         [self setSliderValue:_beginTime];
         if (_currentSongType == SONG)
@@ -571,13 +572,15 @@ typedef NS_ENUM(NSInteger, SongTypes)
             if (_timer)
                 [_timer invalidate];
             _timer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
-            [_appSoundPlayer play];
+            if (doPlay)
+                [_appSoundPlayer play];
         }
         else
         {
             [self.playerView pauseVideo];
             [self.playerView seekToSeconds:_beginTime allowSeekAhead:YES];
-            [self.playerView playVideo];
+            if (doPlay)
+                [self.playerView playVideo];
         }
     }
 }
@@ -628,13 +631,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)stopTapped:(id)sender {
     if (_timer)
         [_timer invalidate];
-    _inLoop = NO;
+    //_inLoop = NO;
     if (_currentSongType == SONG)
         [_appSoundPlayer stop];
     else
         [_playerView pauseVideo];
-    [_loopSegmentButton setSelected:NO];
-    [_playSegmentButton setSelected:NO];
+    //[_loopSegmentButton setSelected:NO];
+    //[_playSegmentButton setSelected:NO];
 
 }
 
@@ -869,7 +872,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                                                                                   error:nil].fileSize;
         
         rtn = TRUE;
-        if (!fileSize)
+        //if (!fileSize)
         {
             rtn = [self createSongsTable];
         }
@@ -880,9 +883,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (BOOL)createSongsTable
 {
     BOOL rtn = TRUE;
-    NSString * cmd = @"DROP TABLE CLIPS;DROP TABLE SONGINFO;";
+    NSString * cmd = @"DROP TABLE CLIPS;";
     //rtn = [self executeCmd:cmd];
-    
+    cmd = @"DROP TABLE SONGINFO;";
+    //rtn = [self executeCmd:cmd];
+
     cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('ID' INTEGER PRIMARY KEY,'Title' CHAR(256),'Type' INT,'StartTime' INT,'EndTime' INT, 'URL' CHAR(256));CREATE INDEX IF NOT EXISTS idx_clips_title ON CLIPS (Title,StartTime);";
     rtn = [self executeCmd:cmd];
 
@@ -911,6 +916,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 
 - (void) retrieveSong:(NSString*)title
+             setTimes:(BOOL)setTime
 {
     BOOL opened = [self open];
     NSString *title2 = [title stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
@@ -938,18 +944,26 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
 
     [self close:opened];
-    _currentSegment = 0;
-    if (_linkPrefixes.count > 0)
-        _currentLinkPrefix = _linkPrefixes[0].intValue;
-    else
-        _currentLinkPrefix = 0;
-    _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
-    if (_numFilesForCurrentLink > 0)
-        [self displayFileForLink:_linkPrefixes[0].intValue
-                        numFiles:_numFilesForCurrentLink];
-
-
-    [self setCurrentPositiion:NO];
+    if (setTime)
+    {
+        _currentSegment = 0;
+        if (_beginTimes.count)
+        {
+            _beginTime = (int)_beginTimes[0].integerValue/10.0;
+            _endTime = (int)_endTimes[0].integerValue/10.0;
+        }
+        
+        if (_linkPrefixes.count > 0)
+            _currentLinkPrefix = _linkPrefixes[0].intValue;
+        else
+            _currentLinkPrefix = 0;
+        _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
+        if (_numFilesForCurrentLink > 0)
+            [self displayFileForLink:_linkPrefixes[0].intValue
+                            numFiles:_numFilesForCurrentLink];
+        
+        [self setCurrentPositiion:NO];
+    }
 }
 - (IBAction)sliderExit:(id)sender {
     _beginTime = _slider.value;
@@ -1145,7 +1159,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _stopButton.enabled=YES;
     _saveButton.enabled=YES;
     _YouTubeName = _currentSongTitle;
-    [self retrieveSong:_currentSongTitle];
+    [self retrieveSong:_currentSongTitle   setTimes:YES];
     [_playerView setHidden:NO];
     link = textAfterLastChar(link, @"/");
     NSString *subLink = textBefore(link, @"=");
