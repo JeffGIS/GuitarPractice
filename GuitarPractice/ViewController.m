@@ -49,6 +49,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property float currentYTTime;
 @property BOOL startingNewVideo;
 @property BOOL startingExistingVideo;
+@property int clipEditStatus;
 @end
 
 @interface ViewController () <NVPopoverTableViewDelegate, NVWebViewDelegate>
@@ -157,6 +158,12 @@ typedef NS_ENUM(NSInteger, SongTypes)
     }];
 }
 
+-(void) setSliderRange
+{
+    NSString * sliderText = [NSString stringWithFormat:@"%.1f to %.1f",_beginTime,_endTime];
+    [_sliderTextLabel setText:sliderText];
+
+}
 -(NSArray *) getAllCollections
 {
     NSFileManager *filemgr = [NSFileManager defaultManager];
@@ -372,9 +379,129 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 
 - (IBAction)stepAheadTapped:(id)sender {
+    switch (_clipEditStatus)
+    {
+        case 2:
+            _beginTime += 0.1;
+            break;
+        case 3:
+            _endTime += 0.1;
+            break;
+    }
+    [self setSliderRange];
 }
 
 - (IBAction)stepBackTapped:(id)sender {
+    switch (_clipEditStatus)
+    {
+        case 2:
+            _beginTime -= 0.1;
+            break;
+        case 3:
+            _endTime -= 0.1;
+            break;
+    }
+    [self setSliderRange];
+}
+- (IBAction)markBeginTapped:(id)sender {
+    if (_clipEditStatus > 0)
+    {
+        [_stepBackButton setHidden:NO];
+        [_stepAheadButton setHidden:NO];
+        _clipEditStatus = 2;
+    }
+    else
+    {
+        if (_currentSongType == SONG)
+            _beginTime = _appSoundPlayer.currentTime;
+        else
+            _beginTime = _currentYTTime;
+    }
+}
+- (IBAction)markEndTapped:(id)sender
+{
+    if (_clipEditStatus > 0)
+        if (_clipEditStatus > 0)
+        {
+            [_stepBackButton setHidden:NO];
+            [_stepAheadButton setHidden:NO];
+            _clipEditStatus = 3;
+        }
+        else
+        {
+            
+            _currentLinkPrefix = -1;
+            if (_currentSongType == SONG)
+                _endTime = _appSoundPlayer.currentTime;
+            else
+                _endTime = _currentYTTime;
+            NSNumber *bTime = [NSNumber numberWithInt:_beginTime];
+            NSNumber *eTime = [NSNumber numberWithInt:_endTime];
+            [_endTimes addObject:eTime];
+            [_beginTimes addObject:bTime];
+            _currentSegment = (int)_endTimes.count - 1;
+            BOOL opened = [self open];
+            NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+            
+            NSString *cmd = [NSString stringWithFormat:@"INSERT INTO CLIPS (TITLE,STARTTIME,ENDTIME) VALUES('%@',%i,%i)",title2,IDNINT(10*_beginTime),IDNINT(10*_endTime)];
+            [self executeCmd:cmd];
+            NSString *query = [NSString stringWithFormat:@"SELECT ID FROM CLIPS WHERE Title = '%@' AND STARTTIME = %i AND ENDTIME = %i",title2,IDNINT(10*_beginTime),IDNINT(10*_endTime)];
+            
+            sqlite3_stmt *statement = NULL;
+            
+            SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
+            if (sqlite3_step(statement) == SQLITE_ROW)
+            {
+                _currentLinkPrefix = sqlite3_column_int(statement, 0);
+                NSNumber *linkPrefix = [NSNumber numberWithInt:_currentLinkPrefix];
+                [_linkPrefixes addObject:linkPrefix];
+                _numFilesForCurrentLink = 0;
+                
+            }
+            SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
+            
+            [self close:opened];
+            _beginTime = _endTime;
+            [self retrieveSong:title2 setTimes:NO];
+        }
+}
+
+
+- (IBAction)saveTapped:(id)sender {
+    _clipEditStatus = 0;
+    _beginButton.titleLabel.text = @"Mark Begin";
+    _endButton.titleLabel.text = @"Mark End";
+}
+
+- (IBAction)cancelEditTapped:(id)sender {
+    _clipEditStatus = 0;
+    _beginButton.titleLabel.text = @"Mark Begin";
+    _endButton.titleLabel.text = @"Mark End";
+
+}
+
+- (IBAction)clipButtonTapped:(id)sender {
+    switch (_clipEditStatus)
+    {
+        case 0:
+            _beginButton.titleLabel.text = @"Change Begin";
+            _endButton.titleLabel.text = @"Change End";
+            [_beginButton setEnabled:YES];
+            [_endButton setEnabled:YES];
+            if (_currentSongType == SONG)
+            {
+                [_appSoundPlayer stop];
+                _appSoundPlayer.currentTime = 0;
+                [self setCurrentPositiion:YES];
+            }
+            else
+            {
+                [self.playerView pauseVideo];
+                [self setSliderRange];
+            }
+            _clipEditStatus = 1;
+            break;
+    }
 }
 - (void) startNewSong
 {
@@ -523,51 +650,13 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [self close:opened];
     return;
 }
-- (IBAction)markEndTapped:(id)sender
-{
-    _currentLinkPrefix = -1;
-    if (_currentSongType == SONG)
-        _endTime = _appSoundPlayer.currentTime;
-    else
-        _endTime = _currentYTTime;
-    NSNumber *bTime = [NSNumber numberWithInt:_beginTime];
-    NSNumber *eTime = [NSNumber numberWithInt:_endTime];
-    [_endTimes addObject:eTime];
-    [_beginTimes addObject:bTime];
-    _currentSegment = (int)_endTimes.count - 1;
-    BOOL opened = [self open];
-    NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
-
-    NSString *cmd = [NSString stringWithFormat:@"INSERT INTO CLIPS (TITLE,STARTTIME,ENDTIME) VALUES('%@',%i,%i)",title2,IDNINT(10*_beginTime),IDNINT(10*_endTime)];
-    [self executeCmd:cmd];
-    NSString *query = [NSString stringWithFormat:@"SELECT ID FROM CLIPS WHERE Title = '%@' AND STARTTIME = %i AND ENDTIME = %i",title2,IDNINT(10*_beginTime),IDNINT(10*_endTime)];
-    
-    sqlite3_stmt *statement = NULL;
-    
-    SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
-    if (sqlite3_step(statement) == SQLITE_ROW)
-    {
-        _currentLinkPrefix = sqlite3_column_int(statement, 0);
-        NSNumber *linkPrefix = [NSNumber numberWithInt:_currentLinkPrefix];
-        [_linkPrefixes addObject:linkPrefix];
-        _numFilesForCurrentLink = 0;
-
-    }
-    SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
-
-    [self close:opened];
-    _beginTime = _endTime;
-    [self retrieveSong:title2 setTimes:NO];
- 
-}
-
 -(void) setCurrentPositiion:(BOOL)doPlay
 {
     int seconds = IDNINT(_endTime - _beginTime);
     NSString * label = [NSString stringWithFormat:@"%i of %i\n%i seconds",_currentSegment+1,(int)_endTimes.count,seconds];
     if (!_endTimes.count)
         label = @"";
-    [_currentPositionLabel setText:label];
+    [_clipButton.titleLabel setText:label];
     
     {
         [self setSliderValue:_beginTime];
@@ -597,12 +686,6 @@ long ConvertCoord (LPDPOINT DPoint, int from, int to)
 int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     return 0;
-}
-- (IBAction)markBeginTapped:(id)sender {
-    if (_currentSongType == SONG)
-        _beginTime = _appSoundPlayer.currentTime;
-    else
-        _beginTime = _currentYTTime;
 }
 
 - (IBAction)playSegmentTapped:(id)sender {
@@ -645,9 +728,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     //[_loopSegmentButton setSelected:NO];
     //[_playSegmentButton setSelected:NO];
 
-}
-
-- (IBAction)saveTapped:(id)sender {
 }
 
 - (IBAction)priorSegmentTapped:(id)sender {

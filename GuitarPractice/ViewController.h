@@ -73,6 +73,10 @@
 @property (weak, nonatomic) IBOutlet UIButton *continueButton;
 @property (weak, nonatomic) IBOutlet UIButton *stepAheadButton;
 @property (weak, nonatomic) IBOutlet UIButton *stepBackButton;
+@property (weak, nonatomic) IBOutlet UIButton *clipButton;
+@property (weak, nonatomic) IBOutlet UIButton *cancelEditButton;
+- (IBAction)clipButtonTapped:(id)sender;
+- (IBAction)cancelEditTapped:(id)sender;
 - (IBAction)stepBackTapped:(id)sender;
 - (IBAction)stepAheadTapped:(id)sender;
 - (IBAction)continueTapped:(id)sender;
