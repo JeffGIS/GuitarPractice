@@ -375,7 +375,15 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 
 - (IBAction)continueTapped:(id)sender {
-    [self.playerView playVideo];
+    switch (_currentSongType)
+    {
+        case SONG:
+            [_appSoundPlayer play];
+            break;
+        case YOUTUBEVIDEO:
+            [self.playerView playVideo];
+            break;
+    }
 }
 
 - (IBAction)stepAheadTapped:(id)sender {
@@ -711,6 +719,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (void)checkTime:(NSTimer*)timer
 {
     [self setSliderValue:_appSoundPlayer.currentTime];
+    
     if (_inLoop && _appSoundPlayer.currentTime >= _endTime)
     {
         [timer invalidate];
