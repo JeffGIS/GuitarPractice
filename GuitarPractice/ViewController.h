@@ -15,12 +15,6 @@
 
 @interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate>
 
-@property int currentSegment;
-@property NSTimer *timer;
-@property sqlite3nv *database;
-@property (atomic) BOOL isOpen;
-@property BOOL inLoop;
-
 
 - (IBAction)selectSongTapped:(id)sender;
 @property (weak, nonatomic) IBOutlet UILabel *songTitleLable;
@@ -75,6 +69,11 @@
 @property (weak, nonatomic) IBOutlet UIButton *stepBackButton;
 @property (weak, nonatomic) IBOutlet UIButton *clipButton;
 @property (weak, nonatomic) IBOutlet UIButton *cancelEditButton;
+@property (weak, nonatomic) IBOutlet UIButton *changeBeginButton;
+@property (weak, nonatomic) IBOutlet UIButton *changeEndButton;
+@property (weak, nonatomic) IBOutlet UILabel *numClipsLabel;
+- (IBAction)changeEndTapped:(id)sender;
+- (IBAction)changeBeginTapped:(id)sender;
 - (IBAction)clipButtonTapped:(id)sender;
 - (IBAction)cancelEditTapped:(id)sender;
 - (IBAction)stepBackTapped:(id)sender;
