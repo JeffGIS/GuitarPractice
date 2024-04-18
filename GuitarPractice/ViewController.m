@@ -81,8 +81,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _beginTime = 86;
     [_currentPositionLabel setText:@""];
     [self setSliderValue:0];
-    _currentCollection = @"Songs";
-    _currentCollectionLabel.text = _currentCollection;
     _currentSongTitle = @"";
     BOOL opened = [self open];
     [self close:opened];
@@ -91,6 +89,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [self createCollection:@"Acoustic Guitar"];
     [self createCollection:@"Base Guitar"];
     [self createCollection:@"Ukulele"];
+    [self createCollection:@"Songs"];
+    _currentCollectionLabel.text = _currentCollection;
+
     self.playerView.delegate = self;
 }
 - (void)playerView:(nonnull YTPlayerView *)playerView didPlayTime:(float)playTime
@@ -115,8 +116,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
             self.slider.minimumValue = 0;
 
         }
-        NSString *title = [NSString stringWithFormat:@"%@\n%.1f seconds",self.YouTubeName,(float)self.currentSongDuration];
-        self.songTitleLable.text = self.YouTubeName;
+        self.currentSongTitle = self.YouTubeName;
+        [self updateSongLabel];
    }];
     if (_inLoop && playTime > _endTime)
     {
@@ -168,6 +169,10 @@ typedef NS_ENUM(NSInteger, SongTypes)
 {
     NSString * sliderText = [NSString stringWithFormat:@"%.1f to %.1f",_beginTime,_endTime];
     [_sliderTextLabel setText:sliderText];
+    [NSOperationQueue.mainQueue addOperationWithBlock:^{
+        [self->_sliderTextLabel setText:sliderText];
+    }];
+
 
 }
 -(NSArray *) getAllCollections
@@ -336,16 +341,13 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _beginTimes = NSMutableArray.new;
     _endTimes = NSMutableArray.new;
     _linkPrefixes = NSMutableArray.new;
-    _currentSegment = 0;
+    _currentSegment = -1;
     _playButton.enabled=YES;
     _beginButton.enabled=YES;
     _endButton.enabled=YES;
-    _playSegmentButton.enabled=YES;
-    _loopSegmentButton.enabled=YES;
-    _nextSegmentButton.enabled=YES;
-    _priorSegmentButton.enabled=YES;
+    [self updateClipButtons];
     _stopButton.enabled=YES;
-    _saveButton.enabled=YES;
+    [_saveButton setEnabled:NO];
     _currentSongType = YOUTUBEVIDEO;
     _startingNewVideo = YES;
     if ([self displayYouTubeVideo:URL])
@@ -385,6 +387,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     {
         case SONG:
             [_appSoundPlayer play];
+            [_timer invalidate];
             _timer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
             break;
         case YOUTUBEVIDEO:
@@ -414,6 +417,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
             _endTime += 0.1;
             break;
     }
+    [_saveButton setEnabled:YES];
+
     [self setSliderRange];
 }
 
@@ -427,6 +432,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
             _endTime -= 0.1;
             break;
     }
+    [_saveButton setEnabled:YES];
+
     [self setSliderRange];
 }
 - (IBAction)markBeginTapped:(id)sender {
@@ -470,7 +477,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [self close:opened];
     _beginTime = _endTime;
     [self retrieveSong:title2 setTimes:NO];
-    
+    [self updateNumClipsLabel];
+
 }
 
 
@@ -480,6 +488,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_endButton setHidden:NO];
     [_changeEndButton setHidden:YES];
     [_changeBeginButton setHidden:YES];
+    [_saveButton setEnabled:NO];
+    [_cancelEditButton setEnabled:NO];
     BOOL opened = [self open];
     NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
     
@@ -495,20 +505,25 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_endButton setHidden:NO];
     [_changeEndButton setHidden:YES];
     [_changeBeginButton setHidden:YES];
+    [_saveButton setEnabled:NO];
+    [_cancelEditButton setEnabled:NO];
 
 }
 
 - (IBAction)clipButtonTapped:(id)sender {
     [_timer invalidate];
+    _timer = nil;
     [_beginButton setHidden:YES];
     [_endButton setHidden:YES];
     [_changeEndButton setHidden:NO];
     [_changeBeginButton setHidden:NO];
+    [_cancelEditButton setEnabled:YES];
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer pause];
         _appSoundPlayer.currentTime = 0;
         [self setCurrentPositiion:NO];
+        [self setSliderRange];
     }
     else
     {
@@ -521,7 +536,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 
 - (void) startNewSong
 {
-    _songTitleLable.text = _currentSongTitle;
+    [self updateSongLabel];
 
     AVAudioPlayer *newPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL: _currentSongURL error:nil];
      _appSoundPlayer = newPlayer;
@@ -539,16 +554,13 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _beginTimes = NSMutableArray.new;
     _endTimes = NSMutableArray.new;
     _linkPrefixes = NSMutableArray.new;
-    _currentSegment = 0;
+    _currentSegment = -1;
     _playButton.enabled=YES;
     _beginButton.enabled=YES;
     _endButton.enabled=YES;
-    _playSegmentButton.enabled=YES;
-    _loopSegmentButton.enabled=YES;
-    _nextSegmentButton.enabled=YES;
-    _priorSegmentButton.enabled=YES;
+    [self updateClipButtons];
     _stopButton.enabled=YES;
-    _saveButton.enabled=YES;
+    [_saveButton setEnabled:NO];
     _selectPhotoButton.enabled=YES;
     _selectYouTubeVideoButton.enabled=YES;
     [self retrieveSong:_currentSongTitle setTimes:YES];
@@ -570,12 +582,10 @@ typedef NS_ENUM(NSInteger, SongTypes)
     {
         [self.playerView pauseVideo];
         [self.playerView seekToSeconds:_currentSongStartTime allowSeekAhead:YES];
-        [self.playerView playVideo];
-
     }
     [_loopSegmentButton setSelected:NO];
     [_playSegmentButton setSelected:NO];
-
+    [self continueTapped:nil];
 }
 
 - (void) saveSongURL:(NSString *)url
@@ -637,7 +647,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
         LPSTR url = (LPSTR)sqlite3_column_text(statement, 2);
         rtn = [NSString stringWithFormat:@"%s",url];
         _currentSongTitle = [NSString stringWithFormat:@"%s",title];
-        _songTitleLable.text = _currentSongTitle;
+        [self updateSongLabel];
         _currentSongDuration = sqlite3_column_int(statement, 3);
         _currentSongStartTime = sqlite3_column_int(statement, 4);
 
@@ -671,11 +681,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 {
     int seconds = IDNINT(_endTime - _beginTime);
     NSString *labelText;
-    if (_endTimes.count == 0)
-    {
-        labelText = @"";
-    }
-    else
+    labelText = @"";
+    if (_currentSegment > -1)
     {
         labelText = [NSString stringWithFormat:@"Clip %i of %lu",_currentSegment+1,(unsigned long)_endTimes.count];
     }
@@ -716,24 +723,24 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     {
         [_appSoundPlayer stop];
         _appSoundPlayer.currentTime = _beginTime;
-        [_appSoundPlayer play];
     }
     else
     {
         [self.playerView pauseVideo];
         [self.playerView seekToSeconds:_beginTime allowSeekAhead:YES];
-        [self.playerView playVideo];
     }
     if (_timer)
         [_timer invalidate];
     _timer = nil;
     [_loopSegmentButton setSelected:NO];
     [_playSegmentButton setSelected:YES];
+    [self continueTapped:nil];
 }
 - (void)checkTime:(NSTimer*)timer
 {
+    if (!_timer)
+        return;
     [self setSliderValue:_appSoundPlayer.currentTime];
-    
     if (_inLoop && _appSoundPlayer.currentTime >= _endTime)
     {
         [timer invalidate];
@@ -752,7 +759,26 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     //[_playSegmentButton setSelected:NO];
 
 }
-
+-(void) updateClipButtons
+{
+    [_priorSegmentButton setEnabled:NO];
+    [_nextSegmentButton setEnabled:NO];
+    [_playSegmentButton setEnabled:NO];
+    [_loopSegmentButton setEnabled:NO];
+    if (_currentSegment < 0)
+    {
+        [_nextSegmentButton setEnabled:YES];
+    }
+    else
+    {
+        [_playSegmentButton setEnabled:YES];
+        [_loopSegmentButton setEnabled:YES];
+        if (_currentSegment > 0)
+            [_priorSegmentButton setEnabled:YES];
+        if (_currentSegment < _beginTimes.count -1)
+            [_nextSegmentButton setEnabled:YES];
+    }
+}
 - (IBAction)priorSegmentTapped:(id)sender {
     if (_currentSegment > 0)
     {
@@ -764,8 +790,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
         [self setCurrentPositiion:YES];
         if (_numFilesForCurrentLink > 0)
-            [self displayFileForLink:_linkPrefixes[0].intValue
+            [self displayFileForLink:_currentLinkPrefix
                             numFiles:_numFilesForCurrentLink];
+        else
+            [_ImageDisplay setHidden:YES];
+        [self updateClipButtons];
         [self playSegmentTapped:nil];
     }
 }
@@ -784,9 +813,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
         [self setCurrentPositiion:YES];
         if (_numFilesForCurrentLink > 0)
-            [self displayFileForLink:_linkPrefixes[0].intValue
+            [self displayFileForLink:_currentLinkPrefix
                             numFiles:_numFilesForCurrentLink];
-        [self playSegmentTapped:nil];
+        else
+            [_ImageDisplay setHidden:YES];
+       [self updateClipButtons];
+       [self playSegmentTapped:nil];
 
     }
 }
@@ -1063,7 +1095,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self close:opened];
     if (setTime)
     {
-        _currentSegment = 0;
+        _currentSegment = -1;
         if (_beginTimes.count)
         {
             _beginTime = (int)_beginTimes[0].integerValue/10.0;
@@ -1078,11 +1110,15 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         if (_numFilesForCurrentLink > 0)
             [self displayFileForLink:_linkPrefixes[0].intValue
                             numFiles:_numFilesForCurrentLink];
-        NSString * clipText = [NSString stringWithFormat:@"%i seconds:%lu clips",_currentSongDuration,(unsigned long)_beginTimes.count];
-        [_numClipsLabel setText:clipText];
-
+        [self updateNumClipsLabel];
         [self setCurrentPositiion:NO];
     }
+}
+-(void) updateNumClipsLabel
+{
+    NSString * clipText = [NSString stringWithFormat:@"%i seconds: %lu clips",_currentSongDuration,(unsigned long)_beginTimes.count];
+    [_numClipsLabel setText:clipText];
+
 }
 - (IBAction)sliderExit:(id)sender {
     _beginTime = _slider.value;
@@ -1134,6 +1170,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linksDirectory,_currentLinkPrefix,fileNum];
     UIImage *image = [UIImage imageWithContentsOfFile:fileName];
     [_ImageDisplay setImage:image];
+    [_ImageDisplay setHidden:NO];
     [_priorFileButton setHidden:YES];
     [_nextFileButton setHidden:YES];
     if (fileNum > 1)
@@ -1224,6 +1261,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     
 }
 
+- (void) updateSongLabel
+{
+    NSString * label = [_currentSongTitle stringByReplacingOccurrencesOfString:@"(" withString:@"\n("];
+    [_songTitleLable setText:label];
+}
+
 - (IBAction)saveYouTubeTapped:(id)sender {
     
     [self showHideStartTime:NO
@@ -1233,7 +1276,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     int startTimeSeconds = _startTimeSecondsInput.text.intValue;
     _YouTubeName = _linkName.text;
     _currentSongTitle = _YouTubeName;
-    _songTitleLable.text = _YouTubeName;
+    [self updateSongLabel];
     [_gotoYouTubeButton setHidden:YES];
     NSString *linkURL = _linkURLField.text;
     [self startNewYouTubeVideo:linkURL];
@@ -1267,7 +1310,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _beginTimes = NSMutableArray.new;
     _endTimes = NSMutableArray.new;
     _linkPrefixes = NSMutableArray.new;
-    _currentSegment = 0;
+    _currentSegment = -1;
     _playButton.enabled=YES;
     _beginButton.enabled=YES;
     _endButton.enabled=YES;
@@ -1275,8 +1318,8 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _loopSegmentButton.enabled=YES;
     _nextSegmentButton.enabled=YES;
     _priorSegmentButton.enabled=YES;
-    _stopButton.enabled=YES;
-    _saveButton.enabled=YES;
+    [_stopButton setEnabled:YES];
+    [_saveButton setEnabled:NO];
     _YouTubeName = _currentSongTitle;
     [self retrieveSong:_currentSongTitle   setTimes:YES];
     [_playerView setHidden:NO];
