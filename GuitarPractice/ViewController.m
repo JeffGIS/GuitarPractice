@@ -16,6 +16,20 @@ typedef NS_ENUM(NSInteger, SongTypes)
     SONG,
     YOUTUBEVIDEO,
 };
+@interface ViewAndStatus : NSObject
+@property UIView *view;
+@property BOOL status;
+@end
+@implementation ViewAndStatus
+@synthesize view;
+@synthesize status;
+
+- (id)init
+{
+    self = [super init];
+    return self;
+}
+@end
 
 @interface ViewController ()
 @property AVAudioSession* audioSession;
@@ -29,6 +43,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property int currentTime;
 @property float beginTime;
 @property float endTime;
+@property float timerInterval;
 @property int currentSongStartTime;
 @property NSMutableArray<NSNumber*> *beginTimes;
 @property NSMutableArray<NSNumber*> *endTimes;
@@ -36,6 +51,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property NSString *collectionsDirectory;
 @property NSString *linksDirectory;
 @property int currentLinkPrefix;
+@property UIImage *image;
 @property UIImage *currentImage;
 @property NSString * currentSongTitle;
 @property int numFilesForCurrentLink;
@@ -55,6 +71,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property sqlite3nv *database;
 @property (atomic) BOOL isOpen;
 @property BOOL inLoop;
+@property NSMutableArray *allViewsArray;
+@property NSMutableArray *allViewsAndStatusArray;
 
 @end
 
@@ -74,12 +92,11 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [_musicPlayer setShuffleMode: MPMusicShuffleModeOff];
         [_musicPlayer setRepeatMode: MPMusicRepeatModeNone];
 
-
+    _timerInterval = 0.5;
     [self registerForMediaPlayerNotifications];
 
     [self setupApplicationAudio];
     _beginTime = 86;
-    [_currentPositionLabel setText:@""];
     [self setSliderValue:0];
     _currentSongTitle = @"";
     BOOL opened = [self open];
@@ -93,6 +110,80 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _currentCollectionLabel.text = _currentCollection;
 
     self.playerView.delegate = self;
+    [self createAllViewsArray];
+}
+-(void) createAllViewsArray
+{
+    _allViewsArray = NSMutableArray.new;
+    [_allViewsArray addObject:_songTitleLable];
+    [_allViewsArray addObject:_ImageDisplay];
+    [_allViewsArray addObject:_fullScreenImageDisplay];
+    [_allViewsArray addObject:_fullScreenButton];
+    [_allViewsArray addObject:_fullScreenReturnButton];
+    [_allViewsArray addObject:_playButton];
+    [_allViewsArray addObject:_beginButton];
+    [_allViewsArray addObject:_endButton];
+    [_allViewsArray addObject:_playSegmentButton];
+    [_allViewsArray addObject:_loopSegmentButton];
+    [_allViewsArray addObject:_nextSegmentButton];
+    [_allViewsArray addObject:_priorSegmentButton];
+    [_allViewsArray addObject:_saveButton];
+    [_allViewsArray addObject:_selectSongButton];
+    [_allViewsArray addObject:_selectPhotoButton];
+    [_allViewsArray addObject:_selectYouTubeVideoButton];
+    [_allViewsArray addObject:_saveImageButton];
+    [_allViewsArray addObject:_cancelImageButton];
+    [_allViewsArray addObject:_priorFileButton];
+    [_allViewsArray addObject:_nextFileButton];
+    [_allViewsArray addObject:_startTimeTitle];
+    [_allViewsArray addObject:_startTimeMinutesTitle];
+    [_allViewsArray addObject:_startTimeSecondsTitle];
+    [_allViewsArray addObject:_startTimeMinutesInput];
+    [_allViewsArray addObject:_startTimeSecondsInput];
+    [_allViewsArray addObject:_startTimeMinutesStepper];
+    [_allViewsArray addObject:_startTimeSecondsStepper];
+    [_allViewsArray addObject:_startTimeSaveButton];
+    [_allViewsArray addObject:_startTimeCancelButton];
+    [_allViewsArray addObject:_currentCollectionLabel];
+    [_allViewsArray addObject:_linkName];
+    [_allViewsArray addObject:_linkNameLabel];
+    [_allViewsArray addObject:_playerView];
+    [_allViewsArray addObject:_linkURLField];
+    [_allViewsArray addObject:_linkURLLabel];
+    [_allViewsArray addObject:_pasteURLButton];
+    [_allViewsArray addObject:_gotoYouTubeButton];
+    [_allViewsArray addObject:_sliderTextLabel];
+    [_allViewsArray addObject:_continueButton];
+    [_allViewsArray addObject:_stepAheadButton];
+    [_allViewsArray addObject:_stepBackButton];
+    [_allViewsArray addObject:_clipButton];
+    [_allViewsArray addObject:_cancelEditButton];
+    [_allViewsArray addObject:_changeBeginButton];
+    [_allViewsArray addObject:_changeEndButton];
+    [_allViewsArray addObject:_numClipsLabel];
+    [_allViewsArray addObject:_slider];
+}
+-(void) hideAllViews:(BOOL)hide
+{
+    if (hide)
+    {
+        _allViewsAndStatusArray = NSMutableArray.new;
+        for (UIView *view in _allViewsArray)
+        {
+            ViewAndStatus *vands = ViewAndStatus.new;
+            vands.view = view;
+            vands.status = view.isHidden;
+            [_allViewsAndStatusArray addObject:vands];
+            [view setHidden:hide];
+        }
+    }
+    else
+    {
+        for (ViewAndStatus *vands in _allViewsAndStatusArray)
+        {
+            [vands.view setHidden:vands.status];
+        }
+    }
 }
 - (void)playerView:(nonnull YTPlayerView *)playerView didPlayTime:(float)playTime
 {
@@ -346,7 +437,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _beginButton.enabled=YES;
     _endButton.enabled=YES;
     [self updateClipButtons];
-    _stopButton.enabled=YES;
     [_saveButton setEnabled:NO];
     _currentSongType = YOUTUBEVIDEO;
     _startingNewVideo = YES;
@@ -357,18 +447,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
         _timer = [NSTimer scheduledTimerWithTimeInterval:3 target:self selector:@selector(playTapped:) userInfo:nil repeats:NO];
     }
 }
-- (IBAction)markStartTapped:(id)sender
-{
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://www.youtube.com/watch?v=xxx"]];
- /*   [_markStartButton setHidden:YES];
-    [self saveSongURL:_currentYouTubeLink
-             forTitle:_YouTubeName
-               ofType:YOUTUBEVIDEO
-             duration:_currentSongDuration
-            startTime:_currentYTTime];
-  */
-}
-
 - (IBAction)pasteURLTapped:(id)sender {
     UIPasteboard *thePasteboard = [UIPasteboard generalPasteboard];
     NSString *pasteboardString = thePasteboard.string;
@@ -388,7 +466,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
         case SONG:
             [_appSoundPlayer play];
             [_timer invalidate];
-            _timer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
+            _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
             break;
         case YOUTUBEVIDEO:
             [self.playerView playVideo];
@@ -398,12 +476,16 @@ typedef NS_ENUM(NSInteger, SongTypes)
 - (IBAction)changeBeginTapped:(id)sender {
     [_stepBackButton setHidden:NO];
     [_stepAheadButton setHidden:NO];
+    [_changeBeginButton setSelected:YES];
+    [_changeEndButton setSelected:NO];
     _clipEditStatus = 1;
 }
 
 - (IBAction)changeEndTapped:(id)sender {
     [_stepBackButton setHidden:NO];
     [_stepAheadButton setHidden:NO];
+    [_changeBeginButton setSelected:NO];
+    [_changeEndButton setSelected:YES];
     _clipEditStatus = 2;
 }
 
@@ -478,6 +560,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _beginTime = _endTime;
     [self retrieveSong:title2 setTimes:NO];
     [self updateNumClipsLabel];
+    [self updateClipButtons];
 
 }
 
@@ -517,6 +600,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_endButton setHidden:YES];
     [_changeEndButton setHidden:NO];
     [_changeBeginButton setHidden:NO];
+    [_changeBeginButton setSelected:NO];
+    [_changeEndButton setSelected:NO];
     [_cancelEditButton setEnabled:YES];
     if (_currentSongType == SONG)
     {
@@ -559,7 +644,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _beginButton.enabled=YES;
     _endButton.enabled=YES;
     [self updateClipButtons];
-    _stopButton.enabled=YES;
     [_saveButton setEnabled:NO];
     _selectPhotoButton.enabled=YES;
     _selectYouTubeVideoButton.enabled=YES;
@@ -696,7 +780,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
             [_timer invalidate];
         if (doPlay)
         {
-            _timer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
+            _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
             [_appSoundPlayer play];
         }
     }
@@ -1168,9 +1252,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                   numFiles:(int)numFiles
 {
     NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linksDirectory,_currentLinkPrefix,fileNum];
-    UIImage *image = [UIImage imageWithContentsOfFile:fileName];
-    [_ImageDisplay setImage:image];
+    _image = [UIImage imageWithContentsOfFile:fileName];
+    [_ImageDisplay setImage:_image];
     [_ImageDisplay setHidden:NO];
+    [_fullScreenButton setHidden:NO];
     [_priorFileButton setHidden:YES];
     [_nextFileButton setHidden:YES];
     if (fileNum > 1)
@@ -1180,6 +1265,18 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _currentFileNum = fileNum;
     _currentNumFiles = numFiles;
     return;
+}
+- (IBAction)fullScreenTapped:(id)sender {
+    [self hideAllViews:YES];
+    [_fullScreenImageDisplay setImage:_image];
+    [_fullScreenImageDisplay setHidden:NO];
+    [_fullScreenReturnButton setHidden:NO];
+}
+
+- (IBAction)fullScreenReturnButtonTapped:(id)sender {
+    [self hideAllViews:NO];
+    [_fullScreenImageDisplay setHidden:YES];
+    [_fullScreenReturnButton setHidden:YES];
 }
 
 - (int) getNumFilesInPrefix:(int)prefix
@@ -1318,7 +1415,6 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _loopSegmentButton.enabled=YES;
     _nextSegmentButton.enabled=YES;
     _priorSegmentButton.enabled=YES;
-    [_stopButton setEnabled:YES];
     [_saveButton setEnabled:NO];
     _YouTubeName = _currentSongTitle;
     [self retrieveSong:_currentSongTitle   setTimes:YES];
