@@ -13,7 +13,7 @@
 #import "CCodeLibrary/CCodeLibrary.h"
 #import "YTPlayerView.h"
 
-@interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate>
+@interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate>
 
 
 - (IBAction)selectSongTapped:(id)sender;
@@ -74,6 +74,9 @@
 @property (weak, nonatomic) IBOutlet UIButton *changeEndButton;
 @property (weak, nonatomic) IBOutlet UILabel *numClipsLabel;
 @property (weak, nonatomic) IBOutlet UISlider *slider;
+@property (weak, nonatomic) IBOutlet UIButton *deleteClipButton;
+@property (weak, nonatomic) IBOutlet UILabel *tapToEditLabel;
+- (IBAction)deleteClipTapped:(id)sender;
 - (IBAction)fullScreenTapped:(id)sender;
 - (IBAction)fullScreenReturnButtonTapped:(id)sender;
 - (IBAction)changeEndTapped:(id)sender;

@@ -73,6 +73,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property BOOL inLoop;
 @property NSMutableArray *allViewsArray;
 @property NSMutableArray *allViewsAndStatusArray;
+@property UITapGestureRecognizer *tapGestureRecognizer;
 
 @end
 
@@ -111,7 +112,17 @@ typedef NS_ENUM(NSInteger, SongTypes)
 
     self.playerView.delegate = self;
     [self createAllViewsArray];
+    _tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapFrom:)];
+    [_ImageDisplay addGestureRecognizer:_tapGestureRecognizer];
+    _tapGestureRecognizer.delegate = self;
 }
+- (void) handleTapFrom: (UITapGestureRecognizer *)recognizer
+{
+    CGPoint location = [recognizer locationInView:_ImageDisplay];
+
+    return;
+}
+
 -(void) createAllViewsArray
 {
     _allViewsArray = NSMutableArray.new;
@@ -161,6 +172,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_changeBeginButton];
     [_allViewsArray addObject:_changeEndButton];
     [_allViewsArray addObject:_numClipsLabel];
+    [_allViewsArray addObject:_deleteClipButton];
+    [_allViewsArray addObject:_tapToEditLabel];
     [_allViewsArray addObject:_slider];
 }
 -(void) hideAllViews:(BOOL)hide
@@ -333,7 +346,15 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [_startTimeSaveButton setHidden:NO];
         [_startTimeCancelButton setHidden:NO];
         [_pasteURLButton setHidden:NO];
-
+        
+    }
+    else if (stringBeginsWithString (popoverTableView.title,@"Verify Delete"))
+    {
+        [popoverTableView hide:YES];
+        if ([text isEqual:@"Yes"])
+        {
+            [self deleteClip:_currentLinkPrefix];
+        }
     }
     else if ([popoverTableView.title isEqual:@"Songs"])
     {
@@ -375,7 +396,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 - (void) addNewYouTube
 {
     [self displayYouTubeVideo:@"4QfDDsvoLi8?si"];
-
+    
 }
 
 - (IBAction)nextSongTapped:(id)sender {
@@ -402,7 +423,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 {
     // Apply the chosen songs to the music player's queue.
     //[self updatePlayerQueueWithMediaCollection: mediaItemCollection];
-
+    
     if (mediaItemCollection.items.count == 1)
     {
         _currentSong = mediaItemCollection.items[0];
@@ -412,11 +433,11 @@ typedef NS_ENUM(NSInteger, SongTypes)
         NSString * url = [_currentSongURL absoluteString];
         [self saveSongURL:url
                  forTitle:_currentSongTitle
-                     ofType:SONG
+                   ofType:SONG
                  duration:_currentSongDuration
                 startTime:0];
         [self startNewSong];
-
+        
     }
     [_picker dismissViewControllerAnimated:YES completion:nil] ;
     return;
@@ -451,13 +472,13 @@ typedef NS_ENUM(NSInteger, SongTypes)
     UIPasteboard *thePasteboard = [UIPasteboard generalPasteboard];
     NSString *pasteboardString = thePasteboard.string;
     _linkURLField.text = pasteboardString;
-
+    
 }
 
 - (IBAction)gotoYouTubeTapped:(id)sender
 {
     [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://www.youtube.com/watch?v=g7xM4QD2v2s"]];
-
+    
 }
 
 - (IBAction)continueTapped:(id)sender {
@@ -500,7 +521,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
             break;
     }
     [_saveButton setEnabled:YES];
-
+    
     [self setSliderRange];
 }
 
@@ -515,7 +536,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
             break;
     }
     [_saveButton setEnabled:YES];
-
+    
     [self setSliderRange];
 }
 - (IBAction)markBeginTapped:(id)sender {
@@ -561,7 +582,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [self retrieveSong:title2 setTimes:NO];
     [self updateNumClipsLabel];
     [self updateClipButtons];
-
+    
 }
 
 
@@ -590,6 +611,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_changeBeginButton setHidden:YES];
     [_saveButton setEnabled:NO];
     [_cancelEditButton setEnabled:NO];
+    [_deleteClipButton setEnabled:NO];
 
 }
 
@@ -603,6 +625,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_changeBeginButton setSelected:NO];
     [_changeEndButton setSelected:NO];
     [_cancelEditButton setEnabled:YES];
+    [_deleteClipButton setEnabled:YES];
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer pause];
@@ -864,6 +887,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
 }
 - (IBAction)priorSegmentTapped:(id)sender {
+    [_deleteClipButton setEnabled:NO];
+
     if (_currentSegment > 0)
     {
         _currentSegment--;
@@ -871,10 +896,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _beginTime = (int)_beginTimes[_currentSegment].integerValue/10.0;
         _endTime = (int)_endTimes[_currentSegment].integerValue/10.0;
         _currentLinkPrefix = (int)_linkPrefixes[_currentSegment].integerValue;
+        _currentFileNum = 1;
         _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
         [self setCurrentPositiion:YES];
         if (_numFilesForCurrentLink > 0)
             [self displayFileForLink:_currentLinkPrefix
+                             fileNum:_currentFileNum
                             numFiles:_numFilesForCurrentLink];
         else
             [_ImageDisplay setHidden:YES];
@@ -884,20 +911,24 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 
 - (IBAction)nextSegmentTapped:(id)sender {
+    [_deleteClipButton setEnabled:NO];
+
     if (_currentSegment + 1 < _beginTimes.count)
     {
         _currentSegment++;
-        NSString * clipText = [NSString stringWithFormat:@"Clip %i of %lu",_currentSegment,(unsigned long)_beginTimes.count];
-        [_clipButton setTitle:clipText forState:UIControlStateNormal];
-
+        NSString * clipText = [NSString stringWithFormat:@"Clip %i of %lu\nTap to Edit",_currentSegment,(unsigned long)_beginTimes.count];
+        [_clipButton setTitle:clipText forState:UIControlStateHighlighted];
+        [_clipButton setSelected:NO];
         _inLoop = NO;
         _beginTime = (int)_beginTimes[_currentSegment].integerValue/10.0;
         _endTime = (int)_endTimes[_currentSegment].integerValue/10.0;
         _currentLinkPrefix = (int)_linkPrefixes[_currentSegment].integerValue;
+        _currentFileNum = 1;
         _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
         [self setCurrentPositiion:YES];
         if (_numFilesForCurrentLink > 0)
             [self displayFileForLink:_currentLinkPrefix
+                             fileNum:_currentFileNum
                             numFiles:_numFilesForCurrentLink];
         else
             [_ImageDisplay setHidden:YES];
@@ -1121,7 +1152,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     cmd = @"DROP TABLE SONGINFO;";
     //rtn = [self executeCmd:cmd];
 
-    cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('ID' INTEGER PRIMARY KEY,'Title' CHAR(256),'Type' INT,'StartTime' INT,'EndTime' INT, 'URL' CHAR(256));CREATE INDEX IF NOT EXISTS idx_clips_title ON CLIPS (Title,StartTime);";
+    cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('ID' INTEGER PRIMARY KEY,'Title' CHAR(256),'Type' INT,'StartTime' INT,'EndTime' INT, 'URL' CHAR(256));CREATE INDEX IF NOT EXISTS idx_clips_title ON CLIPS (Title);";
     rtn = [self executeCmd:cmd];
 
     cmd = @"CREATE TABLE IF NOT EXISTS SONGINFO ('Title' CHAR(256),'Type' INT,'URL' CHAR(1024),'Duration' INT,  'StartTime' INT ,PRIMARY KEY (Title))";
@@ -1192,11 +1223,25 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
             _currentLinkPrefix = 0;
         _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
         if (_numFilesForCurrentLink > 0)
-            [self displayFileForLink:_linkPrefixes[0].intValue
+            [self displayFileForLink:_currentLinkPrefix
+                             fileNum:1
                             numFiles:_numFilesForCurrentLink];
         [self updateNumClipsLabel];
         [self setCurrentPositiion:NO];
     }
+}
+- (void) deleteClip:(int)clipID
+{
+    BOOL opened = [self open];
+    NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+    
+    NSString *cmd = [NSString stringWithFormat:@"DELETE FROM CLIPS WHERE ID = %i",clipID];
+    [self executeCmd:cmd];
+    [self close:opened];
+    [self retrieveSong:title2 setTimes:NO];
+    [self updateNumClipsLabel];
+    [self updateClipButtons];
+
 }
 -(void) updateNumClipsLabel
 {
@@ -1248,10 +1293,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     return rtn;
 }
 
--(void) displayFileForLink:(int)fileNum
+-(void) displayFileForLink:(int)linkID
+                   fileNum:(int)fileNum
                   numFiles:(int)numFiles
 {
-    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linksDirectory,_currentLinkPrefix,fileNum];
+    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linksDirectory,linkID,fileNum];
     _image = [UIImage imageWithContentsOfFile:fileName];
     [_ImageDisplay setImage:_image];
     [_ImageDisplay setHidden:NO];
@@ -1271,6 +1317,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_fullScreenImageDisplay setImage:_image];
     [_fullScreenImageDisplay setHidden:NO];
     [_fullScreenReturnButton setHidden:NO];
+}
+
+- (IBAction)deleteClipTapped:(id)sender {
+    [self verifyDelete:1];
 }
 
 - (IBAction)fullScreenReturnButtonTapped:(id)sender {
@@ -1324,12 +1374,14 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 
 - (IBAction)priorFileTapped:(id)sender {
-    [self displayFileForLink:_currentFileNum-1
+    [self displayFileForLink:_currentLinkPrefix
+                     fileNum:_currentFileNum-1
                     numFiles:_currentNumFiles];
 }
 
 - (IBAction)nextFileTapped:(id)sender {
-    [self displayFileForLink:_currentFileNum+1
+    [self displayFileForLink:_currentLinkPrefix
+                     fileNum:_currentFileNum+1
                     numFiles:_currentNumFiles];
 
 }
@@ -1356,6 +1408,20 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
 
     
+}
+- (void) verifyDelete:(int)type
+{
+    NSMutableArray *optionList = NSMutableArray.array;
+    
+    [optionList addObject:@"Yes"];
+    [optionList addObject:@"No"];
+    NSString *title = [NSString stringWithFormat:@"Verify Delete of Clip %i",_currentSegment+1];
+    NVPopoverTableView *nvptv = [NVPopoverTableView showPopoverTableViewInView:self.view
+                                                                      delegate:self
+                                                                         title:title
+                                                                     textArray:optionList
+                                                                 includeCancel:NO];
+    nvptv.allowsSubtitle = NO;
 }
 
 - (void) updateSongLabel
