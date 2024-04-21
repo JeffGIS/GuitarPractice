@@ -74,6 +74,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property NSMutableArray *allViewsArray;
 @property NSMutableArray *allViewsAndStatusArray;
 @property UITapGestureRecognizer *tapGestureRecognizer;
+@property int highlightPointNumber;
+@property CGPoint highlightPoint1, highlightPoint2;
+@property CGRect highlightRect;
 
 @end
 
@@ -119,7 +122,20 @@ typedef NS_ENUM(NSInteger, SongTypes)
 - (void) handleTapFrom: (UITapGestureRecognizer *)recognizer
 {
     CGPoint location = [recognizer locationInView:_ImageDisplay];
-
+    switch (_highlightPointNumber)
+    {
+        case 1:
+            _highlightPoint1 = location;
+            _highlightPointNumber++;
+            [_imageHighlightInstructions setText:@"Tap end point"];
+            break;
+        case 2:
+            _highlightPoint2 = location;
+            _highlightRect = _ImageDisplay.frame;
+           break;
+        default:
+            break;
+    }
     return;
 }
 
@@ -175,6 +191,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_deleteClipButton];
     [_allViewsArray addObject:_tapToEditLabel];
     [_allViewsArray addObject:_slider];
+    [_allViewsArray addObject:_addImageHighlightButton];
+    [_allViewsArray addObject:_imageHighlightInstructions];
+
 }
 -(void) hideAllViews:(BOOL)hide
 {
@@ -343,6 +362,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [_linkNameLabel setHidden:NO];
         [_playerView setHidden:YES];
         [_ImageDisplay setHidden:YES];
+        [_addImageHighlightButton setHidden:YES];
+        [_imageHighlightInstructions setHidden:YES];
         [_startTimeSaveButton setHidden:NO];
         [_startTimeCancelButton setHidden:NO];
         [_pasteURLButton setHidden:NO];
@@ -612,12 +633,14 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_saveButton setEnabled:NO];
     [_cancelEditButton setEnabled:NO];
     [_deleteClipButton setEnabled:NO];
-
+    [self setCurrentPositiion:NO];
 }
 
 - (IBAction)clipButtonTapped:(id)sender {
     [_timer invalidate];
     _timer = nil;
+    [_loopSegmentButton setSelected:NO];
+    [_playSegmentButton setSelected:NO];
     [_beginButton setHidden:YES];
     [_endButton setHidden:YES];
     [_changeEndButton setHidden:NO];
@@ -638,6 +661,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [self.playerView pauseVideo];
         [self setSliderRange];
     }
+    [_tapToEditLabel setHidden:YES];
+    NSString *labelText = [NSString stringWithFormat:@"Edit Clip %i",_currentSegment+1];
+    [_clipButton setTitle:labelText forState:UIControlStateNormal];
     _clipEditStatus = 1;
     
 }
@@ -672,6 +698,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _selectYouTubeVideoButton.enabled=YES;
     [self retrieveSong:_currentSongTitle setTimes:YES];
     [_clipButton setTitle:@"" forState:UIControlStateNormal];
+    [_clipButton setHidden:YES];
+    [_tapToEditLabel setHidden:YES];
     [self playTapped:nil];
 
 }
@@ -792,8 +820,15 @@ typedef NS_ENUM(NSInteger, SongTypes)
     if (_currentSegment > -1)
     {
         labelText = [NSString stringWithFormat:@"Clip %i of %lu",_currentSegment+1,(unsigned long)_endTimes.count];
+        [_clipButton setTitle:labelText forState:UIControlStateNormal];
+        [_clipButton setHidden:NO];
+        [_tapToEditLabel setHidden:NO];
     }
-    [_clipButton setTitle:labelText forState:UIControlStateNormal];
+    else
+    {
+        [_clipButton setHidden:YES];
+        [_tapToEditLabel setHidden:YES];
+    }
     [self setSliderValue:_beginTime];
     if (_currentSongType == SONG)
     {
@@ -904,7 +939,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                              fileNum:_currentFileNum
                             numFiles:_numFilesForCurrentLink];
         else
+        {
             [_ImageDisplay setHidden:YES];
+            [_fullScreenButton setHidden:YES];
+            [_addImageHighlightButton setHidden:YES];
+            [_imageHighlightInstructions setHidden:YES];
+        }
         [self updateClipButtons];
         [self playSegmentTapped:nil];
     }
@@ -919,6 +959,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         NSString * clipText = [NSString stringWithFormat:@"Clip %i of %lu\nTap to Edit",_currentSegment,(unsigned long)_beginTimes.count];
         [_clipButton setTitle:clipText forState:UIControlStateHighlighted];
         [_clipButton setSelected:NO];
+        [_clipButton setHidden:NO];
+        [_tapToEditLabel setHidden:NO];
         _inLoop = NO;
         _beginTime = (int)_beginTimes[_currentSegment].integerValue/10.0;
         _endTime = (int)_endTimes[_currentSegment].integerValue/10.0;
@@ -931,7 +973,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                              fileNum:_currentFileNum
                             numFiles:_numFilesForCurrentLink];
         else
+        {
             [_ImageDisplay setHidden:YES];
+            [_fullScreenButton setHidden:YES];
+            [_addImageHighlightButton setHidden:YES];
+            [_imageHighlightInstructions setHidden:YES];
+        }
        [self updateClipButtons];
        [self playSegmentTapped:nil];
 
@@ -1155,6 +1202,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('ID' INTEGER PRIMARY KEY,'Title' CHAR(256),'Type' INT,'StartTime' INT,'EndTime' INT, 'URL' CHAR(256));CREATE INDEX IF NOT EXISTS idx_clips_title ON CLIPS (Title);";
     rtn = [self executeCmd:cmd];
 
+    cmd = @"CREATE TABLE IF NOT EXISTS CLIPHIGHLIGHT ('ClipID' INT,'StartX' FLOAT,'StartY' FLOAT,'EndX' FLOAT,'EndY' FLOAT,'BoundsMinX' FLOAT ,'BoundsMinY' FLOAT ,'BoundsMaxX' FLOAT ,'BoundsMaxY' FLOAT ,PRIMARY KEY (ClipID))";
+    rtn = [self executeCmd:cmd];
+
     cmd = @"CREATE TABLE IF NOT EXISTS SONGINFO ('Title' CHAR(256),'Type' INT,'URL' CHAR(1024),'Duration' INT,  'StartTime' INT ,PRIMARY KEY (Title))";
     rtn = [self executeCmd:cmd];
     
@@ -1211,7 +1261,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (setTime)
     {
         _currentSegment = -1;
-        if (_beginTimes.count)
+/*        if (_beginTimes.count)
         {
             _beginTime = (int)_beginTimes[0].integerValue/10.0;
             _endTime = (int)_endTimes[0].integerValue/10.0;
@@ -1227,7 +1277,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                              fileNum:1
                             numFiles:_numFilesForCurrentLink];
         [self updateNumClipsLabel];
-        [self setCurrentPositiion:NO];
+        [self setCurrentPositiion:NO];*/
     }
 }
 - (void) deleteClip:(int)clipID
@@ -1302,6 +1352,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_ImageDisplay setImage:_image];
     [_ImageDisplay setHidden:NO];
     [_fullScreenButton setHidden:NO];
+    [_addImageHighlightButton setHidden:NO];
+    [_imageHighlightInstructions setHidden:YES];
     [_priorFileButton setHidden:YES];
     [_nextFileButton setHidden:YES];
     if (fileNum > 1)
@@ -1321,6 +1373,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (IBAction)deleteClipTapped:(id)sender {
     [self verifyDelete:1];
+}
+
+- (IBAction)addImageHighlightTapped:(id)sender {
+    [_imageHighlightInstructions setHidden:NO];
+    [_imageHighlightInstructions setText:@"Tap start point"];
+
+    _highlightPointNumber = 1;
 }
 
 - (IBAction)fullScreenReturnButtonTapped:(id)sender {

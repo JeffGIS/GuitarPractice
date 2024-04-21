@@ -76,6 +76,9 @@
 @property (weak, nonatomic) IBOutlet UISlider *slider;
 @property (weak, nonatomic) IBOutlet UIButton *deleteClipButton;
 @property (weak, nonatomic) IBOutlet UILabel *tapToEditLabel;
+@property (weak, nonatomic) IBOutlet UIButton *addImageHighlightButton;
+@property (weak, nonatomic) IBOutlet UILabel *imageHighlightInstructions;
+- (IBAction)addImageHighlightTapped:(id)sender;
 - (IBAction)deleteClipTapped:(id)sender;
 - (IBAction)fullScreenTapped:(id)sender;
 - (IBAction)fullScreenReturnButtonTapped:(id)sender;
