@@ -135,8 +135,11 @@ typedef NS_ENUM(NSInteger, SongTypes)
             _highlightPoint2 = location;
             _highlightRect = _ImageDisplay.frame;
             [self createHighlight:_highlightPoint1
-                           point2:_highlightPoint2];
-           break;
+                           point2:_highlightPoint2
+                         numLines:_numHighlightLines
+                           inView:_ImageDisplay
+                         doUpdate:YES];
+            break;
         default:
             break;
     }
@@ -1204,7 +1207,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (BOOL)createSongsTable
 {
     BOOL rtn = TRUE;
-    NSString * cmd = @"DROP TABLE CLIPS;";
+    NSString * cmd = @"DROP TABLE CLIPHIGHLIGHT;";
     //rtn = [self executeCmd:cmd];
     cmd = @"DROP TABLE SONGINFO;";
     //rtn = [self executeCmd:cmd];
@@ -1212,7 +1215,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('ID' INTEGER PRIMARY KEY,'Title' CHAR(256),'Type' INT,'StartTime' INT,'EndTime' INT, 'URL' CHAR(256));CREATE INDEX IF NOT EXISTS idx_clips_title ON CLIPS (Title);";
     rtn = [self executeCmd:cmd];
 
-    cmd = @"CREATE TABLE IF NOT EXISTS CLIPHIGHLIGHT ('ClipID' INT,'StartX' FLOAT,'StartY' FLOAT,'EndX' FLOAT,'EndY' FLOAT,'BoundsMinX' FLOAT ,'BoundsMinY' FLOAT ,'BoundsMaxX' FLOAT ,'BoundsMaxY' FLOAT ,PRIMARY KEY (ClipID))";
+    cmd = @"CREATE TABLE IF NOT EXISTS CLIPHIGHLIGHT ('LinkID' INT,'NumLines' INT,'StartX' FLOAT,'StartY' FLOAT,'EndX' FLOAT,'EndY' FLOAT,'BoundsWidth' FLOAT ,'BoundsHeight' FLOAT,PRIMARY KEY (LinkID))";
     rtn = [self executeCmd:cmd];
 
     cmd = @"CREATE TABLE IF NOT EXISTS SONGINFO ('Title' CHAR(256),'Type' INT,'URL' CHAR(1024),'Duration' INT,  'StartTime' INT ,PRIMARY KEY (Title))";
@@ -1301,6 +1304,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self retrieveSong:title2 setTimes:NO];
     [self updateNumClipsLabel];
     [self updateClipButtons];
+    [_saveButton setEnabled:NO];
+    [_cancelEditButton setEnabled:NO];
+    [_deleteClipButton setEnabled:NO];
+    _currentSegment--;
+    [self retrieveSong:title2 setTimes:NO];
 
 }
 -(void) updateNumClipsLabel
@@ -1374,13 +1382,59 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_nextFileButton setHidden:NO];
     _currentFileNum = fileNum;
     _currentNumFiles = numFiles;
+    [self displayHighlightForLink:linkID
+                           inView:_ImageDisplay];
     return;
+}
+- (BOOL) displayHighlightForLink:(int)linkID
+                          inView:(UIView*) view
+{
+    [self removeHighlightFromView:view];
+    BOOL rtn = FALSE;
+    BOOL opened = [self open];
+    NSString *query = [NSString stringWithFormat:@"SELECT NumLines,StartX,StartY,EndX,EndY,BoundsWidth,BoundsHeight FROM CLIPHIGHLIGHT WHERE LinkID=%i",linkID];
+    
+    sqlite3_stmt *statement = NULL;
+    
+    SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
+    if (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        int i = 0;
+        CGPoint point1, point2;
+        float w, h;
+        int numLines = sqlite3_column_int(statement, i++);
+        point1.x = sqlite3_column_double(statement, i++);
+        point1.y = sqlite3_column_double(statement, i++);
+        point2.x = sqlite3_column_double(statement, i++);
+        point2.y = sqlite3_column_double(statement, i++);
+        w = sqlite3_column_double(statement, i++);
+        h = sqlite3_column_double(statement, i++);
+        CGRect fromFrame = CGRectMake (0,0,w,h);
+        CGRect toFrame = view.frame;
+        toFrame.origin.x = 0;
+        toFrame.origin.y = 0;
+        HANDLE hTranRect = STRANCGRect (fromFrame,toFrame);
+        DPOINT dPoint = CGPointToDPOINT(point1);
+        DPOINT dPoint1 = TranPoint (&dPoint,hTranRect);
+        dPoint = CGPointToDPOINT(point2);
+        DPOINT dPoint2 = TranPoint (&dPoint,hTranRect);
+        CloseTRANS2 (&hTranRect);
+        point1 = DPointToCGPoint(dPoint1);
+        point2 = DPointToCGPoint(dPoint2);
+        [self createHighlight:point1 point2:point2 numLines:numLines inView:view doUpdate:NO];
+        rtn = TRUE;
+    }
+    SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
+
+    [self close:opened];
+    return rtn;
 }
 - (IBAction)fullScreenTapped:(id)sender {
     [self hideAllViews:YES];
     [_fullScreenImageDisplay setImage:_image];
     [_fullScreenImageDisplay setHidden:NO];
     [_fullScreenReturnButton setHidden:NO];
+    [self displayHighlightForLink:_currentLinkPrefix inView:_fullScreenImageDisplay];
 }
 
 - (IBAction)deleteClipTapped:(id)sender {
@@ -1414,26 +1468,29 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     points[3].y += frame.size.height;
 
 }
--(void) removeHighlight
+-(void) removeHighlightFromView:(UIView *)view
 {
-    for (CALayer *layer in _ImageDisplay.layer.sublayers)
+    for (CALayer *layer in view.layer.sublayers)
     {
         [layer removeFromSuperlayer];
     }
 }
 -(void) createHighlight:(CGPoint)point1
                  point2:(CGPoint)point2
+               numLines:(int)numLines
+                 inView:(UIView *)view
+               doUpdate:(BOOL)update
 {
     CGPoint point={0,0};
-    CGFloat w = _ImageDisplay.frame.size.width;
-    CGFloat h = _ImageDisplay.frame.size.height;
-    int iw = _ImageDisplay.image.size.width;
-    int ih = _ImageDisplay.image.size.height;
-    float scale = _ImageDisplay.image.scale;
+    CGFloat w = view.frame.size.width;
+    CGFloat h = view.frame.size.height;
+    //int iw = view.image.size.width;
+    //int ih = view.image.size.height;
+    //float scale = view.image.scale;
     CGPoint framePoints[4];
-    [self frameToPoints:_ImageDisplay.frame
+    [self frameToPoints:view.frame
                  points:(CGPoint *)framePoints];
-    [self removeHighlight];
+    [self removeHighlightFromView:view];
     UIBezierPath *highlightPath = UIBezierPath.new;
     [highlightPath moveToPoint: point];
     point.x = w;
@@ -1446,7 +1503,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [highlightPath addLineToPoint:point];
     point = point1;
     [highlightPath moveToPoint: point];
-    if (_numHighlightLines == 1)
+    if (numLines == 1)
     {
         point.y = point2.y;
         [highlightPath addLineToPoint: point];
@@ -1459,7 +1516,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     else
     {
         CGPoint points[8];
-        int lineHeight = (point2.y - point1.y)/_numHighlightLines;
+        int lineHeight = (point2.y - point1.y)/numLines;
         points[0] = point1;
         point.x = w;
         points[1] = point;
@@ -1482,8 +1539,16 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     CAShapeLayer *highlightLayer = CAShapeLayer.layer;
     highlightLayer.path = highlightPath.CGPath;
     highlightLayer.fillColor = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:0.5].CGColor;
-    [_ImageDisplay.layer addSublayer:highlightLayer];
+    [view.layer addSublayer:highlightLayer];
 
+    if (update)
+    {
+        BOOL opened = [self open];
+        NSString *cmd = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CLIPHIGHLIGHT VALUES(%i,%i,%f,%f,%f,%f,%f,%f);",
+                         _currentLinkPrefix,numLines,point1.x,point1.y,point2.x,point2.y,w,h];
+        BOOL rtn = [self executeCmd:cmd];
+        [self close:opened];
+    }
 }
 - (IBAction)fullScreenReturnButtonTapped:(id)sender {
     [self hideAllViews:NO];
