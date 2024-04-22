@@ -175,7 +175,7 @@
                                 </connections>
                             </button>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ppx-6k-HPT">
-                                <rect key="frame" x="699" y="16" width="112" height="42"/>
+                                <rect key="frame" x="757" y="15" width="112" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="filled" title="Save"/>
@@ -474,15 +474,15 @@
                                     <action selector="cancelEditTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="E6O-ru-ghu"/>
                                 </connections>
                             </button>
-                            <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Tap start point" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="t3d-l5-14n">
-                                <rect key="frame" x="559" y="60" width="252" height="21"/>
+                            <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Tap start point" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="t3d-l5-14n">
+                                <rect key="frame" x="491" y="55" width="129" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="3FX-IK-fYa">
-                                <rect key="frame" x="559" y="16" width="112" height="42"/>
+                                <rect key="frame" x="491" y="11" width="129" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="filled" title="Highlight"/>
@@ -490,6 +490,20 @@
                                     <action selector="addImageHighlightTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="BrR-yz-JYV"/>
                                 </connections>
                             </button>
+                            <stepper hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="1" minimumValue="1" maximumValue="10" translatesAutoresizingMaskIntoConstraints="NO" id="nKF-F3-jSB">
+                                <rect key="frame" x="629" y="40" width="94" height="32"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <connections>
+                                    <action selector="highlightLinesChanged:" destination="BYZ-38-t0r" eventType="valueChanged" id="cRb-to-69s"/>
+                                </connections>
+                            </stepper>
+                            <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Lines: 1" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VQH-kL-jTF">
+                                <rect key="frame" x="629" y="16" width="94" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -512,6 +526,8 @@
                         <outlet property="fullScreenImageDisplay" destination="kGh-4x-dIs" id="aAi-Fc-a75"/>
                         <outlet property="fullScreenReturnButton" destination="tB3-wZ-h7p" id="b08-Xl-989"/>
                         <outlet property="gotoYouTubeButton" destination="8ak-yg-XfI" id="99F-xA-2C8"/>
+                        <outlet property="highlightLinesLabel" destination="VQH-kL-jTF" id="eTn-8T-RA7"/>
+                        <outlet property="highlightLinesStepper" destination="nKF-F3-jSB" id="WBm-UC-7md"/>
                         <outlet property="imageHighlightInstructions" destination="t3d-l5-14n" id="mKD-gO-dGx"/>
                         <outlet property="linkName" destination="q5P-Ie-tH8" id="jP4-F9-zu3"/>
                         <outlet property="linkNameLabel" destination="fPF-vP-rem" id="t2A-Y8-26I"/>

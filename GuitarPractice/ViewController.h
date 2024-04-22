@@ -78,6 +78,9 @@
 @property (weak, nonatomic) IBOutlet UILabel *tapToEditLabel;
 @property (weak, nonatomic) IBOutlet UIButton *addImageHighlightButton;
 @property (weak, nonatomic) IBOutlet UILabel *imageHighlightInstructions;
+@property (weak, nonatomic) IBOutlet UILabel *highlightLinesLabel;
+@property (weak, nonatomic) IBOutlet UIStepper *highlightLinesStepper;
+- (IBAction)highlightLinesChanged:(id)sender;
 - (IBAction)addImageHighlightTapped:(id)sender;
 - (IBAction)deleteClipTapped:(id)sender;
 - (IBAction)fullScreenTapped:(id)sender;

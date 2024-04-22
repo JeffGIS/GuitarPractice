@@ -77,6 +77,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property int highlightPointNumber;
 @property CGPoint highlightPoint1, highlightPoint2;
 @property CGRect highlightRect;
+@property int numHighlightLines;
 
 @end
 
@@ -118,6 +119,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapFrom:)];
     [_ImageDisplay addGestureRecognizer:_tapGestureRecognizer];
     _tapGestureRecognizer.delegate = self;
+    _numHighlightLines = 1;
 }
 - (void) handleTapFrom: (UITapGestureRecognizer *)recognizer
 {
@@ -132,6 +134,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
         case 2:
             _highlightPoint2 = location;
             _highlightRect = _ImageDisplay.frame;
+            [self createHighlight:_highlightPoint1
+                           point2:_highlightPoint2];
            break;
         default:
             break;
@@ -193,6 +197,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_slider];
     [_allViewsArray addObject:_addImageHighlightButton];
     [_allViewsArray addObject:_imageHighlightInstructions];
+    [_allViewsArray addObject:_highlightLinesLabel];
+    [_allViewsArray addObject:_highlightLinesStepper];
 
 }
 -(void) hideAllViews:(BOOL)hide
@@ -364,6 +370,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [_ImageDisplay setHidden:YES];
         [_addImageHighlightButton setHidden:YES];
         [_imageHighlightInstructions setHidden:YES];
+        [_highlightLinesLabel setHidden:YES];
+        [_highlightLinesStepper setHidden:YES];
         [_startTimeSaveButton setHidden:NO];
         [_startTimeCancelButton setHidden:NO];
         [_pasteURLButton setHidden:NO];
@@ -944,6 +952,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
             [_fullScreenButton setHidden:YES];
             [_addImageHighlightButton setHidden:YES];
             [_imageHighlightInstructions setHidden:YES];
+            [_highlightLinesLabel setHidden:YES];
+            [_highlightLinesStepper setHidden:YES];
         }
         [self updateClipButtons];
         [self playSegmentTapped:nil];
@@ -1353,6 +1363,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_ImageDisplay setHidden:NO];
     [_fullScreenButton setHidden:NO];
     [_addImageHighlightButton setHidden:NO];
+    [_highlightLinesLabel setHidden:YES];
+    [_highlightLinesStepper setHidden:YES];
     [_imageHighlightInstructions setHidden:YES];
     [_priorFileButton setHidden:YES];
     [_nextFileButton setHidden:YES];
@@ -1378,10 +1390,101 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)addImageHighlightTapped:(id)sender {
     [_imageHighlightInstructions setHidden:NO];
     [_imageHighlightInstructions setText:@"Tap start point"];
+    [_highlightLinesLabel setHidden:NO];
+    [_highlightLinesStepper setHidden:NO];
 
     _highlightPointNumber = 1;
 }
 
+- (IBAction)highlightLinesChanged:(id)sender {
+    _numHighlightLines = _highlightLinesStepper.value;
+    NSString *label = [NSString stringWithFormat:@"Lines: %i",_numHighlightLines];
+    [_highlightLinesLabel setText:label];
+}
+-(void) frameToPoints:(CGRect)frame
+               points:(CGPoint*)points
+{
+    points[0] = frame.origin;
+    points[1] = frame.origin;
+    points[1].x += frame.size.width;
+    points[2] = frame.origin;
+    points[2].x += frame.size.width;
+    points[2].y += frame.size.height;
+    points[3] = frame.origin;;
+    points[3].y += frame.size.height;
+
+}
+-(void) removeHighlight
+{
+    for (CALayer *layer in _ImageDisplay.layer.sublayers)
+    {
+        [layer removeFromSuperlayer];
+    }
+}
+-(void) createHighlight:(CGPoint)point1
+                 point2:(CGPoint)point2
+{
+    CGPoint point={0,0};
+    CGFloat w = _ImageDisplay.frame.size.width;
+    CGFloat h = _ImageDisplay.frame.size.height;
+    int iw = _ImageDisplay.image.size.width;
+    int ih = _ImageDisplay.image.size.height;
+    float scale = _ImageDisplay.image.scale;
+    CGPoint framePoints[4];
+    [self frameToPoints:_ImageDisplay.frame
+                 points:(CGPoint *)framePoints];
+    [self removeHighlight];
+    UIBezierPath *highlightPath = UIBezierPath.new;
+    [highlightPath moveToPoint: point];
+    point.x = w;
+    [highlightPath addLineToPoint:point];
+    point.y = h;
+    [highlightPath addLineToPoint:point];
+    point.x = 0;
+    [highlightPath addLineToPoint:point];
+    point.y = 0;
+    [highlightPath addLineToPoint:point];
+    point = point1;
+    [highlightPath moveToPoint: point];
+    if (_numHighlightLines == 1)
+    {
+        point.y = point2.y;
+        [highlightPath addLineToPoint: point];
+        [highlightPath addLineToPoint:point2];
+        point = point1;
+        point.x = point2.x;
+        [highlightPath addLineToPoint: point];
+        [highlightPath addLineToPoint: point1];
+    }
+    else
+    {
+        CGPoint points[8];
+        int lineHeight = (point2.y - point1.y)/_numHighlightLines;
+        points[0] = point1;
+        point.x = w;
+        points[1] = point;
+        point.y = point2.y - lineHeight;
+        points[2] = point;
+        point.x = point2.x;
+        points[3] = point;
+        point.y = point2.y;
+        points[4] = point;
+        point.x = 0;
+        points[5] = point;
+        point.y = point1.y + lineHeight;
+        points[6] = point;
+        point.x = point1.x;
+        points[7] = point;
+        for (int i=7;i>0;i--)
+            [highlightPath addLineToPoint: points[i]];
+    }
+    [highlightPath closePath];
+    CAShapeLayer *highlightLayer = CAShapeLayer.layer;
+    highlightLayer.path = highlightPath.CGPath;
+    highlightLayer.fillColor = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:0.5].CGColor;
+    [_ImageDisplay.layer addSublayer:highlightLayer];
+
+}
 - (IBAction)fullScreenReturnButtonTapped:(id)sender {
     [self hideAllViews:NO];
     [_fullScreenImageDisplay setHidden:YES];
