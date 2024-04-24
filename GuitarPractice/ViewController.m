@@ -1397,19 +1397,22 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     double ih = view.image.size.height;
     double vw = view.bounds.size.width;
     double vh = view.bounds.size.height;
+    float csf = view.contentScaleFactor;
+    int cm = view.contentMode;
+    CGRect cs = view.contentStretch;
     
     double wfactor = vw / iw;
     double hfactor = vh / ih;
     if (wfactor < hfactor)
     {
         rtn.size.width = vw;
-        rtn.size.height = vh * hfactor;
+        rtn.size.height = ih * wfactor;
         rtn.origin.x = 0;
         rtn.origin.y = (vh - rtn.size.height) / 2;
     }
     else
     {
-        rtn.size.width = iw * wfactor;;
+        rtn.size.width = iw * hfactor;;
         rtn.size.height = vh;
         rtn.origin.y = 0;
         rtn.origin.x = (vw - rtn.size.width) / 2;
@@ -1439,8 +1442,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         imagePoint2.y = sqlite3_column_double(statement, i++);
         w = sqlite3_column_double(statement, i++);
         h = sqlite3_column_double(statement, i++);
-        CGRect imageFrame = [self imageRectInView:view];
-        CGRect viewFrame = view.bounds;
+        CGRect viewFrame = [self imageRectInView:view];
+        CGRect imageFrame = CGRectMake(0,0,  view.image.size.width, view.image.size.height);
         HANDLE hTranRect = STRANCGRect (imageFrame,viewFrame);
         DPOINT dPoint = CGPointToDPOINT(imagePoint1);
         DPOINT dPoint1 = TranPoint (&dPoint,hTranRect);
@@ -1572,8 +1575,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
     if (update)
     {
-        CGRect imageFrame = [self imageRectInView:view];
-        CGRect viewFrame = view.bounds;
+        CGRect viewFrame = [self imageRectInView:view];
+        CGRect imageFrame = CGRectMake (0,0,view.image.size.width,view.image.size.height);
         HANDLE hTranRect = STRANCGRect (viewFrame,imageFrame);
         DPOINT dPoint = CGPointToDPOINT(point1);
         DPOINT dPoint1 = TranPoint (&dPoint,hTranRect);
