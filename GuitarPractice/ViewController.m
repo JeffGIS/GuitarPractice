@@ -78,6 +78,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property CGPoint highlightPoint1, highlightPoint2;
 @property CGRect highlightRect;
 @property int numHighlightLines;
+@property BOOL inFullScreen;
 
 @end
 
@@ -120,6 +121,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_ImageDisplay addGestureRecognizer:_tapGestureRecognizer];
     _tapGestureRecognizer.delegate = self;
     _numHighlightLines = 1;
+    _inFullScreen = NO;
 }
 - (void) handleTapFrom: (UITapGestureRecognizer *)recognizer
 {
@@ -191,12 +193,12 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_stepAheadButton];
     [_allViewsArray addObject:_stepBackButton];
     [_allViewsArray addObject:_clipButton];
+    [_allViewsArray addObject:_tapToEditLabel];
     [_allViewsArray addObject:_cancelEditButton];
     [_allViewsArray addObject:_changeBeginButton];
     [_allViewsArray addObject:_changeEndButton];
     [_allViewsArray addObject:_numClipsLabel];
     [_allViewsArray addObject:_deleteClipButton];
-    [_allViewsArray addObject:_tapToEditLabel];
     [_allViewsArray addObject:_slider];
     [_allViewsArray addObject:_addImageHighlightButton];
     [_allViewsArray addObject:_imageHighlightInstructions];
@@ -828,7 +830,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     int seconds = IDNINT(_endTime - _beginTime);
     NSString *labelText;
     labelText = @"";
-    if (_currentSegment > -1)
+    if (_currentSegment > -1 && !_inFullScreen)
     {
         labelText = [NSString stringWithFormat:@"Clip %i of %lu",_currentSegment+1,(unsigned long)_endTimes.count];
         [_clipButton setTitle:labelText forState:UIControlStateNormal];
@@ -1386,8 +1388,36 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                            inView:_ImageDisplay];
     return;
 }
+-(CGRect)imageRectInView:(UIImageView*)view
+{
+    CGRect rtn={0};
+    CGRect b = view.bounds;
+    CGRect f = view.frame;
+    double iw = view.image.size.width;
+    double ih = view.image.size.height;
+    double vw = view.bounds.size.width;
+    double vh = view.bounds.size.height;
+    
+    double wfactor = vw / iw;
+    double hfactor = vh / ih;
+    if (wfactor < hfactor)
+    {
+        rtn.size.width = vw;
+        rtn.size.height = vh * hfactor;
+        rtn.origin.x = 0;
+        rtn.origin.y = (vh - rtn.size.height) / 2;
+    }
+    else
+    {
+        rtn.size.width = iw * wfactor;;
+        rtn.size.height = vh;
+        rtn.origin.y = 0;
+        rtn.origin.x = (vw - rtn.size.width) / 2;
+    }
+    return rtn;
+}
 - (BOOL) displayHighlightForLink:(int)linkID
-                          inView:(UIView*) view
+                          inView:(UIImageView*) view
 {
     [self removeHighlightFromView:view];
     BOOL rtn = FALSE;
@@ -1400,28 +1430,26 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (sqlite3_step(statement) == SQLITE_ROW)
     {
         int i = 0;
-        CGPoint point1, point2;
+        CGPoint imagePoint1, imagePoint2;
         float w, h;
         int numLines = sqlite3_column_int(statement, i++);
-        point1.x = sqlite3_column_double(statement, i++);
-        point1.y = sqlite3_column_double(statement, i++);
-        point2.x = sqlite3_column_double(statement, i++);
-        point2.y = sqlite3_column_double(statement, i++);
+        imagePoint1.x = sqlite3_column_double(statement, i++);
+        imagePoint1.y = sqlite3_column_double(statement, i++);
+        imagePoint2.x = sqlite3_column_double(statement, i++);
+        imagePoint2.y = sqlite3_column_double(statement, i++);
         w = sqlite3_column_double(statement, i++);
         h = sqlite3_column_double(statement, i++);
-        CGRect fromFrame = CGRectMake (0,0,w,h);
-        CGRect toFrame = view.frame;
-        toFrame.origin.x = 0;
-        toFrame.origin.y = 0;
-        HANDLE hTranRect = STRANCGRect (fromFrame,toFrame);
-        DPOINT dPoint = CGPointToDPOINT(point1);
+        CGRect imageFrame = [self imageRectInView:view];
+        CGRect viewFrame = view.bounds;
+        HANDLE hTranRect = STRANCGRect (imageFrame,viewFrame);
+        DPOINT dPoint = CGPointToDPOINT(imagePoint1);
         DPOINT dPoint1 = TranPoint (&dPoint,hTranRect);
-        dPoint = CGPointToDPOINT(point2);
+        dPoint = CGPointToDPOINT(imagePoint2);
         DPOINT dPoint2 = TranPoint (&dPoint,hTranRect);
         CloseTRANS2 (&hTranRect);
-        point1 = DPointToCGPoint(dPoint1);
-        point2 = DPointToCGPoint(dPoint2);
-        [self createHighlight:point1 point2:point2 numLines:numLines inView:view doUpdate:NO];
+        CGPoint viewPoint1 = DPointToCGPoint(dPoint1);
+        CGPoint viewPoint2 = DPointToCGPoint(dPoint2);
+        [self createHighlight:viewPoint1 point2:viewPoint2 numLines:numLines inView:view doUpdate:NO];
         rtn = TRUE;
     }
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
@@ -1431,6 +1459,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 - (IBAction)fullScreenTapped:(id)sender {
     [self hideAllViews:YES];
+    _inFullScreen = YES;
     [_fullScreenImageDisplay setImage:_image];
     [_fullScreenImageDisplay setHidden:NO];
     [_fullScreenReturnButton setHidden:NO];
@@ -1478,15 +1507,15 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 -(void) createHighlight:(CGPoint)point1
                  point2:(CGPoint)point2
                numLines:(int)numLines
-                 inView:(UIView *)view
+                 inView:(UIImageView *)view
                doUpdate:(BOOL)update
 {
     CGPoint point={0,0};
-    CGFloat w = view.frame.size.width;
-    CGFloat h = view.frame.size.height;
-    //int iw = view.image.size.width;
-    //int ih = view.image.size.height;
-    //float scale = view.image.scale;
+    CGFloat w = view.bounds.size.width;
+    CGFloat h = view.bounds.size.height;
+    int iw = view.image.size.width;
+    int ih = view.image.size.height;
+    float scale = view.image.scale;
     CGPoint framePoints[4];
     [self frameToPoints:view.frame
                  points:(CGPoint *)framePoints];
@@ -1543,15 +1572,27 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
     if (update)
     {
+        CGRect imageFrame = [self imageRectInView:view];
+        CGRect viewFrame = view.bounds;
+        HANDLE hTranRect = STRANCGRect (viewFrame,imageFrame);
+        DPOINT dPoint = CGPointToDPOINT(point1);
+        DPOINT dPoint1 = TranPoint (&dPoint,hTranRect);
+        dPoint = CGPointToDPOINT(point2);
+        DPOINT dPoint2 = TranPoint (&dPoint,hTranRect);
+        CloseTRANS2 (&hTranRect);
+        CGPoint imagePoint1 = DPointToCGPoint(dPoint1);
+        CGPoint imagePoint2 = DPointToCGPoint(dPoint2);
+
         BOOL opened = [self open];
         NSString *cmd = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CLIPHIGHLIGHT VALUES(%i,%i,%f,%f,%f,%f,%f,%f);",
-                         _currentLinkPrefix,numLines,point1.x,point1.y,point2.x,point2.y,w,h];
+                         _currentLinkPrefix,numLines,imagePoint1.x,imagePoint1.y,imagePoint2.x,imagePoint2.y,w,h];
         BOOL rtn = [self executeCmd:cmd];
         [self close:opened];
     }
 }
 - (IBAction)fullScreenReturnButtonTapped:(id)sender {
     [self hideAllViews:NO];
+    _inFullScreen = NO;
     [_fullScreenImageDisplay setHidden:YES];
     [_fullScreenReturnButton setHidden:YES];
 }
