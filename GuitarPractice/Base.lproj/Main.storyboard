@@ -99,7 +99,7 @@
                                     <action selector="priorSegmentTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Xhk-iO-q3F"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CrY-BU-Nyf">
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CrY-BU-Nyf">
                                 <rect key="frame" x="96" y="753" width="249" height="51"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="32"/>
@@ -135,7 +135,7 @@
                                     <action selector="nextSongTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Mzz-uh-y05"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="3lz-1F-37j">
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="3lz-1F-37j">
                                 <rect key="frame" x="98" y="926" width="249" height="51"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="32"/>
@@ -155,12 +155,6 @@
                             </button>
                             <imageView hidden="YES" clipsSubviews="YES" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ooX-6g-nCp">
                                 <rect key="frame" x="439" y="84" width="927" height="932"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <color key="tintColor" white="0.66666666669999997" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                            </imageView>
-                            <imageView hidden="YES" clipsSubviews="YES" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kGh-4x-dIs">
-                                <rect key="frame" x="0.0" y="84" width="1366" height="932"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <color key="tintColor" white="0.66666666669999997" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -417,7 +411,7 @@
                                     <action selector="clipButtonTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="062-I8-270"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="3Nw-cI-UsI">
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="3Nw-cI-UsI">
                                 <rect key="frame" x="96" y="861" width="249" height="51"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="32"/>
@@ -465,7 +459,7 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="MVe-Q1-lox">
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="MVe-Q1-lox">
                                 <rect key="frame" x="96" y="802" width="249" height="51"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="32"/>
@@ -504,6 +498,40 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <switch hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" title="Delay" translatesAutoresizingMaskIntoConstraints="NO" id="YMD-pV-Fn7">
+                                <rect key="frame" x="138" y="753" width="49" height="31"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <connections>
+                                    <action selector="delayChanged:" destination="BYZ-38-t0r" eventType="valueChanged" id="Pdl-D7-4sk"/>
+                                </connections>
+                            </switch>
+                            <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Delay" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="fq8-ew-hWj">
+                                <rect key="frame" x="69" y="756" width="61" height="28"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="22"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Record" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ezy-Q6-ZCd">
+                                <rect key="frame" x="242" y="756" width="76" height="28"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="22"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <switch hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" title="Delay" translatesAutoresizingMaskIntoConstraints="NO" id="F1g-6t-FjY">
+                                <rect key="frame" x="331" y="753" width="49" height="31"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <connections>
+                                    <action selector="recordChanged:" destination="BYZ-38-t0r" eventType="valueChanged" id="qMH-hS-nTD"/>
+                                </connections>
+                            </switch>
+                            <imageView hidden="YES" clipsSubviews="YES" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kGh-4x-dIs">
+                                <rect key="frame" x="0.0" y="106" width="1366" height="932"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <color key="tintColor" white="0.66666666669999997" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -520,6 +548,8 @@
                         <outlet property="clipButton" destination="j7I-aq-Vf1" id="g7C-aE-U0n"/>
                         <outlet property="continueButton" destination="mSH-Eo-1jf" id="XPf-lS-GBl"/>
                         <outlet property="currentCollectionLabel" destination="OL9-1H-uuV" id="hNh-ZG-MEf"/>
+                        <outlet property="delayLabel" destination="fq8-ew-hWj" id="7WJ-CW-kMI"/>
+                        <outlet property="delaySwitch" destination="YMD-pV-Fn7" id="7Tj-TX-lhr"/>
                         <outlet property="deleteClipButton" destination="3Nw-cI-UsI" id="wgK-GH-1sv"/>
                         <outlet property="endButton" destination="Nku-3w-9z2" id="Uwp-b2-T3q"/>
                         <outlet property="fullScreenButton" destination="vdw-oB-EIc" id="3fV-K2-ZH5"/>
@@ -543,6 +573,8 @@
                         <outlet property="playerView" destination="7PG-09-qi4" id="dh0-LJ-Rov"/>
                         <outlet property="priorFileButton" destination="WBG-Bh-6JV" id="x0h-0J-Dyz"/>
                         <outlet property="priorSegmentButton" destination="Tlp-15-wAG" id="Z2W-3F-sOB"/>
+                        <outlet property="recordLabel" destination="Ezy-Q6-ZCd" id="VfV-if-J2U"/>
+                        <outlet property="recordSwitch" destination="F1g-6t-FjY" id="nmN-pX-iJP"/>
                         <outlet property="saveButton" destination="CrY-BU-Nyf" id="qrp-Ig-SIF"/>
                         <outlet property="saveImageButton" destination="ppx-6k-HPT" id="Vyv-FO-svd"/>
                         <outlet property="selectPhotoButton" destination="3lz-1F-37j" id="Rl2-Wa-Bfw"/>

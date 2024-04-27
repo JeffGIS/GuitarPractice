@@ -13,7 +13,9 @@
 #import "CCodeLibrary/CCodeLibrary.h"
 #import "YTPlayerView.h"
 
-@interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate>
+#define DOCUMENTS_FOLDER [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"]
+
+@interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate>
 
 
 - (IBAction)selectSongTapped:(id)sender;
@@ -80,6 +82,12 @@
 @property (weak, nonatomic) IBOutlet UILabel *imageHighlightInstructions;
 @property (weak, nonatomic) IBOutlet UILabel *highlightLinesLabel;
 @property (weak, nonatomic) IBOutlet UIStepper *highlightLinesStepper;
+@property (weak, nonatomic) IBOutlet UISwitch *delaySwitch;
+@property (weak, nonatomic) IBOutlet UISwitch *recordSwitch;
+@property (weak, nonatomic) IBOutlet UILabel *delayLabel;
+@property (weak, nonatomic) IBOutlet UILabel *recordLabel;
+- (IBAction)recordChanged:(id)sender;
+- (IBAction)delayChanged:(id)sender;
 - (IBAction)highlightLinesChanged:(id)sender;
 - (IBAction)addImageHighlightTapped:(id)sender;
 - (IBAction)deleteClipTapped:(id)sender;

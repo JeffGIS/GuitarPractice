@@ -25,7 +25,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppleMusicUsageDescription</key>
-	<string>None of you business</string>
+	<string>Access local music library</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Record instrument practice session</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

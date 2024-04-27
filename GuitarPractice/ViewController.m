@@ -34,6 +34,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @interface ViewController ()
 @property AVAudioSession* audioSession;
 @property AVAudioPlayer *appSoundPlayer;
+@property AVAudioRecorder *appSoundRecorder;
 @property MPMediaItem * currentSong;
 @property int currentSongDuration;
 @property NSURL *currentSongURL;
@@ -68,6 +69,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property int clipEditStatus;
 @property int currentSegment;
 @property NSTimer *timer;
+@property NSTimer *leadInTimer;
+@property NSTimer *recordTimer;
 @property sqlite3nv *database;
 @property (atomic) BOOL isOpen;
 @property BOOL inLoop;
@@ -79,6 +82,16 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property CGRect highlightRect;
 @property int numHighlightLines;
 @property BOOL inFullScreen;
+@property SystemSoundID leadInTick;
+@property BOOL recording;
+@property int leadInCount;
+
+@property NSMutableDictionary *recordSetting;
+@property NSMutableDictionary *editedObject;
+@property NSString *recorderFilePath;
+@property AVAudioRecorder *recorder;
+
+@property SystemSoundID soundID;
 
 @end
 
@@ -122,6 +135,11 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _tapGestureRecognizer.delegate = self;
     _numHighlightLines = 1;
     _inFullScreen = NO;
+    
+    NSString *soundFile = [NSString stringWithUTF8String:"///System/Library/Audio/UISounds/Tock.caf"];
+    NSURL *url = [NSURL URLWithString:soundFile];
+    AudioServicesCreateSystemSoundID((__bridge CFURLRef _Nonnull)(url), &_leadInTick);
+
 }
 - (void) handleTapFrom: (UITapGestureRecognizer *)recognizer
 {
@@ -204,6 +222,10 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_imageHighlightInstructions];
     [_allViewsArray addObject:_highlightLinesLabel];
     [_allViewsArray addObject:_highlightLinesStepper];
+    [_allViewsArray addObject:_delaySwitch];
+    [_allViewsArray addObject:_recordSwitch];
+    [_allViewsArray addObject:_delayLabel];
+    [_allViewsArray addObject:_recordLabel];
 
 }
 -(void) hideAllViews:(BOOL)hide
@@ -228,6 +250,49 @@ typedef NS_ENUM(NSInteger, SongTypes)
         }
     }
 }
+
+- (void) playLeadInTick:(NSTimer *)timer
+{
+    _leadInCount++;
+    if (_leadInCount >= 5)
+    {
+        [self startRecording];
+        [timer invalidate];
+        return;
+        double recordTime = 2;
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+        NSString *documentsDirectory = [paths objectAtIndex:0];
+        NSString *fileName = @"test.wav";
+        NSString *filePath = [documentsDirectory stringByAppendingPathComponent:fileName];
+        NSURL* fileURL = [NSURL URLWithString:filePath];
+        NSError *error=nil;
+        NSMutableDictionary *recordSetting = NSMutableDictionary.new;
+
+        [recordSetting setValue :[NSNumber numberWithInt:kAudioFormatLinearPCM] forKey:AVFormatIDKey];
+        [recordSetting setValue:[NSNumber numberWithFloat:44100.0] forKey:AVSampleRateKey];
+        [recordSetting setValue:[NSNumber numberWithInt: 2] forKey:AVNumberOfChannelsKey];
+
+        [recordSetting setValue :[NSNumber numberWithInt:16] forKey:AVLinearPCMBitDepthKey];
+        [recordSetting setValue :[NSNumber numberWithBool:NO] forKey:AVLinearPCMIsBigEndianKey];
+        [recordSetting setValue :[NSNumber numberWithBool:NO] forKey:AVLinearPCMIsFloatKey];
+
+        
+        BOOL st = [_appSoundRecorder initWithURL:fileURL settings:recordSetting error:&error];
+        st = [_appSoundRecorder prepareToRecord];
+        st = [_appSoundRecorder recordForDuration:recordTime];
+    }
+    else
+        AudioServicesPlaySystemSound(_leadInTick);
+}
+- (void)audioRecorderDidFinishRecording:(AVAudioRecorder *)recorder successfully:(BOOL)flag
+{
+    return;
+}
+- (void)audioRecorderEncodeErrorDidOccur:(AVAudioRecorder *)recorder error:(NSError * __nullable)error
+{
+    return;
+}
+
 - (void)playerView:(nonnull YTPlayerView *)playerView didPlayTime:(float)playTime
 {
     _currentYTTime = playTime;
@@ -899,7 +964,14 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (_inLoop && _appSoundPlayer.currentTime >= _endTime)
     {
         [timer invalidate];
-        [self loopSegmentTapped:nil];
+        if (_recording)
+        {
+            [_appSoundPlayer stop];
+            _leadInCount = 0;
+            _leadInTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(playLeadInTick:) userInfo:nil repeats:YES];
+        }
+        else
+            [self loopSegmentTapped:nil];
     }
 }
 - (IBAction)stopTapped:(id)sender {
@@ -1021,6 +1093,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     [_loopSegmentButton setSelected:YES];
     [_playSegmentButton setSelected:NO];
+    [_delayLabel setHidden:NO];
+    [_delaySwitch setHidden:NO];
+    [_recordLabel setHidden:NO];
+    [_recordSwitch setHidden:NO];
 }
 
 - (void) setupApplicationAudio {
@@ -1487,6 +1563,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     NSString *label = [NSString stringWithFormat:@"Lines: %i",_numHighlightLines];
     [_highlightLinesLabel setText:label];
 }
+
+- (IBAction)delayChanged:(id)sender {
+}
+
+- (IBAction)recordChanged:(id)sender {
+    _recording = _recordSwitch.on;
+}
 -(void) frameToPoints:(CGRect)frame
                points:(CGPoint*)points
 {
@@ -1823,4 +1906,160 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
         [_linkName setHidden:showHide];
     }
 }
+
+- (void)startRecording
+{
+    BOOL st = YES;
+    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+    NSError *err = nil;
+    [audioSession setCategory :AVAudioSessionCategoryPlayAndRecord error:&err];
+    if(err){
+        NSLog(@"audioSession: %@ %ld %@", [err domain], (long)[err code], [[err userInfo] description]);
+        return;
+    }
+    [audioSession setActive:YES error:&err];
+    err = nil;
+    if(err){
+        NSLog(@"audioSession: %@ %ld %@", [err domain], (long)[err code], [[err userInfo] description]);
+        return;
+    }
+    
+    _recordSetting = [[NSMutableDictionary alloc] init];
+    
+    // We can use kAudioFormatAppleIMA4 (4:1 compression) or kAudioFormatLinearPCM for nocompression
+    [_recordSetting setValue :[NSNumber numberWithInt:kAudioFormatAppleIMA4] forKey:AVFormatIDKey];
+
+    // We can use 44100, 32000, 24000, 16000 or 12000 depending on sound quality
+    [_recordSetting setValue:[NSNumber numberWithFloat:16000.0] forKey:AVSampleRateKey];
+    
+    // We can use 2(if using additional h/w) or 1 (iPhone only has one microphone)
+    [_recordSetting setValue:[NSNumber numberWithInt: 1] forKey:AVNumberOfChannelsKey];
+    
+    // These settings are used if we are using kAudioFormatLinearPCM format
+    //[recordSetting setValue :[NSNumber numberWithInt:16] forKey:AVLinearPCMBitDepthKey];
+    //[recordSetting setValue :[NSNumber numberWithBool:NO] forKey:AVLinearPCMIsBigEndianKey];
+    //[recordSetting setValue :[NSNumber numberWithBool:NO] forKey:AVLinearPCMIsFloatKey];
+    
+    
+    
+    // Create a new dated file
+    //NSDate *now = [NSDate dateWithTimeIntervalSinceNow:0];
+//    NSString *caldate = [now description];
+//    recorderFilePath = [[NSString stringWithFormat:@"%@/%@.caf", DOCUMENTS_FOLDER, caldate] retain];
+    _recorderFilePath = [NSString stringWithFormat:@"%@/MySound.caf", DOCUMENTS_FOLDER];
+    
+    NSLog(@"recorderFilePath: %@",_recorderFilePath);
+    
+    NSURL *url = [NSURL fileURLWithPath:_recorderFilePath];
+    
+    err = nil;
+    
+    NSData *audioData = [NSData dataWithContentsOfFile:[url path] options: 0 error:&err];
+    if(audioData)
+    {
+        NSFileManager *fm = [NSFileManager defaultManager];
+        [fm removeItemAtPath:[url path] error:&err];
+    }
+    
+    err = nil;
+    _recorder = [[ AVAudioRecorder alloc] initWithURL:url settings:_recordSetting error:&err];
+    if(!_recorder){
+        NSLog(@"recorder: %@ %ld %@", [err domain], (long)[err code], [[err userInfo] description]);
+        UIAlertView *alert =
+        [[UIAlertView alloc] initWithTitle: @"Warning"
+                                   message: [err localizedDescription]
+                                  delegate: nil
+                         cancelButtonTitle:@"OK"
+                         otherButtonTitles:nil];
+        [alert show];
+        return;
+    }
+    
+    //prepare to record
+    [_recorder setDelegate:self];
+    st = [_recorder prepareToRecord];
+    _recorder.meteringEnabled = YES;
+    
+    BOOL audioHWAvailable = audioSession.inputIsAvailable;
+    if (! audioHWAvailable) {
+        UIAlertView *cantRecordAlert =
+        [[UIAlertView alloc] initWithTitle: @"Warning"
+                                   message: @"Audio input hardware not available"
+                                  delegate: nil
+                         cancelButtonTitle:@"OK"
+                         otherButtonTitles:nil];
+        [cantRecordAlert show];
+        return;
+    }
+    
+    // start recording
+    [_recorder recordForDuration:(NSTimeInterval) 12];
+    
+    //statusMsg.text = @"Recording...";
+    //progressView.progress = 0.0;
+    //timer = [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(handleTimer) userInfo:nil repeats:YES];
+}
+
+
+- (IBAction)stopRecording:(id)sender;
+{
+    [_recorder stop];
+    
+    //[timer invalidate];
+    //statusMsg.text = @"Stopped";
+    //progressView.progress = 1.0;
+    
+    //NSURL *url = [NSURL fileURLWithPath: recorderFilePath];
+//    NSError *err = nil;
+//    NSData *audioData = [NSData dataWithContentsOfFile:[url path] options: 0 error:&err];
+//    if(!audioData)
+//        NSLog(@"audio data: %@ %d %@", [err domain], [err code], [[err userInfo] description]);
+//    [editedObject setValue:[NSData dataWithContentsOfURL:url] forKey:@"editedFieldKey"];
+//
+//    //[recorder deleteRecording];
+//
+//
+//    NSFileManager *fm = [NSFileManager defaultManager];
+//
+//    err = nil;
+//    [fm removeItemAtPath:[url path] error:&err];
+//    if(err)
+//        NSLog(@"File Manager: %@ %d %@", [err domain], [err code], [[err userInfo] description]);
+    
+    
+}
+
+- (IBAction)playRecording:(id)sender;
+{
+    if(!_recorderFilePath)
+        _recorderFilePath = [NSString stringWithFormat:@"%@/MySound.caf", DOCUMENTS_FOLDER];
+    
+    //NSLog(@"Playing sound from Path: %@",recorderFilePath);
+    
+    if(_soundID)
+    {
+        AudioServicesDisposeSystemSoundID(_soundID);
+    }
+    
+    //Get a URL for the sound file
+    NSURL *filePath = [NSURL fileURLWithPath:_recorderFilePath isDirectory:NO];
+    
+    //Use audio sevices to create the sound
+    AudioServicesCreateSystemSoundID((__bridge CFURLRef _Nonnull)(filePath), &_soundID);
+    
+    //Use audio services to play the sound
+    //statusMsg.text = @"Playing";
+    AudioServicesPlaySystemSound(_soundID);
+}
+
+
+- (void)didReceiveMemoryWarning {
+    // Releases the view if it doesn't have a superview.
+    [super didReceiveMemoryWarning];
+    
+    // Release any cached data, images, etc that aren't in use.
+}
+
+
+
 @end
