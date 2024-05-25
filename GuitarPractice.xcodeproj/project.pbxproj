@@ -23,7 +23,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		EB547D6C23D4195B009BE924 /* GuitarPractice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GuitarPractice.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EB547D6C23D4195B009BE924 /* RiffMaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RiffMaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB547D6F23D4195B009BE924 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		EB547D7023D4195B009BE924 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		EB547D7223D4195B009BE924 /* SceneDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SceneDelegate.h; sourceTree = "<group>"; };
@@ -71,7 +71,7 @@
 		EB547D6D23D4195B009BE924 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				EB547D6C23D4195B009BE924 /* GuitarPractice.app */,
+				EB547D6C23D4195B009BE924 /* RiffMaster.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -134,7 +134,7 @@
 			);
 			name = GuitarPractice;
 			productName = GuitarPractice;
-			productReference = EB547D6C23D4195B009BE924 /* GuitarPractice.app */;
+			productReference = EB547D6C23D4195B009BE924 /* RiffMaster.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -275,6 +275,7 @@
 				MTL_FAST_MATH = YES;
 				NEW_SETTING = "";
 				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = RiffMaster;
 				SDKROOT = iphoneos;
 			};
 			name = Debug;
@@ -328,6 +329,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				NEW_SETTING = "";
+				PRODUCT_NAME = RiffMaster;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -344,8 +346,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.gssi.GuitarPractice;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.gssi.RiffMaster;
+				PRODUCT_NAME = RiffMaster;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -365,8 +367,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.gssi.GuitarPractice;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.gssi.RiffMaster;
+				PRODUCT_NAME = RiffMaster;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;

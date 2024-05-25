@@ -114,7 +114,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _timerInterval = 0.5;
     [self registerForMediaPlayerNotifications];
 
-    [self setupApplicationAudio];
+    //[self setupApplicationAudio];
     _beginTime = 86;
     [self setSliderValue:0];
     _currentSongTitle = @"";
@@ -286,6 +286,10 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 - (void)audioRecorderDidFinishRecording:(AVAudioRecorder *)recorder successfully:(BOOL)flag
 {
+    [NSOperationQueue.mainQueue addOperationWithBlock:^{
+        [self playRecording];
+    }];
+
     return;
 }
 - (void)audioRecorderEncodeErrorDidOccur:(AVAudioRecorder *)recorder error:(NSError * __nullable)error
@@ -746,11 +750,52 @@ typedef NS_ENUM(NSInteger, SongTypes)
     
 }
 
-- (void) startNewSong
+- (BOOL) startNewSong
 {
     [self updateSongLabel];
+    NSFileManager *fm = NSFileManager.defaultManager;
+    NSError *error = nil;
+    
+/*
+    // *** create AVAsset using URL ***
+    AVAsset *asset = [AVAsset assetWithURL:_currentSongURL];
 
-    AVAudioPlayer *newPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL: _currentSongURL error:nil];
+    // *** Create AVPlayerItem using AVAsset ***
+    AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithAsset:asset];
+
+    // *** Initialise AVPlayer ***
+    AVPlayer *avPlayer = [AVPlayer playerWithPlayerItem:playerItem];
+
+    // *** Add AVPlayer to ViewController ***
+    AVPlayerLayer *avPlayerLayer = [AVPlayerLayer playerLayerWithPlayer:avPlayer];
+    avPlayerLayer.frame = CGRectMake(500, 500, 320, 480);
+    [avPlayerLayer setBackgroundColor:[UIColor grayColor].CGColor];
+    [self.view.layer addSublayer:avPlayerLayer];
+
+    // *** Start Playback ***
+    [avPlayer play];
+    return TRUE;
+    // *** Register for playback end notification ***
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(playerItemDidReachEnd:)
+                                                 name:AVPlayerItemDidPlayToEndTimeNotification
+                                               object:[avPlayer currentItem]];
+
+    // *** Register observer for events of AVPlayer status ***
+    [avPlayer addObserver:self forKeyPath:@"status" options:0 context:nil];
+    return TRUE;
+    
+    AVPlayer *avp = AVPlayer.new;
+    [avp initWithURL:_currentSongURL];
+    [avp play];
+    return TRUE;
+    */
+    AVAudioPlayer *newPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL: _currentSongURL error:&error];
+    if (error)
+    {
+        NSLog(@"Player ERROR: %@", error.localizedDescription);
+        return FALSE;
+    }
      _appSoundPlayer = newPlayer;
    
      // "Preparing to play" attaches to the audio hardware and ensures that playback
@@ -779,7 +824,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_clipButton setHidden:YES];
     [_tapToEditLabel setHidden:YES];
     [self playTapped:nil];
-
+    return TRUE;
 }
 - (IBAction)playTapped:(id)sender {
     _inLoop = NO;
@@ -1963,6 +2008,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     
     err = nil;
     _recorder = [[ AVAudioRecorder alloc] initWithURL:url settings:_recordSetting error:&err];
+    
     if(!_recorder){
         NSLog(@"recorder: %@ %ld %@", [err domain], (long)[err code], [[err userInfo] description]);
         UIAlertView *alert =
@@ -1993,7 +2039,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     }
     
     // start recording
-    [_recorder recordForDuration:(NSTimeInterval) 12];
+    [_recorder recordForDuration:(NSTimeInterval) 10];
     
     //statusMsg.text = @"Recording...";
     //progressView.progress = 0.0;
@@ -2029,7 +2075,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     
 }
 
-- (IBAction)playRecording:(id)sender;
+- (IBAction)playRecording
 {
     if(!_recorderFilePath)
         _recorderFilePath = [NSString stringWithFormat:@"%@/MySound.caf", DOCUMENTS_FOLDER];
