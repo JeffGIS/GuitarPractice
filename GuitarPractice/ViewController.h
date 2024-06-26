@@ -17,6 +17,7 @@
 
 @interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate>
 
+- (IBAction)effectsTapped:(id)sender;
 
 - (IBAction)selectSongTapped:(id)sender;
 - (IBAction)nextSongTapped:(id)sender;
@@ -28,7 +29,9 @@
 - (IBAction)loopSegmentTapped:(id)sender;
 - (IBAction)nextSegmentTapped:(id)sender;
 - (IBAction)priorSegmentTapped:(id)sender;
+- (IBAction)monitorTapped:(id)sender;
 - (IBAction)saveTapped:(id)sender;
+@property (weak, nonatomic) IBOutlet UIButton *monitorButton;
 @property (weak, nonatomic) IBOutlet UILabel *songTitleLable;
 @property (weak, nonatomic) IBOutlet UIImageView *ImageDisplay;
 @property (weak, nonatomic) IBOutlet UIImageView *fullScreenImageDisplay;

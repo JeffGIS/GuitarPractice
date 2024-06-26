@@ -3,7 +3,7 @@
     <device id="ipad12_9" orientation="landscape" layout="fullscreen" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22684"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22685"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -144,13 +144,22 @@
                                     <action selector="selectPhoto:" destination="BYZ-38-t0r" eventType="touchUpInside" id="wzA-rj-Uqf"/>
                                 </connections>
                             </button>
-                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CBa-rr-Yli">
-                                <rect key="frame" x="59" y="965" width="326" height="51"/>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" highlighted="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CBa-rr-Yli">
+                                <rect key="frame" x="59" y="965" width="150" height="51"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="32"/>
-                                <state key="normal" title="Select YouTube Video"/>
+                                <state key="normal" title="Monitor"/>
                                 <connections>
-                                    <action selector="selectYouTubeVideo:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Afc-17-Mva"/>
+                                    <action selector="monitorTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="wH2-0o-zaN"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" highlighted="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="4Ww-Ot-Cuf">
+                                <rect key="frame" x="225" y="965" width="150" height="51"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="32"/>
+                                <state key="normal" title="Effects"/>
+                                <connections>
+                                    <action selector="effectsTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Tyc-YP-h9z"/>
                                 </connections>
                             </button>
                             <imageView hidden="YES" clipsSubviews="YES" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ooX-6g-nCp">
@@ -564,6 +573,7 @@
                         <outlet property="linkURLField" destination="7pK-f1-e10" id="hiS-uK-N6R"/>
                         <outlet property="linkURLLabel" destination="7B0-Pa-ggq" id="9cX-1h-aY0"/>
                         <outlet property="loopSegmentButton" destination="0oO-6b-5La" id="nJe-NZ-CW7"/>
+                        <outlet property="monitorButton" destination="CBa-rr-Yli" id="W7d-VA-myv"/>
                         <outlet property="nextFileButton" destination="M2N-i2-Ow7" id="Khm-h3-Abm"/>
                         <outlet property="nextSegmentButton" destination="shT-IL-a1e" id="uz5-4i-6QS"/>
                         <outlet property="numClipsLabel" destination="WuM-WL-xoF" id="Oyg-oC-Hlh"/>
@@ -579,7 +589,6 @@
                         <outlet property="saveImageButton" destination="ppx-6k-HPT" id="Vyv-FO-svd"/>
                         <outlet property="selectPhotoButton" destination="3lz-1F-37j" id="Rl2-Wa-Bfw"/>
                         <outlet property="selectSongButton" destination="sMO-BT-D1S" id="JNA-uT-wbl"/>
-                        <outlet property="selectYouTubeVideoButton" destination="CBa-rr-Yli" id="hAJ-86-aiD"/>
                         <outlet property="slider" destination="pOx-ix-Z6F" id="d11-vL-Tbm"/>
                         <outlet property="sliderTextLabel" destination="1xh-wr-1cz" id="PsZ-N4-pwJ"/>
                         <outlet property="songTitleLable" destination="JaH-lt-vyi" id="NbT-fb-fvH"/>

@@ -10,6 +10,7 @@
 #import "ViewController.h"
 #import "CCodeLibrary/NVPopoverTableView.h"
 #import "CCodeLibrary/StringFunctions.h"
+#import "AudioEngine.h"
 
 typedef NS_ENUM(NSInteger, SongTypes)
 {
@@ -34,6 +35,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @interface ViewController ()
 @property AVAudioSession* audioSession;
 @property AVAudioPlayer *appSoundPlayer;
+@property AVAudioPlayer *saveSoundPlayer;
 @property AVAudioRecorder *appSoundRecorder;
 @property MPMediaItem * currentSong;
 @property int currentSongDuration;
@@ -70,6 +72,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property int currentSegment;
 @property NSTimer *timer;
 @property NSTimer *leadInTimer;
+@property int maxLeadInTicks;
 @property NSTimer *recordTimer;
 @property sqlite3nv *database;
 @property (atomic) BOOL isOpen;
@@ -92,6 +95,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property AVAudioRecorder *recorder;
 
 @property SystemSoundID soundID;
+@property(nonatomic,strong) AVAudioEngine *AVaudioEngine;
+@property AudioEngine * audioEngine;
 
 @end
 
@@ -111,7 +116,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [_musicPlayer setShuffleMode: MPMusicShuffleModeOff];
         [_musicPlayer setRepeatMode: MPMusicRepeatModeNone];
 
-    _timerInterval = 0.5;
+    _timerInterval = 0.1;
     [self registerForMediaPlayerNotifications];
 
     //[self setupApplicationAudio];
@@ -135,8 +140,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _tapGestureRecognizer.delegate = self;
     _numHighlightLines = 1;
     _inFullScreen = NO;
+    _maxLeadInTicks = 2;
     
-    NSString *soundFile = [NSString stringWithUTF8String:"///System/Library/Audio/UISounds/Tock.caf"];
+    NSString *soundFile = [NSString stringWithUTF8String:"///System/Library/Audio/UISounds/begin_record.caf"];
     NSURL *url = [NSURL URLWithString:soundFile];
     AudioServicesCreateSystemSoundID((__bridge CFURLRef _Nonnull)(url), &_leadInTick);
 
@@ -184,7 +190,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_saveButton];
     [_allViewsArray addObject:_selectSongButton];
     [_allViewsArray addObject:_selectPhotoButton];
-    [_allViewsArray addObject:_selectYouTubeVideoButton];
     [_allViewsArray addObject:_saveImageButton];
     [_allViewsArray addObject:_cancelImageButton];
     [_allViewsArray addObject:_priorFileButton];
@@ -254,12 +259,12 @@ typedef NS_ENUM(NSInteger, SongTypes)
 - (void) playLeadInTick:(NSTimer *)timer
 {
     _leadInCount++;
-    if (_leadInCount >= 5)
+    if (_leadInCount > _maxLeadInTicks)
     {
-        [self startRecording];
+        double recordTime = _endTime - _beginTime;
         [timer invalidate];
+        [self startRecording:recordTime];
         return;
-        double recordTime = 2;
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
         NSString *documentsDirectory = [paths objectAtIndex:0];
         NSString *fileName = @"test.wav";
@@ -362,6 +367,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 - (void) setSliderValue:(float) value
 {
     NSString *sliderText = [NSString stringWithFormat:@"%.1f",value];
+    [_sliderTextLabel setText:sliderText];
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
         [self->_slider setValue:value];
         [self->_sliderTextLabel setText:sliderText];
@@ -414,6 +420,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
                                                                  includeCancel:YES];
     nvptv.allowsSubtitle = NO;
 }
+
 - (void)popoverTableViewDidCancel:(NVPopoverTableView *)popoverTableView
 {
     [popoverTableView hide:YES];
@@ -697,6 +704,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_changeBeginButton setHidden:YES];
     [_saveButton setEnabled:NO];
     [_cancelEditButton setEnabled:NO];
+    [_saveButton setHidden:YES];
+    [_cancelEditButton setHidden:YES];
+    [_deleteClipButton setHidden:YES];
     BOOL opened = [self open];
     NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
     
@@ -706,6 +716,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 
 }
 
+
 - (IBAction)cancelEditTapped:(id)sender {
     _clipEditStatus = 0;
     [_beginButton setHidden:NO];
@@ -714,7 +725,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_changeBeginButton setHidden:YES];
     [_saveButton setEnabled:NO];
     [_cancelEditButton setEnabled:NO];
-    [_deleteClipButton setEnabled:NO];
+    [_saveButton setHidden:YES];
+    [_cancelEditButton setHidden:YES];
+    [_deleteClipButton setHidden:YES];
     [self setCurrentPositiion:NO];
 }
 
@@ -730,6 +743,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_changeBeginButton setSelected:NO];
     [_changeEndButton setSelected:NO];
     [_cancelEditButton setEnabled:YES];
+    [_cancelEditButton setHidden:NO];
+    [_saveButton setHidden:NO];
+    [_saveButton setEnabled:YES];
     [_deleteClipButton setEnabled:YES];
     if (_currentSongType == SONG)
     {
@@ -1005,19 +1021,28 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     if (!_timer)
         return;
-    [self setSliderValue:_appSoundPlayer.currentTime];
     if (_inLoop && _appSoundPlayer.currentTime >= _endTime)
     {
         [timer invalidate];
         if (_recording)
         {
             [_appSoundPlayer stop];
-            _leadInCount = 0;
-            _leadInTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(playLeadInTick:) userInfo:nil repeats:YES];
+            [self setSliderValue:_endTime];
         }
         else
-            [self loopSegmentTapped:nil];
+        {
+            [timer invalidate];
+            if (_recording)
+            {
+                _leadInCount = 0;
+                _leadInTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(playLeadInTick:) userInfo:nil repeats:YES];
+            }
+            else
+                [self loopSegmentTapped:nil];
+        }
     }
+    else
+        [self setSliderValue:_appSoundPlayer.currentTime];
 }
 - (IBAction)stopTapped:(id)sender {
     if (_timer)
@@ -1446,8 +1471,235 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 
 
-- (IBAction)selectYouTubeVideo:(id)sender {
-    [self displayYouTubeVideo:@"www.youtube.com"];
+- (IBAction)monitorTapped:(id)sender {
+    //[self displayYouTubeVideo:@"www.youtube.com"];
+    [self testMonitor];
+}
+/*
+- (void) testMonitorx
+{
+    //_audioController = [[AudioController alloc] init];
+    static BOOL monOn = FALSE;
+    if (monOn)
+    {
+        [AudioController closeAudioController];
+        monOn = FALSE;
+    }
+    else
+    {
+        [AudioController initAudioController];
+        [AudioController playButtonPressed];
+        monOn = TRUE;
+    }
+    return;
+}*/
+- (void) testMonitor
+{
+    //_audioController = [[AudioController alloc] init];
+    static BOOL monOn = FALSE;
+    if (monOn)
+    {
+        NSError *error;
+        [_AVaudioEngine stop];
+        AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+        [audioSession setActive:NO error:&error];
+       monOn = FALSE;
+    }
+    else
+    {
+        [self startMonitor];
+        monOn = TRUE;
+    }
+    return;
+}
+
+- (void) startMonitor2
+{
+    AudioEngine *audioEngine = AudioEngine.new;
+    
+    [audioEngine togglePlayer];
+    [audioEngine setReverbWetDryMix:0.5];
+
+    [audioEngine setSamplerEffectVolume:1.00];
+}
+- (void) startMonitor
+{
+    NSError *error=nil;
+    _audioEngine = AudioEngine.new;
+
+    AVAudioEngine *engine = [_audioEngine getEngine];
+
+    //AVAudioInputNode *mic = [_engine inputNode];
+    //mic.volume = 1;
+    //AVAudioOutputNode *speaker = [_engine outputNode];
+    //[engine reset];
+    //[engine prepare];
+    
+    AVAudioMixerNode *mainMixer = engine.mainMixerNode;
+//    AVAudioFormat *stereoFormat = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100 channels:2];
+//    AVAudioFormat *mixerOutputFormat = [mainMixer outputFormatForBus:0];
+    //[engine connect:mic to:mainMixer format:nil];
+
+    AVAudioPlayerNode *playerNodeForMixer = [[AVAudioPlayerNode alloc] init];
+    
+    AVAudioUnitReverb *reverb = [[AVAudioUnitReverb alloc]init];
+    reverb.wetDryMix = 100;
+
+    [reverb loadFactoryPreset:AVAudioUnitReverbPresetCathedral];
+    [_audioEngine setDistortionPreset:AVAudioUnitDistortionPresetMultiEcho1];
+    [_audioEngine setDistortionWetDryMix:1.0];
+    [_audioEngine setReverbWetDryMix:0.8];
+    [_audioEngine setOutputVolume:0.5];
+    [_audioEngine setSamplerEffectVolume:1.00];
+
+    //[engine attachNode:reverb];
+    //[engine attachNode:playerNodeForMixer];
+    [engine startAndReturnError:&error];
+    //[_audioEngine togglePlayer];
+}
+- (IBAction)effectsTapped:(id)sender {
+    static int revMix = 1;
+    revMix = !revMix;
+    [_audioEngine setDistortionPreset:AVAudioUnitDistortionPresetMultiEcho2];
+    [_audioEngine setDistortionWetDryMix:revMix];
+    [_audioEngine setReverbWetDryMix:revMix];
+    [_audioEngine setOutputVolume:0.9];
+    [_audioEngine setSamplerEffectVolume:1.00];
+}
+
+- (void) startMonitor3
+{
+    NSError *error=nil;
+    
+    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+
+    [audioSession setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:(AVAudioSessionCategoryOptionAllowBluetooth )
+                                           error:&error];
+//
+    [audioSession setActive:YES error:&error];
+    _audioEngine = [[AVAudioEngine alloc] init];
+
+    AVAudioEngine *engine = _audioEngine;
+    AVAudioInputNode *mic = [engine inputNode];
+    mic.volume = 1;
+    AVAudioOutputNode *speaker = [engine outputNode];
+
+    //[engine reset];
+    [engine prepare];
+    
+    AVAudioMixerNode *mainMixer = engine.mainMixerNode;
+    [engine connect:mic to:mainMixer format:nil];
+
+    AVAudioFormat *mixerOutputFormat = [mainMixer outputFormatForBus:0];
+    AVAudioPlayerNode *playerNodeForMixer = [[AVAudioPlayerNode alloc] init];
+    
+    AVAudioUnitReverb *reverb = [[AVAudioUnitReverb alloc]init];
+    reverb.wetDryMix = 50;
+
+//    [reverb loadFactoryPreset:AVAudioUnitReverbPresetCathedral];
+    [engine attachNode:reverb];
+    [engine attachNode:playerNodeForMixer];
+    [engine connect:playerNodeForMixer to:reverb format:mixerOutputFormat];
+    
+    // connect the reverb effect to mixer input bus 0
+   // [engine connect:reverb to:mainMixer fromBus:0 toBus:0 format:mixerOutputFormat];
+    [engine startAndReturnError:&error];
+    return;
+/*
+    
+    AVAudioPlayerNode *playerNodeForMonitor = [[AVAudioPlayerNode alloc] init];
+    [engine attachNode:playerNodeForMonitor];
+    
+    AVAudioMixerNode *audioMixer = [[AVAudioMixerNode alloc] init];
+    [engine attachNode:audioMixer];
+    
+    AVAudioPlayerNode *playerNodeForOutput = [[AVAudioPlayerNode alloc] init];
+    [engine attachNode:playerNodeForOutput];
+    
+    AVAudioMixerNode *micMixer = [[AVAudioMixerNode alloc] init];
+    [engine attachNode:micMixer];
+    
+    
+    AVAudioInputNode *mic = [engine inputNode];
+    [engine connect:mic to:micMixer format:[mic inputFormatForBus:0]];
+    [engine connect:micMixer to:audioMixer format:mixerOutputFormat];
+    [engine connect:playerNodeForMixer to:audioMixer format:mixerOutputFormat];
+    
+    [engine connect:playerNodeForMonitor to:micMixer format:mixerOutputFormat];
+    
+    
+//    [engine connect:mic to:mainMixer format:mixerOutputFormat];
+    [engine connect:playerNodeForOutput to:mainMixer format:mixerOutputFormat];
+    [engine connect:playerNodeForMonitor to:mainMixer format:mixerOutputFormat];
+
+    AVAudioFile *bgAudioFile = [[AVAudioFile alloc] initForReading:self.bgMusicURL error:&error];
+    
+    __weak DEKaraokeController *weakSelf = self;
+    [playerNodeForMixer scheduleFile:bgAudioFile atTime:nil completionHandler:^{
+        [playerNodeForOutput stop];
+        [weakSelf stop];
+        if (musicFinishCallback != nil){
+            dispatch_async(dispatch_get_main_queue(), ^{
+               musicFinishCallback();
+            });
+           
+        }
+    }];
+    
+    [playerNodeForOutput scheduleFile:bgAudioFile atTime:nil completionHandler:nil];
+    
+    
+    
+    
+    
+    
+    AVAudioFormat *tapFormat = [audioMixer outputFormatForBus:0];
+    
+    AVAudioFile *outputFile = [[AVAudioFile alloc] initForWriting:self.outputURL settings:
+                               [tapFormat settings] error:&error];
+    
+    [audioMixer installTapOnBus:0 bufferSize:4096 format:tapFormat
+                          block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when) {
+                              NSError *error;
+                              BOOL success = NO;
+                              
+                              success = [outputFile writeFromBuffer:buffer error:&error];
+                              NSAssert(success, @"error writing buffer data to file, %@", [error localizedDescription]);
+                          }];
+    
+    self.audioMixer = audioMixer;
+    
+    [micMixer installTapOnBus:0 bufferSize:4096 format:tapFormat
+                        block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when) {
+                            [weakSelf meterLevel:buffer callback:powerLevelChangedCallback];
+                            
+                        }];
+    
+    
+    
+    [engine reset];
+    [engine prepare];
+    [engine startAndReturnError:&error];
+    
+    [playerNodeForMixer play];
+    [playerNodeForMonitor play];
+    [playerNodeForOutput play];
+    
+    self.isRunning = YES;
+    
+  */
+   
+}
+
+
+
+-(void)meterLevel:(AVAudioPCMBuffer *)buffer callback:(void (^)(float))callback{
+    //  [buffer setFrameLength:[buffer frameLength]];
+    UInt32 inNumberFrames = buffer.frameLength;
+    
+    float LEVEL_LOWPASS_TRIG = 0.2;
+    
+
 }
 
 - (IBAction)selectPhoto:(id)sender {
@@ -1952,18 +2204,19 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     }
 }
 
-- (void)startRecording
+- (void)startRecording:(double)recordTime
 {
     BOOL st = YES;
-    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
     NSError *err = nil;
+    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
     [audioSession setCategory :AVAudioSessionCategoryPlayAndRecord error:&err];
     if(err){
         NSLog(@"audioSession: %@ %ld %@", [err domain], (long)[err code], [[err userInfo] description]);
         return;
     }
     [audioSession setActive:YES error:&err];
-    err = nil;
+    //[audioSession overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&err];
+    //[audioSession setPreferredOutputNumberOfChannels:2 error:&err];
     if(err){
         NSLog(@"audioSession: %@ %ld %@", [err domain], (long)[err code], [[err userInfo] description]);
         return;
@@ -1972,10 +2225,10 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _recordSetting = [[NSMutableDictionary alloc] init];
     
     // We can use kAudioFormatAppleIMA4 (4:1 compression) or kAudioFormatLinearPCM for nocompression
-    [_recordSetting setValue :[NSNumber numberWithInt:kAudioFormatAppleIMA4] forKey:AVFormatIDKey];
+    [_recordSetting setValue :[NSNumber numberWithInt:kAudioFormatLinearPCM] forKey:AVFormatIDKey];
 
     // We can use 44100, 32000, 24000, 16000 or 12000 depending on sound quality
-    [_recordSetting setValue:[NSNumber numberWithFloat:16000.0] forKey:AVSampleRateKey];
+    [_recordSetting setValue:[NSNumber numberWithFloat:32000.0] forKey:AVSampleRateKey];
     
     // We can use 2(if using additional h/w) or 1 (iPhone only has one microphone)
     [_recordSetting setValue:[NSNumber numberWithInt: 1] forKey:AVNumberOfChannelsKey];
@@ -2007,7 +2260,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     }
     
     err = nil;
-    _recorder = [[ AVAudioRecorder alloc] initWithURL:url settings:_recordSetting error:&err];
+    _recorder = [[AVAudioRecorder alloc] initWithURL:url settings:_recordSetting error:&err];
     
     if(!_recorder){
         NSLog(@"recorder: %@ %ld %@", [err domain], (long)[err code], [[err userInfo] description]);
@@ -2039,7 +2292,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     }
     
     // start recording
-    [_recorder recordForDuration:(NSTimeInterval) 10];
+    [_recorder recordForDuration:(NSTimeInterval) recordTime];
     
     //statusMsg.text = @"Recording...";
     //progressView.progress = 0.0;
@@ -2074,14 +2327,37 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     
     
 }
-
-- (IBAction)playRecording
+- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag
 {
+    if (_saveSoundPlayer)
+    {
+        _appSoundPlayer = _saveSoundPlayer;
+        [self loopSegmentTapped:nil];
+    }
+}
+- (BOOL)playRecording
+{
+    NSError *error;
     if(!_recorderFilePath)
-        _recorderFilePath = [NSString stringWithFormat:@"%@/MySound.caf", DOCUMENTS_FOLDER];
-    
+        return FALSE;
+    NSURL *url = [NSURL fileURLWithPath:_recorderFilePath];
     //NSLog(@"Playing sound from Path: %@",recorderFilePath);
-    
+    AVAudioPlayer *newPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL: url error:&error];
+    if (error)
+    {
+        NSLog(@"Player ERROR: %@", error.localizedDescription);
+        return FALSE;
+    }
+    _saveSoundPlayer = _appSoundPlayer;
+    _appSoundPlayer = newPlayer;
+    [_appSoundPlayer prepareToPlay];
+    [_appSoundPlayer setVolume: 1.0];
+    [_appSoundPlayer setDelegate: self];
+
+    [_appSoundPlayer play];
+
+    return TRUE;
+    /*
     if(_soundID)
     {
         AudioServicesDisposeSystemSoundID(_soundID);
@@ -2096,6 +2372,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     //Use audio services to play the sound
     //statusMsg.text = @"Playing";
     AudioServicesPlaySystemSound(_soundID);
+     */
 }
 
 

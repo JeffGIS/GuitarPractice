@@ -19,6 +19,13 @@
 		EBA3438A2BABAF17004413F1 /* Podfile in Resources */ = {isa = PBXBuildFile; fileRef = EBA343892BABAF17004413F1 /* Podfile */; };
 		EBA3438F2BABB06A004413F1 /* YTPlayerView-iframe-player.html in Resources */ = {isa = PBXBuildFile; fileRef = EBA3438C2BABB06A004413F1 /* YTPlayerView-iframe-player.html */; };
 		EBA343902BABB06A004413F1 /* YTPlayerView.m in Sources */ = {isa = PBXBuildFile; fileRef = EBA3438E2BABB06A004413F1 /* YTPlayerView.m */; };
+		EBB8DBC12C2B280C000653FE /* AudioEngine.m in Sources */ = {isa = PBXBuildFile; fileRef = EBB8DBC02C2B280C000653FE /* AudioEngine.m */; };
+		EBB8DBC52C2B7657000653FE /* drumLoop.caf in Resources */ = {isa = PBXBuildFile; fileRef = EBB8DBC22C2B7657000653FE /* drumLoop.caf */; };
+		EBB8DBC62C2B7657000653FE /* gs_instruments.dls in Resources */ = {isa = PBXBuildFile; fileRef = EBB8DBC32C2B7657000653FE /* gs_instruments.dls */; };
+		EBB8DBC72C2B7657000653FE /* bluesyRiff.mid in Resources */ = {isa = PBXBuildFile; fileRef = EBB8DBC42C2B7657000653FE /* bluesyRiff.mid */; };
+		EBB8DBC92C2BB5D2000653FE /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EBB8DBC82C2BB5D2000653FE /* AudioToolbox.framework */; };
+		EBB8DBCB2C2BB63F000653FE /* AVFAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EBB8DBCA2C2BB63F000653FE /* AVFAudio.framework */; };
+		EBB8DBCD2C2BB6D8000653FE /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EBB8DBCC2C2BB6D8000653FE /* AVFoundation.framework */; };
 		EBBBFD672AE5F8FC00A27F86 /* libNVCoordinateLibrary.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */; };
 /* End PBXBuildFile section */
 
@@ -42,6 +49,14 @@
 		EBA3438C2BABB06A004413F1 /* YTPlayerView-iframe-player.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = "YTPlayerView-iframe-player.html"; sourceTree = "<group>"; };
 		EBA3438D2BABB06A004413F1 /* YTPlayerView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = YTPlayerView.h; sourceTree = "<group>"; };
 		EBA3438E2BABB06A004413F1 /* YTPlayerView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = YTPlayerView.m; sourceTree = "<group>"; };
+		EBB8DBBF2C2B280C000653FE /* AudioEngine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioEngine.h; sourceTree = "<group>"; };
+		EBB8DBC02C2B280C000653FE /* AudioEngine.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AudioEngine.m; sourceTree = "<group>"; };
+		EBB8DBC22C2B7657000653FE /* drumLoop.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = drumLoop.caf; sourceTree = "<group>"; };
+		EBB8DBC32C2B7657000653FE /* gs_instruments.dls */ = {isa = PBXFileReference; lastKnownFileType = file; path = gs_instruments.dls; sourceTree = "<group>"; };
+		EBB8DBC42C2B7657000653FE /* bluesyRiff.mid */ = {isa = PBXFileReference; lastKnownFileType = audio.midi; path = bluesyRiff.mid; sourceTree = "<group>"; };
+		EBB8DBC82C2BB5D2000653FE /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		EBB8DBCA2C2BB63F000653FE /* AVFAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFAudio.framework; path = System/Library/Frameworks/AVFAudio.framework; sourceTree = SDKROOT; };
+		EBB8DBCC2C2BB6D8000653FE /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libNVCoordinateLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -52,7 +67,10 @@
 			files = (
 				EB97D9EF27CD0F6A002C1BA1 /* libCCodeLibrary.a in Frameworks */,
 				EBBBFD672AE5F8FC00A27F86 /* libNVCoordinateLibrary.a in Frameworks */,
+				EBB8DBCD2C2BB6D8000653FE /* AVFoundation.framework in Frameworks */,
 				EB97D9F127CD30A9002C1BA1 /* libNVShapefileLibrary.a in Frameworks */,
+				EBB8DBC92C2BB5D2000653FE /* AudioToolbox.framework in Frameworks */,
+				EBB8DBCB2C2BB63F000653FE /* AVFAudio.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -79,6 +97,11 @@
 		EB547D6E23D4195B009BE924 /* GuitarPractice */ = {
 			isa = PBXGroup;
 			children = (
+				EBB8DBC42C2B7657000653FE /* bluesyRiff.mid */,
+				EBB8DBC22C2B7657000653FE /* drumLoop.caf */,
+				EBB8DBC32C2B7657000653FE /* gs_instruments.dls */,
+				EBB8DBBF2C2B280C000653FE /* AudioEngine.h */,
+				EBB8DBC02C2B280C000653FE /* AudioEngine.m */,
 				EBA3438B2BABB06A004413F1 /* Assets */,
 				EBA3438D2BABB06A004413F1 /* YTPlayerView.h */,
 				EBA3438E2BABB06A004413F1 /* YTPlayerView.m */,
@@ -102,6 +125,9 @@
 		EB97D9ED27CD0F6A002C1BA1 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				EBB8DBCC2C2BB6D8000653FE /* AVFoundation.framework */,
+				EBB8DBCA2C2BB63F000653FE /* AVFAudio.framework */,
+				EBB8DBC82C2BB5D2000653FE /* AudioToolbox.framework */,
 				EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */,
 				EB97D9F027CD30A9002C1BA1 /* libNVShapefileLibrary.a */,
 				EB97D9EE27CD0F6A002C1BA1 /* libCCodeLibrary.a */,
@@ -176,9 +202,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				EB547D7F23D4195C009BE924 /* LaunchScreen.storyboard in Resources */,
+				EBB8DBC72C2B7657000653FE /* bluesyRiff.mid in Resources */,
 				EB547D7C23D4195C009BE924 /* Assets.xcassets in Resources */,
+				EBB8DBC52C2B7657000653FE /* drumLoop.caf in Resources */,
 				EBA3438A2BABAF17004413F1 /* Podfile in Resources */,
 				EB547D7A23D4195B009BE924 /* Main.storyboard in Resources */,
+				EBB8DBC62C2B7657000653FE /* gs_instruments.dls in Resources */,
 				EBA3438F2BABB06A004413F1 /* YTPlayerView-iframe-player.html in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -190,6 +219,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EBB8DBC12C2B280C000653FE /* AudioEngine.m in Sources */,
 				EB547D7723D4195B009BE924 /* ViewController.m in Sources */,
 				EB547D7123D4195B009BE924 /* AppDelegate.m in Sources */,
 				EB547D8223D4195C009BE924 /* main.m in Sources */,
@@ -347,6 +377,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = J86LL8KXJL;
 				INFOPLIST_FILE = GuitarPractice/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -368,6 +399,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = J86LL8KXJL;
 				INFOPLIST_FILE = GuitarPractice/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
