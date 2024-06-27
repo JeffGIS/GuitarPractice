@@ -562,6 +562,12 @@
 
 #pragma mark Recording Methods
 
+- (NSURL *)getMixerOutputFileURL
+{
+    if (!_mixerOutputFileURL) _mixerOutputFileURL = [NSURL URLWithString:[NSTemporaryDirectory() stringByAppendingString:@"mixerOutput.caf"]];
+    return _mixerOutputFileURL;
+}
+
 - (void)startRecordingMixerOutput
 {
     // install a tap on the main mixer output bus and write output buffers to file

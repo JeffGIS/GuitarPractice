@@ -74,6 +74,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property NSTimer *leadInTimer;
 @property int maxLeadInTicks;
 @property NSTimer *recordTimer;
+@property float recordTime;
+@property float maxRecordTime;
 @property sqlite3nv *database;
 @property (atomic) BOOL isOpen;
 @property BOOL inLoop;
@@ -1023,8 +1025,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         return;
     if (_inLoop && _appSoundPlayer.currentTime >= _endTime)
     {
-        [timer invalidate];
-        if (_recording)
+        if (_appSoundPlayer.playing)
         {
             [_appSoundPlayer stop];
             [self setSliderValue:_endTime];
@@ -1559,8 +1560,21 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 - (IBAction)effectsTapped:(id)sender {
     static int revMix = 1;
+    NSError *error;
+    if (revMix)
+        [_audioEngine startRecordingMixerOutput];
+    else
+    {
+        [_audioEngine stopRecordingMixerOutput];
+        [_AVaudioEngine stop];
+        AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+        [audioSession setActive:NO error:&error];
+
+        [self playRecording];
+    }
     revMix = !revMix;
-    [_audioEngine setDistortionPreset:AVAudioUnitDistortionPresetMultiEcho2];
+    return;
+    [_audioEngine setDistortionPreset:AVAudioUnitDistortionPresetMultiDecimated3];
     [_audioEngine setDistortionWetDryMix:revMix];
     [_audioEngine setReverbWetDryMix:revMix];
     [_audioEngine setOutputVolume:0.9];
@@ -2203,8 +2217,27 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
         [_linkName setHidden:showHide];
     }
 }
-
 - (void)startRecording:(double)recordTime
+{
+    [self startMonitor];
+    [_audioEngine startRecordingMixerOutput];
+    _maxRecordTime = recordTime;
+    _recordTime = 0;
+    _recordTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(checkRecordTimer:) userInfo:nil repeats:YES];
+}
+- (void) checkRecordTimer:(NSTimer *)timer
+{
+    _recordTime += 0.1;
+    if (_recordTime >= _maxRecordTime)
+    {
+        [_recordTimer invalidate];
+        [self stopRecording];
+        [self playRecording];
+    }
+}
+
+
+- (void)startRecordingx:(double)recordTime
 {
     BOOL st = YES;
     NSError *err = nil;
@@ -2299,8 +2332,17 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     //timer = [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(handleTimer) userInfo:nil repeats:YES];
 }
 
+- (void) stopRecording
+{
+    NSError * error = nil;
+    
+    [_audioEngine stopRecordingMixerOutput];
+    [_AVaudioEngine stop];
+    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+    [audioSession setActive:NO error:&error];
+}
 
-- (IBAction)stopRecording:(id)sender;
+- (IBAction)stopRecordingx:(id)sender;
 {
     [_recorder stop];
     
@@ -2338,9 +2380,10 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
 - (BOOL)playRecording
 {
     NSError *error;
-    if(!_recorderFilePath)
-        return FALSE;
-    NSURL *url = [NSURL fileURLWithPath:_recorderFilePath];
+    //if(!_recorderFilePath)
+    //    return FALSE;
+    //NSURL *url = [NSURL fileURLWithPath:_recorderFilePath];
+    NSURL *url = [_audioEngine getMixerOutputFileURL];
     //NSLog(@"Playing sound from Path: %@",recorderFilePath);
     AVAudioPlayer *newPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL: url error:&error];
     if (error)
