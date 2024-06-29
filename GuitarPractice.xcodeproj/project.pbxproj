@@ -26,6 +26,7 @@
 		EBB8DBC92C2BB5D2000653FE /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EBB8DBC82C2BB5D2000653FE /* AudioToolbox.framework */; };
 		EBB8DBCB2C2BB63F000653FE /* AVFAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EBB8DBCA2C2BB63F000653FE /* AVFAudio.framework */; };
 		EBB8DBCD2C2BB6D8000653FE /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EBB8DBCC2C2BB6D8000653FE /* AVFoundation.framework */; };
+		EBB8DBFC2C306FB7000653FE /* EffectsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = EBB8DBFB2C306FB7000653FE /* EffectsViewController.m */; };
 		EBBBFD672AE5F8FC00A27F86 /* libNVCoordinateLibrary.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */; };
 /* End PBXBuildFile section */
 
@@ -57,6 +58,8 @@
 		EBB8DBC82C2BB5D2000653FE /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		EBB8DBCA2C2BB63F000653FE /* AVFAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFAudio.framework; path = System/Library/Frameworks/AVFAudio.framework; sourceTree = SDKROOT; };
 		EBB8DBCC2C2BB6D8000653FE /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		EBB8DBFA2C306FB7000653FE /* EffectsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EffectsViewController.h; sourceTree = "<group>"; };
+		EBB8DBFB2C306FB7000653FE /* EffectsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EffectsViewController.m; sourceTree = "<group>"; };
 		EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libNVCoordinateLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -118,6 +121,8 @@
 				EB547D8023D4195C009BE924 /* Info.plist */,
 				EB547D8123D4195C009BE924 /* main.m */,
 				EB97D9EB27CD0C12002C1BA1 /* GuitarPractice-Prefix.pch */,
+				EBB8DBFA2C306FB7000653FE /* EffectsViewController.h */,
+				EBB8DBFB2C306FB7000653FE /* EffectsViewController.m */,
 			);
 			path = GuitarPractice;
 			sourceTree = "<group>";
@@ -223,6 +228,7 @@
 				EB547D7723D4195B009BE924 /* ViewController.m in Sources */,
 				EB547D7123D4195B009BE924 /* AppDelegate.m in Sources */,
 				EB547D8223D4195C009BE924 /* main.m in Sources */,
+				EBB8DBFC2C306FB7000653FE /* EffectsViewController.m in Sources */,
 				EBA343902BABB06A004413F1 /* YTPlayerView.m in Sources */,
 				EB547D7423D4195B009BE924 /* SceneDelegate.m in Sources */,
 			);
