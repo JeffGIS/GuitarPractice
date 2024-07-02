@@ -9,7 +9,8 @@
 #import "EffectsViewController.h"
 
 @interface EffectsViewController ()
-
+@property NSArray *distortions;
+@property NSArray *reverbs;
 @end
 
 @implementation EffectsViewController
@@ -17,6 +18,42 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
+    _distortions = @[@"DrumsBitBrush"
+                     ,@"DrumsBufferBeats"
+                     ,@"DrumsLoFi"
+                     ,@"MultiBrokenSpeaker"
+                     ,@"MultiCellphoneConcert"
+                     ,@"MultiDecimated1"
+                     ,@"MultiDecimated2"
+                     ,@"MultiDecimated3"
+                     ,@"MultiDecimated4"
+                     ,@"MultiDistortedFunk"
+                     ,@"MultiDistortedCubed"
+                     ,@"MultiDistortedSquared"
+                     ,@"MultiEcho1"
+                     ,@"MultiEcho2"
+                     ,@"MultiEchoTight1"
+                     ,@"MultiEchoTight2"
+                     ,@"MultiEverythingIsBroken"
+                     ,@"SpeechAlienChatter"
+                     ,@"SpeechCosmicInterference"
+                     ,@"SpeechGoldenPi"
+                     ,@"SpeechRadioTower"
+                     ,@"SpeechWaves"];
+    _reverbs = @[@"SmallRoom"
+                 ,@"MediumRoom"
+                 ,@"LargeRoom"
+                 ,@"MediumHall"
+                 ,@"LargeHall"
+                 ,@"Plate"
+                 ,@"MediumChamber"
+                 ,@"LargeChamber"
+                 ,@"Cathedral"
+                 ,@"LargeRoom2"
+                 ,@"MediumHall2"
+                 ,@"MediumHall3"
+                 ,@"LargeHall2"];
+    
 }
 
 /*
@@ -29,4 +66,6 @@
 }
 */
 
+- (IBAction)reverbSwitchChanged:(id)sender {
+}
 @end
