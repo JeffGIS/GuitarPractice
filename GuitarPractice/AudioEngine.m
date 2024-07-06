@@ -26,7 +26,7 @@
     // AVAudioEngine and AVAudioNodes
     AVAudioEngine           *_engine;
     AVAudioUnitSampler      *_sampler;
-    AVAudioUnitDistortion   *_distortion;
+    AVAudioUnitDistortion   *_distortion,*_distortion2;
     AVAudioUnitReverb       *_reverb;
     AVAudioPlayerNode       *_player;
     AVAudioInputNode        *_mic;
@@ -87,7 +87,8 @@
         /* An AVAudioUnitEffect that implements a multi-stage distortion effect */
 
         _distortion = [[AVAudioUnitDistortion alloc] init];
-        
+        _distortion2 = [[AVAudioUnitDistortion alloc] init];
+
         /*  A reverb simulates the acoustic characteristics of a particular environment.
          Use the different presets to simulate a particular space and blend it in with
          the original signal using the wetDryMix parameter. */
@@ -120,7 +121,9 @@
         
         [_distortion loadFactoryPreset:AVAudioUnitDistortionPresetMultiBrokenSpeaker];
         _distortion.wetDryMix = 100;
-        
+        [_distortion2 loadFactoryPreset:AVAudioUnitDistortionPresetMultiDecimated2];
+        _distortion2.wetDryMix = 100;
+
         self.samplerEffectVolume = 0.6;
         
         // sign up for notifications from the engine if there's a hardware config change
@@ -215,6 +218,7 @@
 
     //[_engine attachNode:_sampler];
     [_engine attachNode:_distortion];
+    [_engine attachNode:_distortion2];
     [_engine attachNode:_reverb];
     //[_engine attachNode:_player];
 }
@@ -270,25 +274,16 @@
     //[_engine connect:_mic to:mainMixer  fromBus:0 toBus:2 format:nil];
     // connect the player to the reverb
     //[_engine connect:_player to:_reverb format:stereoFormat];
-    int ni = _distortion.numberOfInputs;
-    ni = _distortion.numberOfOutputs;
-    ni = _reverb.numberOfInputs;
-    ni = _reverb.numberOfOutputs;
     
     [_distortion setBypass:NO];
     [_distortion setPreGain:20];
-    [_distortion setWetDryMix:100];
-    
-    //[_engine connect:_reverb to:mainMixer fromBus:0 toBus:0 format:stereoFormat];
-    //[_engine connect:_distortion to:mainMixer fromBus:0 toBus:0 format:0];
-    //[_engine connect:_reverb to:_distortion fromBus:0 toBus:0 format:0];
-    //[_engine connect:_distortion to:_reverb format:nil];
-    [_engine connect:_mic to:_reverb format:nil];
-    // connect the reverb effect to mixer input bus 0
-    [_engine connect:_reverb to:_distortion format:stereoFormat];
+    [_distortion setWetDryMix:0];
+    [_distortion2 setWetDryMix:0];
 
-    // connect the distortion effect to mixer input bus 2
-    [_engine connect:_distortion to:mainMixer fromBus:0 toBus:0 format:0];
+    [_engine connect:_mic to:_reverb format:nil];
+    [_engine connect:_reverb to:_distortion format:stereoFormat];
+    [_engine connect:_distortion to:_distortion2 format:stereoFormat];
+    [_engine connect:_distortion2 to:mainMixer fromBus:0 toBus:0 format:0];
     return;
     // fan out the sampler to mixer input 1 and distortion effect
     NSArray<AVAudioConnectionPoint *> *destinationNodes = [NSArray arrayWithObjects:[[AVAudioConnectionPoint alloc] initWithNode:_engine.mainMixerNode bus:1], [[AVAudioConnectionPoint alloc] initWithNode:_distortion bus:0], nil];

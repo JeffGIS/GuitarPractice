@@ -1548,10 +1548,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
     [reverb loadFactoryPreset:AVAudioUnitReverbPresetCathedral];
     [_audioEngine setDistortionPreset:AVAudioUnitDistortionPresetMultiEcho1];
-    [_audioEngine setDistortionWetDryMix:1.0];
-    [_audioEngine setReverbWetDryMix:0.8];
-    [_audioEngine setOutputVolume:0.5];
-    [_audioEngine setSamplerEffectVolume:1.00];
+    //[_audioEngine setDistortionWetDryMix:0.0];
+    [_audioEngine setReverbWetDryMix:0.5];
+    [_audioEngine setOutputVolume:0.8];
+//    [_audioEngine setSamplerEffectVolume:0.00];
 
     //[engine attachNode:reverb];
     //[engine attachNode:playerNodeForMixer];

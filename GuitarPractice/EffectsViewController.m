@@ -66,6 +66,37 @@
 }
 */
 
-- (IBAction)reverbSwitchChanged:(id)sender {
+- (IBAction)volumeChanged:(id)sender {
+}
+
+- (IBAction)addDistortionTapped:(id)sender {
+    NVPopoverTableView *nvptv = [NVPopoverTableView showPopoverTableViewInView:self.view
+                                                                      delegate:self
+                                                                         title:@"Distortions"
+                                                                     textArray:_distortions
+                                                                 includeCancel:YES];
+    nvptv.allowsSubtitle = NO;
+
+}
+
+- (IBAction)addReverbTapped:(id)sender {
+    NVPopoverTableView *nvptv = [NVPopoverTableView showPopoverTableViewInView:self.view
+                                                                      delegate:self
+                                                                         title:@"Reverbs"
+                                                                     textArray:_reverbs
+                                                                 includeCancel:YES];
+    nvptv.allowsSubtitle = NO;
+}
+
+- (void)popoverTableViewDidCancel:(NVPopoverTableView *)popoverTableView
+{
+    [popoverTableView hide:YES];
+}
+- (void)popoverTableView:(NVPopoverTableView *)popoverTableView
+    didSelectRowWithText:(NSString *)text
+                 atIndex:(NSInteger)index
+{
+    if ([popoverTableView.title isEqual:@"Reverbs"])
+        [popoverTableView hide:YES];
 }
 @end
