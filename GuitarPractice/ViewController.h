@@ -16,23 +16,6 @@
 
 #define DOCUMENTS_FOLDER [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"]
 
-typedef NS_ENUM(NSInteger, EffectType)
-{
-    REVERB,
-    DISTORTION,
-};
-
-@interface EffectsData : NSObject
-@property EffectType type;
-@property int effectID;
-@property AVAudioUnitDistortion   *distortion;
-@property AVAudioUnitReverb       *reverb;
-@property UISlider *wetDrySlider;
-@property UISlider *pregainSlider;
-@property UILabel *typeLabel;
-@property UILabel *nameLabel;
-@end
-
 @interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate>
 
 - (IBAction)effectsTapped:(id)sender;

@@ -69,7 +69,9 @@
     [self displayEffects];
     return;
 }
-- (IBAction)volumeChanged:(id)sender {
+- (IBAction)volumeChanged:(id)sender
+{
+    return;
 }
 
 - (IBAction)addDistortionTapped:(id)sender {
@@ -121,7 +123,11 @@
     EffectsData *efdata = EffectsData.new;
     efdata.type = type;
     efdata.effectID = effectID;
-    
+    if (type == REVERB)
+        [efdata.reverb loadFactoryPreset:effectID];
+    else
+        [efdata.distortion loadFactoryPreset:AVAudioUnitDistortionPresetMultiBrokenSpeaker];
+
     [_effectsArray addObject:efdata];
     [self removeEffects];
     [self displayEffects];
@@ -129,6 +135,11 @@
 -(void) removeEffectTapped:(UIButton *)button
 {
     
+}
+
+- (void) wetDrySliderValueChanged:(id)sender
+{
+    return;
 }
 
 - (void) removeEffects

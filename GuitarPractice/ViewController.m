@@ -33,26 +33,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 @end
 
-@implementation EffectsData
-@synthesize type;
-@synthesize effectID;
-@synthesize distortion;
-@synthesize reverb;
-@synthesize wetDrySlider;
-@synthesize pregainSlider;
-- (id)init
-{
-    self = [super init];
-    self.distortion = AVAudioUnitDistortion.new;
-    self.reverb =  AVAudioUnitReverb.new;
-    self.wetDrySlider = UISlider.new;
-    self.pregainSlider = UISlider.new;
-    self.typeLabel = UILabel.new;
-    self.nameLabel = UILabel.new;
-    return self;
-}
-@end
-
 @interface ViewController ()
 @property AVAudioSession* audioSession;
 @property AVAudioPlayer *appSoundPlayer;
@@ -1550,8 +1530,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (void) startMonitor
 {
     NSError *error=nil;
-    _audioEngine = AudioEngine.new;
-    [_audioEngine initEffectsArray:_effectsArray];
+    _audioEngine = [AudioEngine initWithEffectsArray:_effectsArray];
 
     AVAudioEngine *engine = [_audioEngine getEngine];
 
@@ -1561,31 +1540,33 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     //[engine reset];
     //[engine prepare];
     
-    AVAudioMixerNode *mainMixer = engine.mainMixerNode;
+//AVAudioMixerNode *mainMixer = engine.mainMixerNode;
 //    AVAudioFormat *stereoFormat = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100 channels:2];
 //    AVAudioFormat *mixerOutputFormat = [mainMixer outputFormatForBus:0];
     //[engine connect:mic to:mainMixer format:nil];
 
-    AVAudioPlayerNode *playerNodeForMixer = [[AVAudioPlayerNode alloc] init];
+    //AVAudioPlayerNode *playerNodeForMixer = [[AVAudioPlayerNode alloc] init];
     
-    AVAudioUnitReverb *reverb = [[AVAudioUnitReverb alloc]init];
-    reverb.wetDryMix = 100;
+    //AVAudioUnitReverb *reverb = [[AVAudioUnitReverb alloc]init];
+    //reverb.wetDryMix = 100;
 
-    [reverb loadFactoryPreset:AVAudioUnitReverbPresetCathedral];
-    [_audioEngine setDistortionPreset:AVAudioUnitDistortionPresetMultiEcho1];
+   // [reverb loadFactoryPreset:AVAudioUnitReverbPresetCathedral];
+    //[_audioEngine setDistortionPreset:AVAudioUnitDistortionPresetMultiEcho1];
     //[_audioEngine setDistortionWetDryMix:0.0];
-    [_audioEngine setReverbWetDryMix:0.5];
-    [_audioEngine setOutputVolume:0.8];
+   // [_audioEngine setReverbWetDryMix:0.5];
+   // [_audioEngine setOutputVolume:0.8];
 //    [_audioEngine setSamplerEffectVolume:0.00];
 
     //[engine attachNode:reverb];
     //[engine attachNode:playerNodeForMixer];
+    [engine prepare];
     [engine startAndReturnError:&error];
     //[_audioEngine togglePlayer];
 }
 - (IBAction)effectsTapped:(id)sender {
     static int revMix = 1;
     NSError *error;
+    return;
     if (revMix)
         [_audioEngine startRecordingMixerOutput];
     else

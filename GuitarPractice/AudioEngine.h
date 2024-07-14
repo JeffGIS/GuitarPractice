@@ -64,5 +64,6 @@ static NSString *kRecordingCompletedNotification = @"RecordingCompletedNotificat
 - (AVAudioEngine*) getEngine;
 - (NSURL *)getMixerOutputFileURL;
 - (void) initEffectsArray:(NSMutableArray *)array;
++ (AudioEngine*) initWithEffectsArray:(NSMutableArray*)effectsArray;
 
 @end
