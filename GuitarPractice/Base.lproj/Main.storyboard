@@ -160,7 +160,7 @@
                                 <state key="normal" title="Effects"/>
                                 <connections>
                                     <action selector="effectsTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Tyc-YP-h9z"/>
-                                    <segue destination="b42-eX-QwM" kind="show" id="Rn1-IT-JQC"/>
+                                    <segue destination="b42-eX-QwM" kind="show" identifier="EffectsSegue" id="Rn1-IT-JQC"/>
                                 </connections>
                             </button>
                             <imageView hidden="YES" clipsSubviews="YES" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ooX-6g-nCp">
@@ -659,13 +659,15 @@
                                     <action selector="volumeChanged:" destination="b42-eX-QwM" eventType="valueChanged" id="6nB-iq-yNA"/>
                                 </connections>
                             </slider>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Pa9-YF-U0k">
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Pa9-YF-U0k">
                                 <rect key="frame" x="156" y="165" width="237" height="58"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="filled" title="Add Reverb">
-                                    <fontDescription key="titleFontDescription" type="system" pointSize="38"/>
-                                </buttonConfiguration>
+                                <color key="backgroundColor" systemColor="systemGreenColor"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="38"/>
+                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                <state key="normal" title="Add Reverb">
+                                    <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                </state>
                                 <connections>
                                     <action selector="addReverbTapped:" destination="b42-eX-QwM" eventType="touchUpInside" id="Z5O-1a-qxH"/>
                                 </connections>
@@ -681,6 +683,14 @@
                                     <action selector="addDistortionTapped:" destination="b42-eX-QwM" eventType="touchUpInside" id="97f-yF-dSV"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="kzi-id-DQi">
+                                <rect key="frame" x="126" y="838" width="119" height="66"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="tinted" title="Clear">
+                                    <fontDescription key="titleFontDescription" type="system" pointSize="33"/>
+                                </buttonConfiguration>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="YLB-lC-5SM"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -689,6 +699,8 @@
                     <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
                     <size key="freeformSize" width="1366" height="1024"/>
                     <connections>
+                        <outlet property="addDistortionButton" destination="5ns-kq-7kZ" id="49U-Vk-Gv6"/>
+                        <outlet property="addReverbButton" destination="Pa9-YF-U0k" id="I3f-Io-HbR"/>
                         <outlet property="volumeSlider" destination="ABI-op-vCi" id="Ywl-wp-fYI"/>
                     </connections>
                 </viewController>

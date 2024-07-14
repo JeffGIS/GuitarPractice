@@ -13,7 +13,25 @@
 #import "CCodeLibrary/CCodeLibrary.h"
 #import "YTPlayerView.h"
 
+
 #define DOCUMENTS_FOLDER [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"]
+
+typedef NS_ENUM(NSInteger, EffectType)
+{
+    REVERB,
+    DISTORTION,
+};
+
+@interface EffectsData : NSObject
+@property EffectType type;
+@property int effectID;
+@property AVAudioUnitDistortion   *distortion;
+@property AVAudioUnitReverb       *reverb;
+@property UISlider *wetDrySlider;
+@property UISlider *pregainSlider;
+@property UILabel *typeLabel;
+@property UILabel *nameLabel;
+@end
 
 @interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate>
 
@@ -31,6 +49,7 @@
 - (IBAction)priorSegmentTapped:(id)sender;
 - (IBAction)monitorTapped:(id)sender;
 - (IBAction)saveTapped:(id)sender;
+@property NSMutableArray *effectsArray;
 @property (weak, nonatomic) IBOutlet UIButton *monitorButton;
 @property (weak, nonatomic) IBOutlet UILabel *songTitleLable;
 @property (weak, nonatomic) IBOutlet UIImageView *ImageDisplay;
@@ -115,6 +134,8 @@
 - (IBAction)selectPhoto:(id)sender;
 - (IBAction)selectYouTubeVideo:(id)sender;
 - (IBAction)sliderExit:(id)sender;
+
+- (void) toggleMonitor;
 
 @end
 

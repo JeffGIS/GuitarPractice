@@ -22,7 +22,11 @@
 
 #pragma mark AudioEngine class extensions
 
-@interface AudioEngine() {
+@interface AudioEngine()
+@property NSMutableArray *effectsArray;
+@end
+@interface AudioEngine()
+{
     // AVAudioEngine and AVAudioNodes
     AVAudioEngine           *_engine;
     AVAudioUnitSampler      *_sampler;
@@ -56,6 +60,11 @@
 #pragma mark AudioEngine implementation
 
 @implementation AudioEngine
+
+- (void) initEffectsArray:(NSMutableArray *)array
+{
+    _effectsArray = array;
+}
 
 - (instancetype)init
 {

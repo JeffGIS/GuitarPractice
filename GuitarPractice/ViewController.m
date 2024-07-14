@@ -11,6 +11,7 @@
 #import "CCodeLibrary/NVPopoverTableView.h"
 #import "CCodeLibrary/StringFunctions.h"
 #import "AudioEngine.h"
+#import "EffectsViewController.h"
 
 typedef NS_ENUM(NSInteger, SongTypes)
 {
@@ -28,6 +29,26 @@ typedef NS_ENUM(NSInteger, SongTypes)
 - (id)init
 {
     self = [super init];
+    return self;
+}
+@end
+
+@implementation EffectsData
+@synthesize type;
+@synthesize effectID;
+@synthesize distortion;
+@synthesize reverb;
+@synthesize wetDrySlider;
+@synthesize pregainSlider;
+- (id)init
+{
+    self = [super init];
+    self.distortion = AVAudioUnitDistortion.new;
+    self.reverb =  AVAudioUnitReverb.new;
+    self.wetDrySlider = UISlider.new;
+    self.pregainSlider = UISlider.new;
+    self.typeLabel = UILabel.new;
+    self.nameLabel = UILabel.new;
     return self;
 }
 @end
@@ -143,7 +164,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _numHighlightLines = 1;
     _inFullScreen = NO;
     _maxLeadInTicks = 2;
-    
+    _effectsArray = NSMutableArray.new;
     NSString *soundFile = [NSString stringWithUTF8String:"///System/Library/Audio/UISounds/begin_record.caf"];
     NSURL *url = [NSURL URLWithString:soundFile];
     AudioServicesCreateSystemSoundID((__bridge CFURLRef _Nonnull)(url), &_leadInTick);
@@ -1091,7 +1112,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
         [self setCurrentPositiion:YES];
         if (_numFilesForCurrentLink > 0)
-            [self displayFileForLink:_currentLinkPrefix
+            [self displayFileForClip:_currentLinkPrefix
                              fileNum:_currentFileNum
                             numFiles:_numFilesForCurrentLink];
         else
@@ -1127,7 +1148,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
         [self setCurrentPositiion:YES];
         if (_numFilesForCurrentLink > 0)
-            [self displayFileForLink:_currentLinkPrefix
+            [self displayFileForClip:_currentLinkPrefix
                              fileNum:_currentFileNum
                             numFiles:_numFilesForCurrentLink];
         else
@@ -1364,12 +1385,15 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('ID' INTEGER PRIMARY KEY,'Title' CHAR(256),'Type' INT,'StartTime' INT,'EndTime' INT, 'URL' CHAR(256));CREATE INDEX IF NOT EXISTS idx_clips_title ON CLIPS (Title);";
     rtn = [self executeCmd:cmd];
 
-    cmd = @"CREATE TABLE IF NOT EXISTS CLIPHIGHLIGHT ('LinkID' INT,'NumLines' INT,'StartX' FLOAT,'StartY' FLOAT,'EndX' FLOAT,'EndY' FLOAT,'BoundsWidth' FLOAT ,'BoundsHeight' FLOAT,PRIMARY KEY (LinkID))";
+    cmd = @"CREATE TABLE IF NOT EXISTS CLIPHIGHLIGHT ('ClipID' INT,'NumLines' INT,'StartX' FLOAT,'StartY' FLOAT,'EndX' FLOAT,'EndY' FLOAT,'BoundsWidth' FLOAT ,'BoundsHeight' FLOAT,PRIMARY KEY (ClipID))";
     rtn = [self executeCmd:cmd];
 
     cmd = @"CREATE TABLE IF NOT EXISTS SONGINFO ('Title' CHAR(256),'Type' INT,'URL' CHAR(1024),'Duration' INT,  'StartTime' INT ,PRIMARY KEY (Title))";
     rtn = [self executeCmd:cmd];
-    
+
+    cmd = @"CREATE TABLE IF NOT EXISTS EFFECTS ('Title' CHAR(256),'Clip' INT, 'SequenceNum' INT,'Type' INT,'WetDryMix' INT,'PreSet' INT ,PRIMARY KEY (Title,Clip))";
+    rtn = [self executeCmd:cmd];
+
     return rtn;
 }
 
@@ -1474,7 +1498,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (IBAction)monitorTapped:(id)sender {
     //[self displayYouTubeVideo:@"www.youtube.com"];
-    [self testMonitor];
+    [self toggleMonitor];
 }
 /*
 - (void) testMonitorx
@@ -1494,7 +1518,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     return;
 }*/
-- (void) testMonitor
+- (void) toggleMonitor
 {
     //_audioController = [[AudioController alloc] init];
     static BOOL monOn = FALSE;
@@ -1527,6 +1551,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     NSError *error=nil;
     _audioEngine = AudioEngine.new;
+    [_audioEngine initEffectsArray:_effectsArray];
 
     AVAudioEngine *engine = [_audioEngine getEngine];
 
@@ -1750,11 +1775,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     return rtn;
 }
 
--(void) displayFileForLink:(int)linkID
+-(void) displayFileForClip:(int)clipID
                    fileNum:(int)fileNum
                   numFiles:(int)numFiles
 {
-    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linksDirectory,linkID,fileNum];
+    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linksDirectory,clipID,fileNum];
     _image = [UIImage imageWithContentsOfFile:fileName];
     [_ImageDisplay setImage:_image];
     [_ImageDisplay setHidden:NO];
@@ -1771,7 +1796,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_nextFileButton setHidden:NO];
     _currentFileNum = fileNum;
     _currentNumFiles = numFiles;
-    [self displayHighlightForLink:linkID
+    [self displayHighlightForLink:clipID
                            inView:_ImageDisplay];
     return;
 }
@@ -1806,13 +1831,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     return rtn;
 }
-- (BOOL) displayHighlightForLink:(int)linkID
+- (BOOL) displayHighlightForLink:(int)clipID
                           inView:(UIImageView*) view
 {
     [self removeHighlightFromView:view];
     BOOL rtn = FALSE;
     BOOL opened = [self open];
-    NSString *query = [NSString stringWithFormat:@"SELECT NumLines,StartX,StartY,EndX,EndY,BoundsWidth,BoundsHeight FROM CLIPHIGHLIGHT WHERE LinkID=%i",linkID];
+    NSString *query = [NSString stringWithFormat:@"SELECT NumLines,StartX,StartY,EndX,EndY,BoundsWidth,BoundsHeight FROM CLIPHIGHLIGHT WHERE ClipID=%i",clipID];
     
     sqlite3_stmt *statement = NULL;
     
@@ -2039,13 +2064,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 
 - (IBAction)priorFileTapped:(id)sender {
-    [self displayFileForLink:_currentLinkPrefix
+    [self displayFileForClip:_currentLinkPrefix
                      fileNum:_currentFileNum-1
                     numFiles:_currentNumFiles];
 }
 
 - (IBAction)nextFileTapped:(id)sender {
-    [self displayFileForLink:_currentLinkPrefix
+    [self displayFileForClip:_currentLinkPrefix
                      fileNum:_currentFileNum+1
                     numFiles:_currentNumFiles];
 
@@ -2426,6 +2451,16 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     // Release any cached data, images, etc that aren't in use.
 }
 
+- (void)prepareForSegue:(UIStoryboardSegue *)segue
+                 sender:(id)sender
+{
+    if ([segue.identifier isEqualToString:@"EffectsSegue"])
+    {
+        EffectsViewController *containerViewController = segue.destinationViewController;
+        containerViewController.delegate = self;
+        containerViewController.effectsArray = _effectsArray;
+    }
+}
 
 
 @end
