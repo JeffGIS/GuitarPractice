@@ -28,6 +28,11 @@ typedef NS_ENUM(NSInteger, EffectType)
 @property UILabel *typeLabel;
 @property UILabel *nameLabel;
 
+- (void) initEffect;
+- (void) setTypeAndID:(EffectType)type
+                   ID:(int) effectID;
+- (void) deallocEffect;
+
 @end
 
 NS_ASSUME_NONNULL_END

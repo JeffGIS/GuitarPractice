@@ -46,6 +46,7 @@
 		EB547D8123D4195C009BE924 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		EB827E842C44066600469B59 /* EffectsData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EffectsData.h; sourceTree = "<group>"; };
 		EB827E852C44066600469B59 /* EffectsData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EffectsData.m; sourceTree = "<group>"; };
+		EB93FAE72C4DD8C700D8423B /* Info.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Info.md; sourceTree = "<group>"; };
 		EB97D9EB27CD0C12002C1BA1 /* GuitarPractice-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GuitarPractice-Prefix.pch"; sourceTree = "<group>"; };
 		EB97D9EE27CD0F6A002C1BA1 /* libCCodeLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libCCodeLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB97D9F027CD30A9002C1BA1 /* libNVShapefileLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libNVShapefileLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -86,6 +87,7 @@
 		EB547D6323D4195B009BE924 = {
 			isa = PBXGroup;
 			children = (
+				EB93FAE72C4DD8C700D8423B /* Info.md */,
 				EB547D6E23D4195B009BE924 /* GuitarPractice */,
 				EB547D6D23D4195B009BE924 /* Products */,
 				EB97D9ED27CD0F6A002C1BA1 /* Frameworks */,

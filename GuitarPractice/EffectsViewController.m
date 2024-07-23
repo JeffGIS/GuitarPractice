@@ -121,13 +121,8 @@
                ID:(int)effectID
 {
     EffectsData *efdata = EffectsData.new;
-    efdata.type = type;
-    efdata.effectID = effectID;
-    if (type == REVERB)
-        [efdata.reverb loadFactoryPreset:effectID];
-    else
-        [efdata.distortion loadFactoryPreset:AVAudioUnitDistortionPresetMultiBrokenSpeaker];
-
+    [efdata setTypeAndID:type
+                      ID:effectID];
     [_effectsArray addObject:efdata];
     [self removeEffects];
     [self displayEffects];
@@ -157,6 +152,7 @@
 }
 - (void) displayEffects
 {
+    BOOL first = TRUE;
     _rowLeft = _addReverbButton.frame.origin.x;
     _rowHeight = 40;
     _rowGap = 20;
@@ -166,36 +162,41 @@
     _currentRowY = _addReverbButton.frame.origin.y + _rowHeight * 2 + _rowGap;
     for (EffectsData *efdata in _effectsArray)
     {
-        efdata.typeLabel.frame = CGRectMake(_rowLeft, _currentRowY, _typeWidth, _rowHeight);
-        efdata.nameLabel.frame = CGRectMake(_rowLeft + _typeWidth, _currentRowY, _nameWidth, _rowHeight);
-        if (efdata.type == REVERB)
-            efdata.typeLabel.text = @"Reverb:";
+        if (first)
+            first = FALSE;
         else
-            efdata.typeLabel.text = @"Distortion:";
-        [efdata.typeLabel setHidden:NO];
-        efdata.typeLabel.textColor = UIColor.blackColor;
-        efdata.typeLabel.backgroundColor = UIColor.whiteColor;
-        efdata.typeLabel.font = [UIFont systemFontOfSize: 32];
-        [self.view addSubview:efdata.typeLabel];
-        //efdata.typeLabel.center = CGPointMake(self.view.frame.size.width / 2,self.view.frame.size.height / 2);
-        if (efdata.type == REVERB)
-            efdata.nameLabel.text = _reverbs[efdata.effectID];
-        else
-            efdata.nameLabel.text = _distortions[efdata.effectID];
-        efdata.nameLabel.backgroundColor = UIColor.grayColor;
-        [self.view addSubview:efdata.nameLabel];
-        efdata.nameLabel.textColor = UIColor.blackColor;
-        efdata.nameLabel.backgroundColor = UIColor.whiteColor;
-        efdata.nameLabel.font = [UIFont systemFontOfSize: 32];
-        efdata.wetDrySlider.frame = CGRectMake(_rowLeft + _typeWidth + _nameWidth, _currentRowY, _sliderWidth, _rowHeight);
-        [self.view addSubview:efdata.wetDrySlider];
-        if (efdata.type == DISTORTION)
         {
-            efdata.pregainSlider.frame = CGRectMake(_rowLeft + _typeWidth + _nameWidth + _sliderWidth + _sliderWidth / 8, _currentRowY, _sliderWidth, _rowHeight);
-            [self.view addSubview:efdata.pregainSlider];
+            efdata.typeLabel.frame = CGRectMake(_rowLeft, _currentRowY, _typeWidth, _rowHeight);
+            efdata.nameLabel.frame = CGRectMake(_rowLeft + _typeWidth, _currentRowY, _nameWidth, _rowHeight);
+            if (efdata.type == REVERB)
+                efdata.typeLabel.text = @"Reverb:";
+            else
+                efdata.typeLabel.text = @"Distortion:";
+            [efdata.typeLabel setHidden:NO];
+            efdata.typeLabel.textColor = UIColor.blackColor;
+            efdata.typeLabel.backgroundColor = UIColor.whiteColor;
+            efdata.typeLabel.font = [UIFont systemFontOfSize: 32];
+            [self.view addSubview:efdata.typeLabel];
+            //efdata.typeLabel.center = CGPointMake(self.view.frame.size.width / 2,self.view.frame.size.height / 2);
+            if (efdata.type == REVERB)
+                efdata.nameLabel.text = _reverbs[efdata.effectID];
+            else
+                efdata.nameLabel.text = _distortions[efdata.effectID];
+            efdata.nameLabel.backgroundColor = UIColor.grayColor;
+            [self.view addSubview:efdata.nameLabel];
+            efdata.nameLabel.textColor = UIColor.blackColor;
+            efdata.nameLabel.backgroundColor = UIColor.whiteColor;
+            efdata.nameLabel.font = [UIFont systemFontOfSize: 32];
+            efdata.wetDrySlider.frame = CGRectMake(_rowLeft + _typeWidth + _nameWidth, _currentRowY, _sliderWidth, _rowHeight);
+            [self.view addSubview:efdata.wetDrySlider];
+            if (efdata.type == DISTORTION)
+            {
+                efdata.pregainSlider.frame = CGRectMake(_rowLeft + _typeWidth + _nameWidth + _sliderWidth + _sliderWidth / 8, _currentRowY, _sliderWidth, _rowHeight);
+                [self.view addSubview:efdata.pregainSlider];
+            }
+            //[efdata.wetDrySlider removeFromSuperview];
+            _currentRowY += _rowHeight + _rowGap;
         }
-        //[efdata.wetDrySlider removeFromSuperview];
-        _currentRowY += _rowHeight + _rowGap;
     }
 /*    typeLabel.text = @"Reverb:";
     typeLabel.frame = CGRectMake(_rowLeft, _currentRowY, _typeWidth, _rowHeight);

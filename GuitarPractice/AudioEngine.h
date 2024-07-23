@@ -32,6 +32,8 @@ static NSString *kRecordingCompletedNotification = @"RecordingCompletedNotificat
 
 @interface AudioEngine : NSObject
 
+@property (nonatomic) NSMutableArray *effectsArray;
+
 @property (nonatomic, readonly) BOOL recordingIsAvailable;
 @property (nonatomic, readonly) BOOL playerIsPlaying;
 @property (nonatomic, readonly) BOOL sequencerIsPlaying;
@@ -64,6 +66,10 @@ static NSString *kRecordingCompletedNotification = @"RecordingCompletedNotificat
 - (AVAudioEngine*) getEngine;
 - (NSURL *)getMixerOutputFileURL;
 - (void) initEffectsArray:(NSMutableArray *)array;
+- (BOOL) setUpSession;
+- (void) detatchNodes;
+- (void) closeSession;
+
 + (AudioEngine*) initWithEffectsArray:(NSMutableArray*)effectsArray;
 
 @end

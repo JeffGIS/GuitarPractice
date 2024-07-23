@@ -24,9 +24,6 @@
 #pragma mark AudioEngine class extensions
 
 @interface AudioEngine()
-@property NSMutableArray *effectsArray;
-@end
-@interface AudioEngine()
 {
     // AVAudioEngine and AVAudioNodes
     AVAudioEngine           *_engine;
@@ -39,7 +36,7 @@
     // the sequencer
     AVAudioSequencer        *_sequencer;
     double                  _sequencerTrackLengthSeconds;
-    
+    NSObject *observer;
     // buffer for the player
     AVAudioPCMBuffer        *_playerLoopBuffer;
     
@@ -79,12 +76,31 @@
 
 - (instancetype)init
 {
-    if (self = [super init]) {
+    if (self = [super init])
+    {
         return self;
     }
     return nil;
 }
+- (void)dealloc
+{
+    [_engine stop];
+    int nnodes = _engine.attachedNodes.count;
+    _engine = nil;
+}
 
+- (void) closeSession
+{
+    NSError *error;
+    
+    [NSNotificationCenter.defaultCenter removeObserver:observer name:AVAudioEngineConfigurationChangeNotification object:nil];
+    [_engine stop];
+    [self detatchNodes];
+    _effectsArray = nil;
+    _delegate = nil;
+    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+    [audioSession setActive:NO error:&error];
+}
 - (BOOL) setUpSession
 {
     NSError *error;
@@ -95,7 +111,6 @@
     
     _isSessionInterrupted = NO;
     _isConfigChangePending = NO;
-    
     // create the various nodes
     
     
@@ -103,13 +118,13 @@
      or segments of audio files opened via AVAudioFile. Buffers and segments may be
      scheduled at specific points in time, or to play immediately following preceding segments. */
     
-    _player = [[AVAudioPlayerNode alloc] init];
+    //_player = [[AVAudioPlayerNode alloc] init];
     
     /* The AVAudioUnitSampler class encapsulates Apple's Sampler Audio Unit. The sampler audio unit can be configured by loading different types of instruments such as an “.aupreset” file, a DLS or SF2 sound bank, an EXS24 instrument, a single audio file or with an array of audio files. The output is a single stereo bus. */
     
-    NSURL *bankURL = [NSURL fileURLWithPath:[[NSBundle bundleForClass:[self class]] pathForResource:@"gs_instruments" ofType:@"dls"]];
-    _sampler = [[AVAudioUnitSampler alloc] init];
-    [_sampler loadSoundBankInstrumentAtURL:bankURL program:0 bankMSB:0x79 bankLSB:0 error:&error];
+    //NSURL *bankURL = [NSURL fileURLWithPath:[[NSBundle bundleForClass:[self class]] pathForResource:@"gs_instruments" ofType:@"dls"]];
+    //_sampler = [[AVAudioUnitSampler alloc] init];
+    //[_sampler loadSoundBankInstrumentAtURL:bankURL program:0 bankMSB:0x79 bankLSB:0 error:&error];
     
     /* An AVAudioUnitEffect that implements a multi-stage distortion effect */
     
@@ -123,11 +138,11 @@
     //_reverb = [[AVAudioUnitReverb alloc] init];
     
     // load drumloop into a buffer for the playernode
-    NSURL *drumLoopURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"drumLoop" ofType:@"caf"]];
-    AVAudioFile *drumLoopFile = [[AVAudioFile alloc] initForReading:drumLoopURL error:&error];
-    _playerLoopBuffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:[drumLoopFile processingFormat] frameCapacity:(AVAudioFrameCount)[drumLoopFile length]];
-    success = [drumLoopFile readIntoBuffer:_playerLoopBuffer error:&error];
-    NSAssert(success, @"couldn't read drumLoopFile into buffer, %@", [error localizedDescription]);
+    //NSURL *drumLoopURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"drumLoop" ofType:@"caf"]];
+   // AVAudioFile *drumLoopFile = [[AVAudioFile alloc] initForReading:drumLoopURL error:&error];
+    //_playerLoopBuffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:[drumLoopFile processingFormat] frameCapacity:(AVAudioFrameCount)[drumLoopFile length]];
+   // success = [drumLoopFile readIntoBuffer:_playerLoopBuffer error:&error];
+   // NSAssert(success, @"couldn't read drumLoopFile into buffer, %@", [error localizedDescription]);
     
     _mixerOutputFileURL = nil;
     _isRecording = NO;
@@ -135,26 +150,15 @@
     
     // create engine and attach nodes
     [self createEngineAndAttachNodes];
-    
+
     // make engine connections
     [self makeEngineConnections];
     
     //create the audio sequencer
     //[self createAndSetupSequencer];
     
-    /*         settings for effects units
-     _reverb.wetDryMix = 100;
-     [_reverb loadFactoryPreset:AVAudioUnitReverbPresetMediumHall];
-     
-     [_distortion loadFactoryPreset:AVAudioUnitDistortionPresetMultiBrokenSpeaker];
-     _distortion.wetDryMix = 100;
-     [_distortion2 loadFactoryPreset:AVAudioUnitDistortionPresetMultiDecimated2];
-     _distortion2.wetDryMix = 100;
-     
-     self.samplerEffectVolume = 0.6;
-     */
     // sign up for notifications from the engine if there's a hardware config change
-    [[NSNotificationCenter defaultCenter] addObserverForName:AVAudioEngineConfigurationChangeNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
+    observer = [[NSNotificationCenter defaultCenter] addObserverForName:AVAudioEngineConfigurationChangeNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
         
         // if we've received this notification, something has changed and the engine has been stopped
         // re-wire all the connections and start the engine
@@ -235,28 +239,46 @@
      is a mixer, is likely to result in a broken graph. */
     
     _engine = [[AVAudioEngine alloc] init];
-    
     /*  To support the instantiation of arbitrary AVAudioNode subclasses, instances are created
      externally to the engine, but are not usable until they are attached to the engine via
      the attachNode method. */
+    AVAudioMixerNode *mixer = _engine.mainMixerNode;
     _mic = [_engine inputNode];
     _mic.volume = 1;
     _speaker = [_engine outputNode];
-
-    //[_engine attachNode:_sampler];
-    //[_engine attachNode:_distortion];
-    //[_engine attachNode:_distortion2];
-    //[_engine attachNode:_reverb];
-    //[_engine attachNode:_player];
+    AVAudioFormat *micFormat = [_mic inputFormatForBus:0];
     for (EffectsData *efdata in _effectsArray)
     {
+        [efdata initEffect];
         if (efdata.type == REVERB)
+        {
             [_engine attachNode:efdata.reverb];
+            [efdata.reverb setWetDryMix:efdata.wetDrySlider.value];
+        }
         else
+        {
             [_engine attachNode:efdata.distortion];
+            [efdata.distortion setWetDryMix:efdata.wetDrySlider.value];
+        }
     }
 }
 
+- (void) detatchNodes
+{
+    for (EffectsData *efdata in _effectsArray)
+    {
+        if (efdata.type == REVERB)
+        {
+            [_engine detachNode:efdata.reverb];
+        }
+        else
+        {
+            [_engine detachNode:efdata.distortion];
+        }
+        [efdata deallocEffect];
+    }
+
+}
 - (void)makeEngineConnections
 {
     /*  The engine will construct a singleton main mixer and connect it to the outputNode on demand,
@@ -285,6 +307,9 @@
      match that of the source node's output bus. */
     
     AVAudioFormat *stereoFormat = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100 channels:2];
+    AVAudioFormat *micFormat = [_mic inputFormatForBus:0];
+    AVAudioConverter *cvt =[[AVAudioConverter alloc]initFromFormat:micFormat toFormat:stereoFormat];
+
     /*
     // original code
      // establish a connection between nodes
@@ -309,46 +334,43 @@
     // connect the player to the reverb
     //[_engine connect:_player to:_reverb format:stereoFormat];
     
-    //[_distortion setBypass:NO];
-    //[_distortion setPreGain:20];
-    //[_distortion setWetDryMix:0];
-    //[_distortion2 setWetDryMix:0];
 
     NSInteger nNodes = _effectsArray.count;
+    //stereoFormat = nil;
     
     if (nNodes == 0)
-        [_engine connect:_mic to:mainMixer fromBus:0 toBus:2 format:0];
+        [_engine connect:_mic to:mainMixer format:micFormat];
     else
     {
         EffectsData *efData = _effectsArray[0];
         id lastID;
         if (efData.type == REVERB)
         {
-            [_engine connect:_mic to:efData.reverb format:stereoFormat];
+            [_engine connect:_mic to:efData.reverb format:micFormat];
             lastID = efData.reverb;
         }
         else
         {
-            [_engine connect:_mic to:efData.distortion format:stereoFormat];
+            [_engine connect:_mic to:efData.distortion format:micFormat];
             lastID = efData.distortion;
         }
         
-        for (int i=1; i<nNodes-1; i++)
+        for (int i=1; i<nNodes; i++)
         {
             efData = _effectsArray[i];
             if (efData.type == REVERB)
             {
-                [_engine connect:lastID to:efData.reverb fromBus:0 toBus:0 format:stereoFormat];
+                [_engine connect:lastID to:efData.reverb format:stereoFormat];
                 lastID = efData.reverb;
             }
             else
             {
-                [_engine connect:lastID to:efData.distortion fromBus:0 toBus:0 format:stereoFormat];
+                [_engine connect:lastID to:efData.distortion format:stereoFormat];
                 lastID = efData.distortion;
             }
 
         }
-        [_engine connect:lastID to:mainMixer fromBus:0 toBus:2 format:stereoFormat];
+        [_engine connect:lastID to:mainMixer format:stereoFormat];
         
     }
     return;
@@ -734,6 +756,16 @@
     // activate the audio session
     success = [sessionInstance setActive:YES error:&error];
     if (!success) NSLog(@"Error setting session active! %@\n", [error localizedDescription]);
+    AVAudioSessionRouteDescription *route = sessionInstance.currentRoute;
+    NSArray *inputs = route.inputs;
+    AVAudioSessionPortDescription *ipd = inputs[0];
+    NSString *ipdPortName = ipd.portName;
+    NSString *ipdPortType = ipd.portType;
+    NSArray *outputs = route.outputs;
+    AVAudioSessionPortDescription *opd = outputs[0];
+    NSString *opdPortName = opd.portName;
+    NSString *opdPortType = opd.portType;
+   return;
 }
 
 - (void)handleInterruption:(NSNotification *)notification

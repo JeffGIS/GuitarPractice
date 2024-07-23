@@ -98,7 +98,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property AVAudioRecorder *recorder;
 
 @property SystemSoundID soundID;
-@property(nonatomic,strong) AVAudioEngine *AVaudioEngine;
+//@property(nonatomic,strong) AVAudioEngine *AVaudioEngine;
 @property AudioEngine * audioEngine;
 
 @end
@@ -145,6 +145,11 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _inFullScreen = NO;
     _maxLeadInTicks = 2;
     _effectsArray = NSMutableArray.new;
+    EffectsData *efdata = EffectsData.new;
+    [efdata setTypeAndID:REVERB ID:0];
+    efdata.wetDrySlider.value = 0;
+    efdata.reverb.wetDryMix = 0;
+    [_effectsArray addObject:efdata];
     NSString *soundFile = [NSString stringWithUTF8String:"///System/Library/Audio/UISounds/begin_record.caf"];
     NSURL *url = [NSURL URLWithString:soundFile];
     AudioServicesCreateSystemSoundID((__bridge CFURLRef _Nonnull)(url), &_leadInTick);
@@ -1505,10 +1510,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (monOn)
     {
         NSError *error;
-        [_AVaudioEngine stop];
-        AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-        [audioSession setActive:NO error:&error];
-       monOn = FALSE;
+        [_audioEngine closeSession];
+        _audioEngine = nil;
+        monOn = FALSE;
     }
     else
     {
@@ -1518,50 +1522,20 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     return;
 }
 
-- (void) startMonitor2
-{
-    AudioEngine *audioEngine = AudioEngine.new;
-    
-    [audioEngine togglePlayer];
-    [audioEngine setReverbWetDryMix:0.5];
-
-    [audioEngine setSamplerEffectVolume:1.00];
-}
 - (void) startMonitor
 {
     NSError *error=nil;
-    _audioEngine = [AudioEngine initWithEffectsArray:_effectsArray];
+    //_audioEngine = [AudioEngine initWithEffectsArray:_effectsArray];
+    _audioEngine = AudioEngine.new;
+    _audioEngine.effectsArray = _effectsArray;
+    [_audioEngine setUpSession];
 
-    AVAudioEngine *engine = [_audioEngine getEngine];
+    //AVAudioEngine *engine = [_audioEngine getEngine];
 
-    //AVAudioInputNode *mic = [_engine inputNode];
-    //mic.volume = 1;
-    //AVAudioOutputNode *speaker = [_engine outputNode];
-    //[engine reset];
     //[engine prepare];
-    
-//AVAudioMixerNode *mainMixer = engine.mainMixerNode;
-//    AVAudioFormat *stereoFormat = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100 channels:2];
-//    AVAudioFormat *mixerOutputFormat = [mainMixer outputFormatForBus:0];
-    //[engine connect:mic to:mainMixer format:nil];
-
-    //AVAudioPlayerNode *playerNodeForMixer = [[AVAudioPlayerNode alloc] init];
-    
-    //AVAudioUnitReverb *reverb = [[AVAudioUnitReverb alloc]init];
-    //reverb.wetDryMix = 100;
-
-   // [reverb loadFactoryPreset:AVAudioUnitReverbPresetCathedral];
-    //[_audioEngine setDistortionPreset:AVAudioUnitDistortionPresetMultiEcho1];
-    //[_audioEngine setDistortionWetDryMix:0.0];
-   // [_audioEngine setReverbWetDryMix:0.5];
-   // [_audioEngine setOutputVolume:0.8];
-//    [_audioEngine setSamplerEffectVolume:0.00];
-
-    //[engine attachNode:reverb];
-    //[engine attachNode:playerNodeForMixer];
-    [engine prepare];
-    [engine startAndReturnError:&error];
+    //[engine startAndReturnError:&error];
     //[_audioEngine togglePlayer];
+    return;
 }
 - (IBAction)effectsTapped:(id)sender {
     static int revMix = 1;
@@ -1571,8 +1545,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_audioEngine startRecordingMixerOutput];
     else
     {
+        AVAudioEngine *engine = [_audioEngine getEngine];
         [_audioEngine stopRecordingMixerOutput];
-        [_AVaudioEngine stop];
+        [engine stop];
         AVAudioSession *audioSession = [AVAudioSession sharedInstance];
         [audioSession setActive:NO error:&error];
 
@@ -1580,11 +1555,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     revMix = !revMix;
     return;
-    [_audioEngine setDistortionPreset:AVAudioUnitDistortionPresetMultiDecimated3];
-    [_audioEngine setDistortionWetDryMix:revMix];
-    [_audioEngine setReverbWetDryMix:revMix];
-    [_audioEngine setOutputVolume:0.9];
-    [_audioEngine setSamplerEffectVolume:1.00];
 }
 
 - (void) startMonitor3
@@ -2343,7 +2313,8 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     NSError * error = nil;
     
     [_audioEngine stopRecordingMixerOutput];
-    [_AVaudioEngine stop];
+    AVAudioEngine *engine = [_audioEngine getEngine];
+    [engine stop];
     AVAudioSession *audioSession = [AVAudioSession sharedInstance];
     [audioSession setActive:NO error:&error];
 }

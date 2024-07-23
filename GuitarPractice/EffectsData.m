@@ -18,9 +18,6 @@
 - (id)init
 {
     self = [super init];
-    self.distortion = [[AVAudioUnitDistortion alloc] init];
-    [self.distortion loadFactoryPreset:AVAudioUnitDistortionPresetMultiBrokenSpeaker];
-    self.reverb =  AVAudioUnitReverb.new;
     self.wetDrySlider = UISlider.new;
     self.wetDrySlider.minimumValue = 0;
     self.wetDrySlider.maximumValue = 100;
@@ -34,11 +31,32 @@
     self.pregainSlider.value = -6;
     self.typeLabel = UILabel.new;
     self.nameLabel = UILabel.new;
-    [self.distortion setBypass:NO];
-    [self.distortion setPreGain:0];
-    [self.distortion setWetDryMix:0];
     return self;
 }
+
+- (void) setTypeAndID:(EffectType)type
+                   ID:(int) effectID
+{
+    self.type = type;
+    self.effectID = effectID;
+    if (type == REVERB)
+    {
+        self.reverb = AVAudioUnitReverb.new;
+        [self.reverb loadFactoryPreset:effectID];
+    }
+    else
+    {
+        self.distortion = AVAudioUnitDistortion.new;
+        [self.distortion loadFactoryPreset:effectID];
+    }
+
+}
+- (void)dealloc
+{
+    return;
+}
+
+
 - (void) wetDrySliderValueChanged:(id)sender
 {
     if (self.type == REVERB)
@@ -54,6 +72,21 @@
         [self.distortion setPreGain:self.pregainSlider.value];
 
     return;
+}
+
+- (void) initEffect
+{
+    if (self.type == REVERB)
+        self.reverb =  AVAudioUnitReverb.new;
+    else if (self.type == DISTORTION)
+        self.distortion = AVAudioUnitDistortion.new;
+}
+- (void) deallocEffect
+{
+    if (self.type == REVERB)
+        self.reverb = nil;
+    else if (self.type == DISTORTION)
+        self.distortion = nil;
 }
 @end
 
