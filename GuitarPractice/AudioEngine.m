@@ -26,6 +26,7 @@
 @interface AudioEngine()
 {
     // AVAudioEngine and AVAudioNodes
+    AVAudioSession *    audioSession;
     AVAudioEngine           *_engine;
     AVAudioUnitSampler      *_sampler;
     AVAudioUnitDistortion   *_distortion,*_distortion2;
@@ -80,6 +81,7 @@
     {
         return self;
     }
+
     return nil;
 }
 - (void)dealloc
@@ -98,7 +100,6 @@
     [self detatchNodes];
     _effectsArray = nil;
     _delegate = nil;
-    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
     [audioSession setActive:NO error:&error];
 }
 - (BOOL) setUpSession
@@ -719,7 +720,7 @@
 - (void)initAVAudioSession
 {
     // Configure the audio session
-    AVAudioSession *sessionInstance = [AVAudioSession sharedInstance];
+    AVAudioSession *sessionInstance = AVAudioSession.new;
     NSError *error;
     
     // set the session category
@@ -787,7 +788,7 @@
     if (theInterruptionType == AVAudioSessionInterruptionTypeEnded) {
         // make sure to activate the session
         NSError *error;
-        bool success = [[AVAudioSession sharedInstance] setActive:YES error:&error];
+        bool success = [audioSession setActive:YES error:&error];
         if (!success)
             NSLog(@"AVAudioSession set active failed with error: %@", [error localizedDescription]);
         else {
@@ -823,7 +824,7 @@
             break;
         case AVAudioSessionRouteChangeReasonCategoryChange:
             NSLog(@"     CategoryChange");
-            NSLog(@"     New Category: %@", [[AVAudioSession sharedInstance] category]);
+            NSLog(@"     New Category: %@", [audioSession category]);
             break;
         case AVAudioSessionRouteChangeReasonOverride:
             NSLog(@"     Override");
