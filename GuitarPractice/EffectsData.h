@@ -21,12 +21,13 @@ typedef NS_ENUM(NSInteger, EffectType)
 @interface EffectsData : NSObject
 @property EffectType type;
 @property int effectID;
-@property AVAudioUnitDistortion   *distortion;
-@property AVAudioUnitReverb       *reverb;
+@property (nullable) AVAudioUnitDistortion   *distortion;
+@property (nullable) AVAudioUnitReverb       *reverb;
 @property UISlider *wetDrySlider;
 @property UISlider *pregainSlider;
 @property UILabel *typeLabel;
 @property UILabel *nameLabel;
+@property int wetDryValue, pregainValue;
 
 - (void) initEffect;
 - (void) setTypeAndID:(EffectType)type

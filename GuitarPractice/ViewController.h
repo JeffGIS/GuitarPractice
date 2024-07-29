@@ -32,6 +32,8 @@
 - (IBAction)priorSegmentTapped:(id)sender;
 - (IBAction)monitorTapped:(id)sender;
 - (IBAction)saveTapped:(id)sender;
+- (IBAction)monitorVolumeChanged:(id)sender;
+@property (weak, nonatomic) IBOutlet UISlider *monitorVolumeSlider;
 @property NSMutableArray *effectsArray;
 @property (weak, nonatomic) IBOutlet UIButton *monitorButton;
 @property (weak, nonatomic) IBOutlet UILabel *songTitleLable;

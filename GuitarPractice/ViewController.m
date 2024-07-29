@@ -704,6 +704,10 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 
 
+- (IBAction)monitorVolumeChanged:(UISlider*)sender {
+    [_audioEngine setOutputVolume:sender.value];
+}
+
 - (IBAction)saveTapped:(id)sender {
     _clipEditStatus = 0;
     [_beginButton setHidden:NO];

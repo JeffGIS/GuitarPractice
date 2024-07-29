@@ -15,6 +15,7 @@
 @synthesize reverb;
 @synthesize wetDrySlider;
 @synthesize pregainSlider;
+@synthesize wetDryValue, pregainValue;
 - (id)init
 {
     self = [super init];
@@ -63,23 +64,32 @@
         [self.reverb setWetDryMix:self.wetDrySlider.value];
     else
         [self.distortion setWetDryMix:self.wetDrySlider.value];
-
+    self.wetDryValue = self.wetDrySlider.value;
     return;
 }
 - (void) pregainSliderValueChanged:(id)sender
 {
     if (self.type == DISTORTION)
+    {
         [self.distortion setPreGain:self.pregainSlider.value];
-
+        self.pregainValue = self.pregainSlider.value;
+    }
     return;
 }
 
 - (void) initEffect
 {
     if (self.type == REVERB)
+    {
         self.reverb =  AVAudioUnitReverb.new;
+        self.reverb.wetDryMix = self.wetDryValue;
+    }
     else if (self.type == DISTORTION)
+    {
         self.distortion = AVAudioUnitDistortion.new;
+        self.distortion.wetDryMix = self.wetDryValue;
+        self.distortion.preGain = self.pregainValue;
+    }
 }
 - (void) deallocEffect
 {

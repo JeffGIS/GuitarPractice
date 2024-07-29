@@ -335,7 +335,7 @@
     // connect the player to the reverb
     //[_engine connect:_player to:_reverb format:stereoFormat];
     
-
+    //_effectsArray = NSMutableArray.new;
     NSInteger nNodes = _effectsArray.count;
     //stereoFormat = nil;
     
@@ -347,12 +347,12 @@
         id lastID;
         if (efData.type == REVERB)
         {
-            [_engine connect:_mic to:efData.reverb format:micFormat];
+            [_engine connect:_mic to:efData.reverb format:0];
             lastID = efData.reverb;
         }
         else
         {
-            [_engine connect:_mic to:efData.distortion format:micFormat];
+            [_engine connect:_mic to:efData.distortion format:0];
             lastID = efData.distortion;
         }
         
