@@ -49,7 +49,7 @@
 @property (weak, nonatomic) IBOutlet UIButton *nextSegmentButton;
 @property (weak, nonatomic) IBOutlet UIButton *priorSegmentButton;
 @property (weak, nonatomic) IBOutlet UIButton *saveButton;
-@property (weak, nonatomic) IBOutlet UIButton *selectSongButton;
+@property (weak, nonatomic) IBOutlet UIButton *pauseButton;
 @property (weak, nonatomic) IBOutlet UIButton *selectPhotoButton;
 @property (weak, nonatomic) IBOutlet UIButton *selectYouTubeVideoButton;
 @property (weak, nonatomic) IBOutlet UIButton *saveImageButton;

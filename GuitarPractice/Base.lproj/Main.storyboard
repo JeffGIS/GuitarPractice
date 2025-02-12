@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="Mkd-3u-h3B">
-    <device id="ipad12_9" orientation="landscape" layout="fullscreen" appearance="light"/>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="Mkd-3u-h3B">
+    <device id="iPad13_0rounded" orientation="portrait" layout="fullscreen" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22685"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -14,7 +14,7 @@
             <objects>
                 <viewController id="BYZ-38-t0r" customClass="ViewController" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
-                        <rect key="frame" x="0.0" y="0.0" width="1366" height="1024"/>
+                        <rect key="frame" x="0.0" y="0.0" width="1032" height="1376"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="lrU-mU-uWa">
@@ -353,39 +353,38 @@
                                     <action selector="markEndTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="rLA-R5-Rzt"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="sMO-BT-D1S">
-                                <rect key="frame" x="59" y="320" width="157" height="51"/>
+                            <button hidden="YES" opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" role="primary" translatesAutoresizingMaskIntoConstraints="NO" id="sMO-BT-D1S">
+                                <rect key="frame" x="195" y="320" width="60" height="60"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <color key="backgroundColor" red="1" green="0.057583652780000001" blue="0.13150696210000001" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="36"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <accessibility key="accessibilityConfiguration">
+                                    <accessibilityTraits key="traits" button="YES" image="YES"/>
+                                </accessibility>
                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                                <state key="normal" title="Pause">
-                                    <color key="titleColor" red="1" green="0.99145554280000003" blue="0.93397011149999998" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
-                                </state>
+                                <state key="normal" title="Pause" image="hsvPause.png"/>
                                 <connections>
                                     <action selector="stopTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="2t3-la-8Kk"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="mSH-Eo-1jf">
-                                <rect key="frame" x="224" y="320" width="161" height="51"/>
+                            <button opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" adjustsImageWhenHighlighted="NO" adjustsImageWhenDisabled="NO" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="mSH-Eo-1jf">
+                                <rect key="frame" x="195" y="320" width="60" height="60"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <color key="backgroundColor" systemColor="systemGreenColor"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="36"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                                <state key="normal" title="Continue">
+                                <state key="normal" image="hsvPlay.png">
                                     <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 </state>
+                                <state key="selected" image="hsvPlay.png" backgroundImage="checkmarkWithPhotos.png"/>
                                 <connections>
                                     <action selector="continueTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="kGa-YX-cmX"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" preferredBehavioralStyle="pad" translatesAutoresizingMaskIntoConstraints="NO" id="wTs-RB-nC2">
-                                <rect key="frame" x="159" y="258" width="123" height="51"/>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" preferredBehavioralStyle="pad" translatesAutoresizingMaskIntoConstraints="NO" id="wTs-RB-nC2">
+                                <rect key="frame" x="63" y="320" width="60" height="60"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <color key="backgroundColor" systemColor="systemBlueColor"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="36"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                                <state key="normal" title="Start">
+                                <state key="normal" title="Start" image="hsvLoop.png">
                                     <color key="titleColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 </state>
                                 <connections>
@@ -523,30 +522,30 @@
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <color key="tintColor" white="0.66666666669999997" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                             </imageView>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" highlighted="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="4Ww-Ot-Cuf">
-                                <rect key="frame" x="218" y="819" width="150" height="51"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="32"/>
-                                <state key="normal" title="Effects"/>
-                                <connections>
-                                    <action selector="effectsTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Tyc-YP-h9z"/>
-                                    <segue destination="b42-eX-QwM" kind="show" identifier="EffectsSegue" id="Rn1-IT-JQC"/>
-                                </connections>
-                            </button>
                             <slider opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.5" minValue="0.0" maxValue="1" translatesAutoresizingMaskIntoConstraints="NO" id="6UE-iN-sBF">
-                                <rect key="frame" x="62" y="876" width="326" height="30"/>
+                                <rect key="frame" x="62" y="984" width="326" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <connections>
                                     <action selector="monitorVolumeChanged:" destination="BYZ-38-t0r" eventType="valueChanged" id="47i-QU-6FI"/>
                                 </connections>
                             </slider>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" highlighted="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CBa-rr-Yli">
-                                <rect key="frame" x="145" y="430" width="150" height="51"/>
+                                <rect key="frame" x="145" y="925" width="150" height="51"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="32"/>
                                 <state key="normal" title="Monitor"/>
                                 <connections>
                                     <action selector="monitorTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="wH2-0o-zaN"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" highlighted="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="4Ww-Ot-Cuf">
+                                <rect key="frame" x="145" y="866" width="150" height="51"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="32"/>
+                                <state key="normal" title="Effects"/>
+                                <connections>
+                                    <action selector="effectsTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Tyc-YP-h9z"/>
+                                    <segue destination="b42-eX-QwM" kind="show" identifier="EffectsSegue" id="Rn1-IT-JQC"/>
                                 </connections>
                             </button>
                         </subviews>
@@ -588,6 +587,7 @@
                         <outlet property="nextSegmentButton" destination="shT-IL-a1e" id="uz5-4i-6QS"/>
                         <outlet property="numClipsLabel" destination="WuM-WL-xoF" id="Oyg-oC-Hlh"/>
                         <outlet property="pasteURLButton" destination="KU1-Mz-4UO" id="Ejk-xZ-Oah"/>
+                        <outlet property="pauseButton" destination="sMO-BT-D1S" id="CAY-TU-1yi"/>
                         <outlet property="playButton" destination="wTs-RB-nC2" id="nxS-Tu-G24"/>
                         <outlet property="playSegmentButton" destination="8yo-k7-dwi" id="USo-yG-kEd"/>
                         <outlet property="playerView" destination="7PG-09-qi4" id="dh0-LJ-Rov"/>
@@ -598,7 +598,6 @@
                         <outlet property="saveButton" destination="CrY-BU-Nyf" id="qrp-Ig-SIF"/>
                         <outlet property="saveImageButton" destination="ppx-6k-HPT" id="Vyv-FO-svd"/>
                         <outlet property="selectPhotoButton" destination="3lz-1F-37j" id="Rl2-Wa-Bfw"/>
-                        <outlet property="selectSongButton" destination="sMO-BT-D1S" id="JNA-uT-wbl"/>
                         <outlet property="slider" destination="pOx-ix-Z6F" id="d11-vL-Tbm"/>
                         <outlet property="sliderTextLabel" destination="1xh-wr-1cz" id="PsZ-N4-pwJ"/>
                         <outlet property="songTitleLable" destination="JaH-lt-vyi" id="NbT-fb-fvH"/>
@@ -618,7 +617,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="823.13323572474371" y="135.9375"/>
+            <point key="canvasLocation" x="822.13740458015263" y="135.91549295774649"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="n3E-08-wHL">
@@ -717,11 +716,12 @@
         </scene>
     </scenes>
     <resources>
+        <image name="checkmarkWithPhotos.png" width="60" height="60"/>
+        <image name="hsvLoop.png" width="128" height="128"/>
+        <image name="hsvPause.png" width="128" height="128"/>
+        <image name="hsvPlay.png" width="128" height="128"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
-        <systemColor name="systemBlueColor">
-            <color red="0.0" green="0.47843137250000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemGray2Color">
             <color red="0.68235294120000001" green="0.68235294120000001" blue="0.69803921570000005" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>

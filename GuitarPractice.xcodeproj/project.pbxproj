@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -67,6 +67,10 @@
 		EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libNVCoordinateLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		EB6C54962D5A69090049F964 /* ICons */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = ICons; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		EB547D6923D4195B009BE924 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -105,6 +109,7 @@
 		EB547D6E23D4195B009BE924 /* GuitarPractice */ = {
 			isa = PBXGroup;
 			children = (
+				EB6C54962D5A69090049F964 /* ICons */,
 				EBB8DBC42C2B7657000653FE /* bluesyRiff.mid */,
 				EBB8DBC22C2B7657000653FE /* drumLoop.caf */,
 				EBB8DBC32C2B7657000653FE /* gs_instruments.dls */,
@@ -169,6 +174,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				EB6C54962D5A69090049F964 /* ICons */,
 			);
 			name = GuitarPractice;
 			productName = GuitarPractice;

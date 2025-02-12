@@ -196,7 +196,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_nextSegmentButton];
     [_allViewsArray addObject:_priorSegmentButton];
     [_allViewsArray addObject:_saveButton];
-    [_allViewsArray addObject:_selectSongButton];
+    [_allViewsArray addObject:_pauseButton];
     [_allViewsArray addObject:_selectPhotoButton];
     [_allViewsArray addObject:_saveImageButton];
     [_allViewsArray addObject:_cancelImageButton];
@@ -603,6 +603,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     switch (_currentSongType)
     {
         case SONG:
+            [_continueButton setHidden:YES];
+            [_pauseButton setHidden:NO];
             [_appSoundPlayer play];
             [_timer invalidate];
             _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
@@ -1060,7 +1062,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_timer invalidate];
     //_inLoop = NO;
     if (_currentSongType == SONG)
+    {
+        [_pauseButton setHidden:YES];
+        [_continueButton setHidden:NO];
         [_appSoundPlayer stop];
+    }
     else
         [_playerView pauseVideo];
     //[_loopSegmentButton setSelected:NO];
