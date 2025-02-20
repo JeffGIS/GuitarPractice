@@ -407,6 +407,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _picker.delegate                        = self;
     _picker.allowsPickingMultipleItems    = NO;
     _picker.prompt                        = NSLocalizedString (@"Select a song", @"Prompt to user to choose some songs to play");
+    _picker.showsCloudItems = NO;
+    _picker.showsItemsWithProtectedAssets = NO;
     
     [[UIApplication sharedApplication] setStatusBarStyle: UIStatusBarStyleDefault animated:YES];
 
@@ -423,9 +425,10 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [self addSongsToList:optionList];
     NVPopoverTableView *nvptv = [NVPopoverTableView showPopoverTableViewInView:self.view
                                                                       delegate:self
-                                                                         title:@"Songs"
+                                                                         title:_currentCollection
                                                                      textArray:optionList
                                                                  includeCancel:YES];
+    nvptv.identifier = @"Select Song";
     nvptv.allowsSubtitle = NO;
 }
 
@@ -474,7 +477,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
             [self deleteClip:_currentLinkPrefix];
         }
     }
-    else if ([popoverTableView.title isEqual:@"Songs"])
+    else if ([popoverTableView.identifier isEqual:@"Select Song"])
     {
         NSString * url = [self getSong:text];
         if (url)
@@ -483,7 +486,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
             if (_currentSongType == SONG)
             {
                 _currentSongURL = [NSURL URLWithString:url];
-                [self startNewSong];
+                if (![self startNewSong])
+                    showAlert(@"Unable to access this song");
             }
             else
             {
@@ -492,11 +496,12 @@ typedef NS_ENUM(NSInteger, SongTypes)
             }
         }
     }
-    else if ([popoverTableView.title isEqual:@"Collections"])
+    else if ([popoverTableView.identifier isEqual:@"Select Collection"])
     {
         _currentCollection = text;
         _currentCollectionLabel.text = _currentCollection;
         [popoverTableView hide:YES];
+        [self selectSongTapped:nil];
     }
 }
 - (void) addNewSong
@@ -549,16 +554,27 @@ typedef NS_ENUM(NSInteger, SongTypes)
         _currentSongURL = [_currentSong valueForProperty:MPMediaItemPropertyAssetURL];
         _currentSongDuration = IDNINT(_currentSong.playbackDuration);
         NSString * url = [_currentSongURL absoluteString];
-        [self saveSongURL:url
-                 forTitle:_currentSongTitle
-                   ofType:SONG
-                 duration:_currentSongDuration
-                startTime:0];
-        [self startNewSong];
-        
+        if ([self startNewSong])
+        {
+            [self saveSongURL:url
+                     forTitle:_currentSongTitle
+                       ofType:SONG
+                     duration:_currentSongDuration
+                    startTime:0];
+        }
+        else
+        {
+            showAlert(@"Unable to access this song");
+        }
     }
     [_picker dismissViewControllerAnimated:YES completion:nil] ;
     return;
+}
+void showAlert(NSString *text)
+{
+    [CRAPI.sharedInstance performSelector:@selector(showAlert:)
+                               withObject:text
+                               afterDelay:0.5];
 }
 
 - (void) startNewYouTubeVideo:(NSString *)URL
@@ -600,16 +616,24 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 
 - (IBAction)continueTapped:(id)sender {
+    BOOL rtn=FALSE;
     switch (_currentSongType)
     {
         case SONG:
-            [_continueButton setHidden:YES];
-            [_pauseButton setHidden:NO];
-            [_appSoundPlayer play];
-            [_timer invalidate];
-            _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
+            rtn = [_appSoundPlayer play];
+            if (rtn)
+            {
+                [_continueButton setHidden:YES];
+                [_pauseButton setHidden:NO];
+                [_timer invalidate];
+                _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
+            }
+            else
+                showAlert(@"Unable to access this song");
             break;
         case YOUTUBEVIDEO:
+            [_pauseButton setHidden:NO];
+            [_continueButton setHidden:YES];
             [self.playerView playVideo];
             break;
     }
@@ -761,6 +785,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_saveButton setHidden:NO];
     [_saveButton setEnabled:YES];
     [_deleteClipButton setEnabled:YES];
+    [_selectPhotoButton setHidden:NO];
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer pause];
@@ -1061,10 +1086,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (_timer)
         [_timer invalidate];
     //_inLoop = NO;
+    [_pauseButton setHidden:YES];
+    [_continueButton setHidden:NO];
     if (_currentSongType == SONG)
     {
-        [_pauseButton setHidden:YES];
-        [_continueButton setHidden:NO];
         [_appSoundPlayer stop];
     }
     else
@@ -1174,6 +1199,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     else
     {
+        [_pauseButton setHidden:NO];
+        [_continueButton setHidden:YES];
+
         [self.playerView pauseVideo];
         [self.playerView seekToSeconds:_beginTime allowSeekAhead:YES];
         [self.playerView playVideo];
@@ -1442,7 +1470,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (setTime)
     {
         _currentSegment = -1;
-/*        if (_beginTimes.count)
+        [self updateNumClipsLabel];
+        /*        if (_beginTimes.count)
         {
             _beginTime = (int)_beginTimes[0].integerValue/10.0;
             _endTime = (int)_endTimes[0].integerValue/10.0;
@@ -2055,6 +2084,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                                                                              title:@"Collections"
                                                                          textArray:optionList
                                                                      includeCancel:YES];
+        nvptv.identifier = @"Select Collection";
         nvptv.allowsSubtitle = NO;
     }
 
