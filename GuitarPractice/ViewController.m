@@ -1667,6 +1667,16 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     return;
 }
 - (IBAction)effectsTapped:(id)sender {
+    
+    {
+        UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:NSBundle.mainBundle];
+        EffectsViewController *effectsVC = [storyboard instantiateViewControllerWithIdentifier:@"EffectsViewController"];
+        effectsVC.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
+        effectsVC.delegate = self;
+        [self presentViewController:effectsVC animated:YES completion:nil];
+    }
+    return;
+
     static int revMix = 1;
     NSError *error;
     return;
@@ -2547,6 +2557,10 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     // Release any cached data, images, etc that aren't in use.
 }
 
+- (void) EffectsViewController:(EffectsViewController *)controller didComplete:(BOOL)didCancel
+{
+    [controller dismissViewControllerAnimated:YES completion:nil];
+}
 - (void)prepareForSegue:(UIStoryboardSegue *)segue
                  sender:(id)sender
 {

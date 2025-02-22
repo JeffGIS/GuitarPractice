@@ -220,4 +220,9 @@
    
 */ _currentRowY += _rowHeight + _rowGap;
 }
+- (IBAction)returnButtonTapped:(id)sender
+{
+    [_delegate EffectsViewController:self didComplete:YES];
+
+}
 @end

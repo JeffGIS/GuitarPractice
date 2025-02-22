@@ -545,7 +545,6 @@
                                 <state key="normal" title="Effects"/>
                                 <connections>
                                     <action selector="effectsTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Tyc-YP-h9z"/>
-                                    <segue destination="b42-eX-QwM" kind="show" identifier="EffectsSegue" id="Rn1-IT-JQC"/>
                                 </connections>
                             </button>
                         </subviews>
@@ -626,9 +625,11 @@
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="39l-us-VeL">
                         <autoresizingMask key="autoresizingMask"/>
-                        <navigationBarAppearance key="standardAppearance"/>
                     </navigationBar>
                     <nil name="viewControllers"/>
+                    <toolbar key="toolbar" opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="OuX-Qo-Jug">
+                        <autoresizingMask key="autoresizingMask"/>
+                    </toolbar>
                     <connections>
                         <segue destination="BYZ-38-t0r" kind="relationship" relationship="rootViewController" id="FWV-IA-4uN"/>
                     </connections>
@@ -640,7 +641,7 @@
         <!--Effects-->
         <scene sceneID="8Gd-O7-wgF">
             <objects>
-                <viewController autoresizesArchivedViewToFullSize="NO" title="Effects" id="b42-eX-QwM" customClass="EffectsViewController" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="EffectsViewController" autoresizesArchivedViewToFullSize="NO" title="Effects" wantsFullScreenLayout="YES" modalPresentationStyle="fullScreen" id="b42-eX-QwM" customClass="EffectsViewController" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="p7S-2D-gvr">
                         <rect key="frame" x="0.0" y="0.0" width="1366" height="1024"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -698,14 +699,23 @@
                                     <fontDescription key="titleFontDescription" type="system" pointSize="33"/>
                                 </buttonConfiguration>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="mPt-X8-TjS">
+                                <rect key="frame" x="20" y="30" width="145" height="78"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="26"/>
+                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                <state key="normal" title="&lt;Return"/>
+                                <connections>
+                                    <action selector="returnButtonTapped:" destination="b42-eX-QwM" eventType="touchUpInside" id="AN0-CX-nSS"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="YLB-lC-5SM"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                     </view>
                     <navigationItem key="navigationItem" title="Return" prompt="Go Back" leftItemsSupplementBackButton="YES" id="knE-hv-aLZ">
-                        <barButtonItem key="backBarButtonItem" title="Go Back" id="hZS-BI-f4Y"/>
+                        <barButtonItem key="backBarButtonItem" title="Go Back" width="50" id="hZS-BI-f4Y"/>
                     </navigationItem>
-                    <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
                     <size key="freeformSize" width="1366" height="1024"/>
                     <connections>
                         <outlet property="addDistortionButton" destination="5ns-kq-7kZ" id="49U-Vk-Gv6"/>
@@ -715,7 +725,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="5Ur-Ah-rL3" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-116.39824304538799" y="-528.515625"/>
+            <point key="canvasLocation" x="-116.86046511627907" y="-528.92441860465112"/>
         </scene>
     </scenes>
     <resources>

@@ -28,6 +28,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (weak, nonatomic) IBOutlet UIButton *addReverbButton;
 @property (weak, nonatomic) IBOutlet UIButton *addDistortionButton;
 @property (weak, nonatomic) IBOutlet UISlider *volumeSlider;
+- (IBAction)returnButtonTapped:(id)sender;
 @property NSMutableArray *effectsArray;
 @end
 
