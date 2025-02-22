@@ -247,6 +247,8 @@
     _mic = [_engine inputNode];
     _mic.volume = 1;
     _speaker = [_engine outputNode];
+  
+    self.outputVolume = 1;
     AVAudioFormat *micFormat = [_mic inputFormatForBus:0];
     for (EffectsData *efdata in _effectsArray)
     {
@@ -653,7 +655,7 @@
     return _mixerOutputFileURL;
 }
 
-- (void)startRecordingMixerOutput
+- (void)startRecordingMixerOutput:(NSString *)outputFile
 {
     // install a tap on the main mixer output bus and write output buffers to file
     
@@ -677,7 +679,7 @@
 		the engine is running. */
     
     NSError *error;
-    if (!_mixerOutputFileURL) _mixerOutputFileURL = [NSURL URLWithString:[NSTemporaryDirectory() stringByAppendingString:@"mixerOutput.caf"]];
+    if (!_mixerOutputFileURL) _mixerOutputFileURL = [NSURL URLWithString:outputFile];
     
     AVAudioMixerNode *mainMixer = [_engine mainMixerNode];
     AVAudioFile *mixerOutputFile = [[AVAudioFile alloc] initForWriting:_mixerOutputFileURL settings:[[mainMixer outputFormatForBus:0] settings] error:&error];
@@ -763,9 +765,12 @@
     NSString *ipdPortName = ipd.portName;
     NSString *ipdPortType = ipd.portType;
     NSArray *outputs = route.outputs;
-    AVAudioSessionPortDescription *opd = outputs[0];
-    NSString *opdPortName = opd.portName;
-    NSString *opdPortType = opd.portType;
+    if (outputs.count)
+    {
+        AVAudioSessionPortDescription *opd = outputs[0];
+        NSString *opdPortName = opd.portName;
+        NSString *opdPortType = opd.portType;
+    }
    return;
 }
 

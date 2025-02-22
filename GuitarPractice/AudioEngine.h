@@ -60,7 +60,7 @@ static NSString *kRecordingCompletedNotification = @"RecordingCompletedNotificat
 - (void)togglePlayer;
 - (void)toggleBuffer:(BOOL)recordBuffer;
 
-- (void)startRecordingMixerOutput;
+- (void)startRecordingMixerOutput:(NSString *)outputFile;
 - (void)stopRecordingMixerOutput;
 
 - (AVAudioEngine*) getEngine;

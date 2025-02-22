@@ -91,6 +91,11 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property SystemSoundID leadInTick;
 @property BOOL recording;
 @property int leadInCount;
+@property NSString *playbackFile;
+@property BOOL StopRecording;
+@property BOOL recordingNewSong;
+@property NSString *NewSongFile;
+@property BOOL playerIsPlaying;
 
 @property NSMutableDictionary *recordSetting;
 @property NSMutableDictionary *editedObject;
@@ -136,6 +141,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [self createCollection:@"Songs"];
     _currentCollectionLabel.text = _currentCollection;
 
+    _playbackFile = [NSTemporaryDirectory() stringByAppendingString:@"mixerOutput.caf"];
     self.playerView.delegate = self;
     [self createAllViewsArray];
     _tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapFrom:)];
@@ -271,7 +277,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     {
         double recordTime = _endTime - _beginTime;
         [timer invalidate];
-        [self startRecording:recordTime];
+        [self startRecording:recordTime
+                      toFile:_playbackFile];
         return;
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
         NSString *documentsDirectory = [paths objectAtIndex:0];
@@ -300,7 +307,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 - (void)audioRecorderDidFinishRecording:(AVAudioRecorder *)recorder successfully:(BOOL)flag
 {
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
-        [self playRecording];
+        [self playRecording:self.recorderFilePath];
     }];
 
     return;
@@ -335,7 +342,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
         self.currentSongTitle = self.YouTubeName;
         [self updateSongLabel];
    }];
-    if (_inLoop && playTime > _endTime)
+/*    if (_inLoop && playTime > _endTime)
     {
         [self.playerView pauseVideo];
         [self.playerView seekToSeconds:_beginTime allowSeekAhead:YES];
@@ -343,7 +350,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [self setSliderValue:_beginTime];
     }
     else
-        [self setSliderValue:playTime];
+        [self setSliderValue:playTime];*/
     if (self.startingExistingVideo)
     {
         self.startingExistingVideo = NO;
@@ -351,15 +358,20 @@ typedef NS_ENUM(NSInteger, SongTypes)
     }
 }
 - (void)playerView:(YTPlayerView *)playerView didChangeToState:(YTPlayerState)state {
+    NSLog (@"player state %i",state);
     switch (state)
     {
         case kYTPlayerStatePlaying:
             NSLog(@"Started playback");
-
+            _playerIsPlaying = TRUE;
             break;
         case kYTPlayerStatePaused:
             NSLog(@"Paused playback");
+            _playerIsPlaying = FALSE;
             break;
+        case kYTPlayerStateEnded:
+            NSLog(@"Ended playback");
+            _playerIsPlaying = FALSE;
         default:
             break;
     }
@@ -420,6 +432,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     NSMutableArray *optionList = NSMutableArray.array;
 
     [optionList addObject:@"Add New Song"];
+    [optionList addObject:@"Record New Song"];
     [optionList addObject:@"Add New YouTube Video"];
     [optionList addObject:@"________________________"];
     [self addSongsToList:optionList];
@@ -445,12 +458,17 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [popoverTableView hide:YES];
         [self addNewSong];
     }
-    if ([text isEqual:@"Add New Collection"])
+    if ([text isEqual:@"Record New Song"])
+    {
+        [popoverTableView hide:YES];
+        [self recordNewSong];
+    }
+    else if ([text isEqual:@"Add New Collection"])
     {
         [popoverTableView hide:YES];
         [self addNewSong];
     }
-    if ([text isEqual:@"Add New YouTube Video"])
+    else if ([text isEqual:@"Add New YouTube Video"])
     {
         [_gotoYouTubeButton setHidden:NO];
         [popoverTableView hide:YES];
@@ -516,6 +534,20 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [self setCurrentPositiion:NO];
 }
 
+- (void) recordNewSong
+{
+    NSError *error;
+    _NewSongFile = [NSTemporaryDirectory() stringByAppendingString:@"newSongFile.caf"];
+    [NSFileManager.defaultManager removeItemAtPath:_NewSongFile
+                                             error:&error];
+    _recordingNewSong = TRUE;
+    [_continueButton setHidden:YES];
+    [_pauseButton setHidden:NO];
+
+    [self startRecording:0
+                  toFile:_NewSongFile];
+
+}
 - (void) addNewYouTube
 {
     [self displayYouTubeVideo:@"4QfDDsvoLi8?si"];
@@ -635,6 +667,8 @@ void showAlert(NSString *text)
             [_pauseButton setHidden:NO];
             [_continueButton setHidden:YES];
             [self.playerView playVideo];
+            [_timer invalidate];
+            _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
             break;
     }
 }
@@ -1060,27 +1094,57 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     if (!_timer)
         return;
-    if (_inLoop && _appSoundPlayer.currentTime >= _endTime)
+    if (_currentSongType == SONG)
     {
-        if (_appSoundPlayer.playing)
+        if (_inLoop && _appSoundPlayer.currentTime >= _endTime)
         {
-            [_appSoundPlayer stop];
-            [self setSliderValue:_endTime];
-        }
-        else
-        {
-            [timer invalidate];
-            if (_recording)
+            if (_appSoundPlayer.playing)
             {
-                _leadInCount = 0;
-                _leadInTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(playLeadInTick:) userInfo:nil repeats:YES];
+                [_appSoundPlayer stop];
+                [self setSliderValue:_endTime];
             }
             else
-                [self loopSegmentTapped:nil];
+            {
+                [timer invalidate];
+                if (_recording)
+                {
+                    _leadInCount = 0;
+                    _leadInTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(playLeadInTick:) userInfo:nil repeats:YES];
+                }
+                else
+                    [self loopSegmentTapped:nil];
+            }
         }
+        else
+            [self setSliderValue:_appSoundPlayer.currentTime];
     }
     else
-        [self setSliderValue:_appSoundPlayer.currentTime];
+    {
+        if (_inLoop && _currentYTTime >= _endTime)
+        {
+            if (_playerIsPlaying)
+            {
+                [self.playerView pauseVideo];
+                [self setSliderValue:_endTime];
+            }
+            else
+            {
+                [timer invalidate];
+                if (_recording)
+                {
+                    _leadInCount = 0;
+                    _leadInTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(playLeadInTick:) userInfo:nil repeats:YES];
+                }
+                else
+                {
+                    _inLoop = FALSE;
+                    [self loopSegmentTapped:nil];
+                }
+            }
+        }
+        else
+            [self setSliderValue:_currentYTTime];
+    }
 }
 - (IBAction)stopTapped:(id)sender {
     if (_timer)
@@ -1088,7 +1152,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     //_inLoop = NO;
     [_pauseButton setHidden:YES];
     [_continueButton setHidden:NO];
-    if (_currentSongType == SONG)
+    if (_recordingNewSong)
+    {
+        _StopRecording = TRUE;
+    }
+    else if (_currentSongType == SONG)
     {
         [_appSoundPlayer stop];
     }
@@ -1184,7 +1252,27 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
 }
 
-- (IBAction)loopSegmentTapped:(id)sender {
+- (IBAction)loopSegmentTapped:(id)sender
+{
+    if (_inLoop)
+    {
+        _inLoop = FALSE;
+        if (_currentSongType == SONG)
+        {
+            [_appSoundPlayer stop];
+        }
+        else
+        {
+            [self.playerView pauseVideo];
+        }
+        [_loopSegmentButton setSelected:NO];
+        [_playSegmentButton setSelected:NO];
+        [_delayLabel setHidden:YES];
+        [_delaySwitch setHidden:YES];
+        [_recordLabel setHidden:YES];
+        [_recordSwitch setHidden:YES];
+        return;
+    }
     if (_currentSegment >= 0 && _beginTimes.count > _currentSegment)
     {
         _beginTime = (int)_beginTimes[_currentSegment].integerValue/10.0;
@@ -1201,9 +1289,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     {
         [_pauseButton setHidden:NO];
         [_continueButton setHidden:YES];
-
+        _currentYTTime = _beginTime;
         [self.playerView pauseVideo];
         [self.playerView seekToSeconds:_beginTime allowSeekAhead:YES];
+        [_timer invalidate];
+        _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
         [self.playerView playVideo];
     }
     [_loopSegmentButton setSelected:YES];
@@ -1581,7 +1671,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     NSError *error;
     return;
     if (revMix)
-        [_audioEngine startRecordingMixerOutput];
+        [_audioEngine startRecordingMixerOutput:_playbackFile];
     else
     {
         AVAudioEngine *engine = [_audioEngine getEngine];
@@ -1590,7 +1680,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         AVAudioSession *audioSession = [AVAudioSession sharedInstance];
         [audioSession setActive:NO error:&error];
 
-        [self playRecording];
+        [self playRecording:_recorderFilePath];
     }
     revMix = !revMix;
     return;
@@ -2234,21 +2324,36 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     }
 }
 - (void)startRecording:(double)recordTime
+                toFile:(NSString*) toFile
 {
+    _StopRecording = FALSE;
     [self startMonitor];
-    [_audioEngine startRecordingMixerOutput];
+    [_audioEngine startRecordingMixerOutput:toFile];
     _maxRecordTime = recordTime;
     _recordTime = 0;
     _recordTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(checkRecordTimer:) userInfo:nil repeats:YES];
 }
 - (void) checkRecordTimer:(NSTimer *)timer
 {
-    _recordTime += 0.1;
-    if (_recordTime >= _maxRecordTime)
+    if (_maxRecordTime > 0)
     {
-        [_recordTimer invalidate];
-        [self stopRecording];
-        [self playRecording];
+        _recordTime += 0.1;
+        if (_recordTime >= _maxRecordTime)
+        {
+            [_recordTimer invalidate];
+            [self stopRecording];
+            [self playRecording:_playbackFile];
+        }
+    }
+    else
+    {
+        if (_StopRecording)
+        {
+            [_recordTimer invalidate];
+            [self stopRecording];
+            [_audioEngine setOutputVolume:1];
+            [self playRecording:_NewSongFile];
+        }
     }
 }
 
@@ -2391,17 +2496,16 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     if (_saveSoundPlayer)
     {
         _appSoundPlayer = _saveSoundPlayer;
-        [self loopSegmentTapped:nil];
     }
+    [self loopSegmentTapped:nil];
 }
-- (BOOL)playRecording
+- (BOOL)playRecording:(NSString *) path
 {
     NSError *error;
-    //if(!_recorderFilePath)
-    //    return FALSE;
-    //NSURL *url = [NSURL fileURLWithPath:_recorderFilePath];
-    NSURL *url = [_audioEngine getMixerOutputFileURL];
-    //NSLog(@"Playing sound from Path: %@",recorderFilePath);
+    long fileSize = (NSInteger)[NSFileManager.defaultManager attributesOfItemAtPath:path
+                                                                              error:nil].fileSize;
+
+    NSURL *url = [NSURL fileURLWithPath:path isDirectory:NO];
     AVAudioPlayer *newPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL: url error:&error];
     if (error)
     {

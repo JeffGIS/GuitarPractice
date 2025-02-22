@@ -626,6 +626,7 @@
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="39l-us-VeL">
                         <autoresizingMask key="autoresizingMask"/>
+                        <navigationBarAppearance key="standardAppearance"/>
                     </navigationBar>
                     <nil name="viewControllers"/>
                     <connections>
@@ -701,7 +702,9 @@
                         <viewLayoutGuide key="safeArea" id="YLB-lC-5SM"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                     </view>
-                    <navigationItem key="navigationItem" id="knE-hv-aLZ"/>
+                    <navigationItem key="navigationItem" title="Return" prompt="Go Back" leftItemsSupplementBackButton="YES" id="knE-hv-aLZ">
+                        <barButtonItem key="backBarButtonItem" title="Go Back" id="hZS-BI-f4Y"/>
+                    </navigationItem>
                     <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
                     <size key="freeformSize" width="1366" height="1024"/>
                     <connections>
