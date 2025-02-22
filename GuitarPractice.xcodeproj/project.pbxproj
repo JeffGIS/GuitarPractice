@@ -29,6 +29,7 @@
 		EBB8DBCD2C2BB6D8000653FE /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EBB8DBCC2C2BB6D8000653FE /* AVFoundation.framework */; };
 		EBB8DBFC2C306FB7000653FE /* EffectsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = EBB8DBFB2C306FB7000653FE /* EffectsViewController.m */; };
 		EBBBFD672AE5F8FC00A27F86 /* libNVCoordinateLibrary.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */; };
+		EBC290CB2D6A39240017526B /* RecordSongViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = EBC290CA2D6A39240017526B /* RecordSongViewController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -65,6 +66,8 @@
 		EBB8DBFA2C306FB7000653FE /* EffectsViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EffectsViewController.h; sourceTree = "<group>"; };
 		EBB8DBFB2C306FB7000653FE /* EffectsViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EffectsViewController.m; sourceTree = "<group>"; };
 		EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libNVCoordinateLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		EBC290C92D6A39240017526B /* RecordSongViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RecordSongViewController.h; sourceTree = "<group>"; };
+		EBC290CA2D6A39240017526B /* RecordSongViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RecordSongViewController.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -135,6 +138,8 @@
 				EBB8DBFB2C306FB7000653FE /* EffectsViewController.m */,
 				EB827E842C44066600469B59 /* EffectsData.h */,
 				EB827E852C44066600469B59 /* EffectsData.m */,
+				EBC290C92D6A39240017526B /* RecordSongViewController.h */,
+				EBC290CA2D6A39240017526B /* RecordSongViewController.m */,
 			);
 			path = GuitarPractice;
 			sourceTree = "<group>";
@@ -245,6 +250,7 @@
 				EB547D7123D4195B009BE924 /* AppDelegate.m in Sources */,
 				EB547D8223D4195C009BE924 /* main.m in Sources */,
 				EBB8DBFC2C306FB7000653FE /* EffectsViewController.m in Sources */,
+				EBC290CB2D6A39240017526B /* RecordSongViewController.m in Sources */,
 				EBA343902BABB06A004413F1 /* YTPlayerView.m in Sources */,
 				EB547D7423D4195B009BE924 /* SceneDelegate.m in Sources */,
 			);

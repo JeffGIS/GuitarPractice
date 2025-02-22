@@ -543,6 +543,14 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _recordingNewSong = TRUE;
     [_continueButton setHidden:YES];
     [_pauseButton setHidden:NO];
+    
+    UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:NSBundle.mainBundle];
+    EffectsViewController *recordSongVC = [storyboard instantiateViewControllerWithIdentifier:@"RecordSongViewController"];
+    recordSongVC.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
+    recordSongVC.delegate = self;
+    [self presentViewController:recordSongVC animated:YES completion:nil];
+    return;
+
 
     [self startRecording:0
                   toFile:_NewSongFile];
@@ -2558,6 +2566,10 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
 }
 
 - (void) EffectsViewController:(EffectsViewController *)controller didComplete:(BOOL)didCancel
+{
+    [controller dismissViewControllerAnimated:YES completion:nil];
+}
+- (void) RecordSongViewController:(EffectsViewController *)controller didComplete:(BOOL)didCancel
 {
     [controller dismissViewControllerAnimated:YES completion:nil];
 }

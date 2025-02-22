@@ -13,11 +13,12 @@
 #import "CCodeLibrary/CCodeLibrary.h"
 #import "YTPlayerView.h"
 #import "EffectsViewController.h"
+#import "RecordSongViewController.h"
 
 
 #define DOCUMENTS_FOLDER [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"]
 
-@interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate,EffectsViewControllerDelegate>
+@interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate,EffectsViewControllerDelegate,RecordSongViewControllerDelegate>
 
 - (IBAction)effectsTapped:(id)sender;
 
