@@ -27,6 +27,39 @@
                                     <action selector="returnTapped:" destination="WDg-6v-AJm" eventType="touchUpInside" id="ENL-SO-6Jt"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="03c-Zj-e5x">
+                                <rect key="frame" x="104" y="309" width="147" height="67"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="filled" title="Record">
+                                    <fontDescription key="titleFontDescription" type="system" pointSize="38"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="recordTapped:" destination="WDg-6v-AJm" eventType="touchUpInside" id="neq-iI-pMD"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="VhU-vT-bnr">
+                                <rect key="frame" x="344" y="311" width="147" height="67"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="filled" title="Play">
+                                    <fontDescription key="titleFontDescription" type="system" pointSize="38"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="playTapped:" destination="WDg-6v-AJm" eventType="touchUpInside" id="anG-6b-PbD"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="mFn-Hb-Hh8">
+                                <rect key="frame" x="344" y="425" width="147" height="67"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="filled" title="Stop">
+                                    <fontDescription key="titleFontDescription" type="system" pointSize="38"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="stopTapped:" destination="WDg-6v-AJm" eventType="touchUpInside" id="HnA-55-8W3"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="kZx-Hn-FIb"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -34,7 +67,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="YUl-aE-F9x" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1033" y="-692"/>
+            <point key="canvasLocation" x="1032.5581395348838" y="-692.00581395348831"/>
         </scene>
         <!--View Controller-->
         <scene sceneID="tne-QT-ifu">

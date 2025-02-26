@@ -540,20 +540,18 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _NewSongFile = [NSTemporaryDirectory() stringByAppendingString:@"newSongFile.caf"];
     [NSFileManager.defaultManager removeItemAtPath:_NewSongFile
                                              error:&error];
+    NSURL *newSongURL = [NSURL URLWithString:_NewSongFile];
     _recordingNewSong = TRUE;
     [_continueButton setHidden:YES];
     [_pauseButton setHidden:NO];
     
     UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:NSBundle.mainBundle];
-    EffectsViewController *recordSongVC = [storyboard instantiateViewControllerWithIdentifier:@"RecordSongViewController"];
+    RecordSongViewController *recordSongVC = [storyboard instantiateViewControllerWithIdentifier:@"RecordSongViewController"];
     recordSongVC.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
     recordSongVC.delegate = self;
+    recordSongVC.currentSongURL = newSongURL;
     [self presentViewController:recordSongVC animated:YES completion:nil];
     return;
-
-
-    [self startRecording:0
-                  toFile:_NewSongFile];
 
 }
 - (void) addNewYouTube

@@ -16,7 +16,6 @@
 #import "RecordSongViewController.h"
 
 
-#define DOCUMENTS_FOLDER [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"]
 
 @interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate,EffectsViewControllerDelegate,RecordSongViewControllerDelegate>
 

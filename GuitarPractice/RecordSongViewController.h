@@ -7,8 +7,11 @@
 //
 
 #import <UIKit/UIKit.h>
+@import Foundation;
+@import AVFoundation;
 
 NS_ASSUME_NONNULL_BEGIN
+#define DOCUMENTS_FOLDER [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"]
 
 @class RecordSongViewController;
 
@@ -19,10 +22,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-@interface RecordSongViewController : UIViewController
+@interface RecordSongViewController : UIViewController <AVAudioPlayerDelegate,AVAudioRecorderDelegate>
 @property (nonatomic, weak) id <RecordSongViewControllerDelegate> delegate;
+@property NSURL *currentSongURL;
+- (IBAction)recordTapped:(id)sender;
+- (IBAction)playTapped:(id)sender;
+- (IBAction)stopTapped:(id)sender;
 - (IBAction)returnTapped:(id)sender;
-
+@property NSString * recorderFilePath;
 @end
 
 NS_ASSUME_NONNULL_END
