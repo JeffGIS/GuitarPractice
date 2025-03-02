@@ -13,12 +13,15 @@
 @property NSArray *distortions;
 @property NSArray *reverbs;
 @property int currentRowY;
+@property int labelRowY;
 @property int rowHeight;
 @property int rowGap;
 @property int typeWidth;
 @property int nameWidth;
 @property int sliderWidth;
 @property int rowLeft;
+@property UILabel *wetDryMixLabel;
+@property UILabel *pregainLabel;
 
 @end
 
@@ -140,6 +143,8 @@
 
 - (void) removeEffects
 {
+    [_wetDryMixLabel removeFromSuperview];
+    [_pregainLabel removeFromSuperview];
     for (EffectsData *efdata in _effectsArray)
     {
         [efdata.typeLabel removeFromSuperview];
@@ -150,6 +155,8 @@
             [efdata.pregainSlider removeFromSuperview];
         }
     }
+    _wetDryMixLabel = 0;
+    _pregainLabel = 0;
 }
 - (void) displayEffects
 {
@@ -161,10 +168,13 @@
     _nameWidth = 450;
     _sliderWidth = 230;
     _currentRowY = _addReverbButton.frame.origin.y + _rowHeight * 2 + _rowGap;
+    _labelRowY = _currentRowY;
     for (EffectsData *efdata in _effectsArray)
     {
         if (first)
+        {
             first = FALSE;
+        }
         else
         {
             efdata.typeLabel.frame = CGRectMake(_rowLeft, _currentRowY, _typeWidth, _rowHeight);
@@ -192,37 +202,60 @@
             [self.view addSubview:efdata.wetDrySlider];
             if (efdata.type == DISTORTION)
             {
+                [self addSliderLabel:DISTORTION];
                 efdata.pregainSlider.frame = CGRectMake(_rowLeft + _typeWidth + _nameWidth + _sliderWidth + _sliderWidth / 8, _currentRowY, _sliderWidth, _rowHeight);
                 [self.view addSubview:efdata.pregainSlider];
             }
+            else
+                [self addSliderLabel:REVERB];
             //[efdata.wetDrySlider removeFromSuperview];
-            _currentRowY += _rowHeight + _rowGap;
         }
+        _currentRowY += _rowHeight + _rowGap;
     }
-/*    typeLabel.text = @"Reverb:";
-    typeLabel.frame = CGRectMake(_rowLeft, _currentRowY, _typeWidth, _rowHeight);
-    [self.view addSubview:typeLabel];
-    UILabel *nameLabel = UILabel.new;
-    nameLabel.text = @"Reverb:";
-    nameLabel.frame = CGRectMake(_rowLeft + _typeWidth, _currentRowY, _nameWidth, _rowHeight);
-    [self.view addSubview:typeLabel];
-    UIButton *removeButton = [UIButton buttonWithType:UIButtonTypeCustom];
-    [removeButton setTitle:@"Remove" forState:UIControlStateNormal];
-    removeButton.frame = CGRectMake(0.0, 0.0, 480.0, 60.0);
-    removeButton.titleLabel.font = [UIFont boldSystemFontOfSize:32.0];
-    [removeButton setTitleColor:UserDefaults.defaults.appleBlue forState:UIControlStateNormal];
-    [removeButton setTitleColor:UserDefaults.defaults.appleGray forState:UIControlStateHighlighted];
-    [self.view addSubview:removeButton];
-    
-    [removeButton addTarget:self
-                     action:@selector(removeEffectTapped:)
-         forControlEvents:UIControlEventTouchUpInside];
    
-*/ _currentRowY += _rowHeight + _rowGap;
+}
+-(void) addSliderLabel:(EffectType)type
+{
+    if (!_wetDryMixLabel)
+    {
+        _wetDryMixLabel = UILabel.new;
+        _wetDryMixLabel.frame = CGRectMake(_rowLeft + _typeWidth + _nameWidth, _labelRowY, _sliderWidth, _rowHeight);
+        _wetDryMixLabel.backgroundColor = UIColor.clearColor;
+        _wetDryMixLabel.textColor = UIColor.blackColor;
+        _wetDryMixLabel.font =[UIFont systemFontOfSize: 20];
+        _wetDryMixLabel.adjustsFontSizeToFitWidth = YES;
+        _wetDryMixLabel.textAlignment = NSTextAlignmentCenter;
+        _wetDryMixLabel.numberOfLines = 1;
+        _wetDryMixLabel.text = @"Wet/Dry Mix";
+        [self.view  addSubview:_wetDryMixLabel];
+    }
+    if (type == DISTORTION && !_pregainLabel)
+    {
+        _pregainLabel = UILabel.new;
+        _pregainLabel.frame = CGRectMake(_rowLeft + _typeWidth + _nameWidth + _sliderWidth + _sliderWidth / 8, _labelRowY, _sliderWidth, _rowHeight);
+        _pregainLabel.backgroundColor = UIColor.clearColor;
+        _pregainLabel.textColor = UIColor.blackColor;
+        _pregainLabel.font =[UIFont systemFontOfSize: 20];
+        _pregainLabel.adjustsFontSizeToFitWidth = YES;
+        _pregainLabel.textAlignment = NSTextAlignmentCenter;
+        _pregainLabel.numberOfLines = 1;
+        _pregainLabel.text = @"Pregain";
+        [self.view  addSubview:_pregainLabel];
+    }
+
 }
 - (IBAction)returnButtonTapped:(id)sender
 {
-    [_delegate EffectsViewController:self didComplete:YES];
+    [_delegate EffectsViewController:self didReturn:DID_COMPLETE];
+}
 
+- (IBAction)cancelButtonTapped:(id)sender
+{
+    [_delegate EffectsViewController:self didReturn:DID_CANCEL];
+}
+
+- (IBAction)clearButtonTapped:(id)sender {
+    [_effectsArray removeAllObjects];
+    [_delegate EffectsViewController:self didReturn:DID_CLEAR];
 }
 @end

@@ -14,10 +14,11 @@
 #import "YTPlayerView.h"
 #import "EffectsViewController.h"
 #import "RecordSongViewController.h"
+#import "CCodeLibrary/NVAlertView.h"
 
 
 
-@interface ViewController : UIViewController<MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate,EffectsViewControllerDelegate,RecordSongViewControllerDelegate>
+@interface ViewController : UIViewController<NVAlertViewDelegate,MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate,EffectsViewControllerDelegate,RecordSongViewControllerDelegate>
 
 - (IBAction)effectsTapped:(id)sender;
 
@@ -34,6 +35,7 @@
 - (IBAction)monitorTapped:(id)sender;
 - (IBAction)saveTapped:(id)sender;
 - (IBAction)monitorVolumeChanged:(id)sender;
+- (IBAction)tunerButtonTapped:(id)sender;
 @property (weak, nonatomic) IBOutlet UISlider *monitorVolumeSlider;
 @property NSMutableArray *effectsArray;
 @property (weak, nonatomic) IBOutlet UIButton *monitorButton;

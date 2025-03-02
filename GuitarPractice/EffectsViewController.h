@@ -13,10 +13,18 @@
 NS_ASSUME_NONNULL_BEGIN
 @class EffectsViewController;
 
+typedef NS_ENUM(NSInteger, EffectsReturnStatus)
+{
+    DID_COMPLETE,
+    DID_CANCEL,
+    DID_CLEAR
+};
+
+
 @protocol EffectsViewControllerDelegate <NSObject>
 
 - (void)EffectsViewController:(EffectsViewController *)controller
-                  didComplete:(BOOL)didCancel;
+                    didReturn:(EffectsReturnStatus)status;
 
 @end
 
@@ -28,6 +36,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (weak, nonatomic) IBOutlet UIButton *addReverbButton;
 @property (weak, nonatomic) IBOutlet UIButton *addDistortionButton;
 @property (weak, nonatomic) IBOutlet UISlider *volumeSlider;
+- (IBAction)clearButtonTapped:(id)sender;
 - (IBAction)returnButtonTapped:(id)sender;
 @property NSMutableArray *effectsArray;
 @end

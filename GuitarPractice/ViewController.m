@@ -770,6 +770,73 @@ void showAlert(NSString *text)
 }
 
 
+- (IBAction)tunerButtonTapped:(id)sender {
+    [self launchTuner];
+    
+}
+- (void)launchTuner
+{
+    NSError *error;
+    NSString *tunerURL = @"NVTuner://";
+    NSString *instrument = @"6 String Guitar";
+    NSString *tuning = @"Standard";
+    NSString *capo = @"None";
+    NSString *tunerParms = [NSString stringWithFormat:@"%@:%@:%@",instrument,tuning,capo];
+    [SharedDefaults.defaults saveString:@"RiffMaster:" forKey:@"TunerSourceApplication"];
+    [SharedDefaults.defaults saveString:instrument forKey:@"TunerInstrument"];
+    [SharedDefaults.defaults saveString:tuning forKey:@"TunerTuning"];
+    [SharedDefaults.defaults saveString:capo forKey:@"TunerCapo"];
+    NSString *path = UserDefaults.defaults.sharedFilePath;
+    NSString *file = [path stringByAppendingPathComponent:@"TunerParms.txt"];
+    NSURL *url = [NSURL fileURLWithPath:file];
+    if ([tunerParms writeToURL:url atomically:TRUE encoding:NSUTF8StringEncoding error:&error])
+    {
+        NSDictionary *optionsDict = NSDictionary.new;
+        
+        if ([UIApplication.sharedApplication canOpenURL:[NSURL URLWithString:tunerURL]])
+            [UIApplication.sharedApplication openURL:[NSURL URLWithString:tunerURL] options:optionsDict completionHandler:nil];
+        else
+        {
+            //tunerURL = @"https://itunes.apple.com/us/app/newvision-flyover/id1105410284";
+
+            if ([UIApplication.sharedApplication canOpenURL:[NSURL URLWithString:tunerURL]])
+                [UIApplication.sharedApplication openURL:[NSURL URLWithString:tunerURL] options:optionsDict completionHandler:nil];
+            
+            else
+            {
+                NVAlertView *alert = [NVAlertView showLargeAlertViewinView:self.view
+                                                                  delegate:self
+                                                                     title:@"RiffMaster cannot launch NVTuner App"
+                                                           buttonTextArray:@[@"OK"]
+                                                          destructiveIndex:0];
+                
+                alert.identifier = @"CannotLaunchTunerApp";
+            }
+        }
+
+    }
+    else
+    {
+        NVAlertView *alert = [NVAlertView showLargeAlertViewinView:self.view
+                                                          delegate:self
+                                                             title:[NSString stringWithFormat:@"RiffMaster cannot write tuner parameter file\n%@",error.localizedDescription]
+                                                   buttonTextArray:@[@"OK"]
+                                                  destructiveIndex:0];
+    }
+    
+    
+    
+    //NSFileManager *filemgr = [NSFileManager defaultManager];
+
+    //NSURL *url = [filemgr.containerURL(forSecurityApplicationGroupIdentifier: @"group.com.gssi.appgroup")];
+}
+- (void)alertView:(NVAlertView *)alertView
+didTapButtonAtIndex:(NSInteger)buttonIndex
+{
+    [alertView hideLargeAlertView:TRUE];
+    return;
+}
+
 - (IBAction)monitorVolumeChanged:(UISlider*)sender {
     [_audioEngine setOutputVolume:sender.value];
 }
@@ -1118,7 +1185,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                     _leadInTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(playLeadInTick:) userInfo:nil repeats:YES];
                 }
                 else
+                {
+                    _inLoop = FALSE;
                     [self loopSegmentTapped:nil];
+                }
             }
         }
         else
@@ -1285,6 +1355,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _endTime = (int)_endTimes[_currentSegment].integerValue/10.0;
     }
     _inLoop = YES;
+    [_pauseButton setHidden:NO];
+    [_continueButton setHidden:YES];
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer stop];
@@ -1293,8 +1365,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     else
     {
-        [_pauseButton setHidden:NO];
-        [_continueButton setHidden:YES];
         _currentYTTime = _beginTime;
         [self.playerView pauseVideo];
         [self.playerView seekToSeconds:_beginTime allowSeekAhead:YES];
@@ -1645,12 +1715,14 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (monOn)
     {
         NSError *error;
+        [_monitorButton setSelected:NO];
         [_audioEngine closeSession];
         _audioEngine = nil;
         monOn = FALSE;
     }
     else
     {
+        [_monitorButton setSelected:YES];
         [self startMonitor];
         monOn = TRUE;
     }
@@ -1679,26 +1751,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         EffectsViewController *effectsVC = [storyboard instantiateViewControllerWithIdentifier:@"EffectsViewController"];
         effectsVC.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
         effectsVC.delegate = self;
+        effectsVC.effectsArray = _effectsArray;
+
         [self presentViewController:effectsVC animated:YES completion:nil];
     }
-    return;
-
-    static int revMix = 1;
-    NSError *error;
-    return;
-    if (revMix)
-        [_audioEngine startRecordingMixerOutput:_playbackFile];
-    else
-    {
-        AVAudioEngine *engine = [_audioEngine getEngine];
-        [_audioEngine stopRecordingMixerOutput];
-        [engine stop];
-        AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-        [audioSession setActive:NO error:&error];
-
-        [self playRecording:_recorderFilePath];
-    }
-    revMix = !revMix;
     return;
 }
 
@@ -2563,13 +2619,27 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     // Release any cached data, images, etc that aren't in use.
 }
 
-- (void) EffectsViewController:(EffectsViewController *)controller didComplete:(BOOL)didCancel
+- (void) EffectsViewController:(EffectsViewController *)controller didReturn:(EffectsReturnStatus)status
 {
     [controller dismissViewControllerAnimated:YES completion:nil];
-}
-- (void) RecordSongViewController:(EffectsViewController *)controller didComplete:(BOOL)didCancel
-{
-    [controller dismissViewControllerAnimated:YES completion:nil];
+    switch (status)
+    {
+        case DID_COMPLETE:
+            break;
+        case DID_CLEAR:
+        {
+            EffectsData *efdata = EffectsData.new;
+            [efdata setTypeAndID:REVERB ID:0];
+            efdata.wetDrySlider.value = 0;
+            efdata.reverb.wetDryMix = 0;
+            [_effectsArray addObject:efdata];
+            
+            [self effectsTapped:nil];
+        }
+            break;
+        case DID_CANCEL:
+            break;
+    }
 }
 - (void)prepareForSegue:(UIStoryboardSegue *)segue
                  sender:(id)sender

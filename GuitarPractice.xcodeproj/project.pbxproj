@@ -45,6 +45,7 @@
 		EB547D7E23D4195C009BE924 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		EB547D8023D4195C009BE924 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		EB547D8123D4195C009BE924 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		EB70F9532D70BD8500EADA67 /* GuitarPractice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GuitarPractice.entitlements; sourceTree = "<group>"; };
 		EB827E842C44066600469B59 /* EffectsData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EffectsData.h; sourceTree = "<group>"; };
 		EB827E852C44066600469B59 /* EffectsData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EffectsData.m; sourceTree = "<group>"; };
 		EB93FAE72C4DD8C700D8423B /* Info.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Info.md; sourceTree = "<group>"; };
@@ -112,6 +113,7 @@
 		EB547D6E23D4195B009BE924 /* GuitarPractice */ = {
 			isa = PBXGroup;
 			children = (
+				EB70F9532D70BD8500EADA67 /* GuitarPractice.entitlements */,
 				EB6C54962D5A69090049F964 /* ICons */,
 				EBB8DBC42C2B7657000653FE /* bluesyRiff.mid */,
 				EBB8DBC22C2B7657000653FE /* drumLoop.caf */,
@@ -402,6 +404,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = GuitarPractice/GuitarPractice.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = J86LL8KXJL;
 				INFOPLIST_FILE = GuitarPractice/Info.plist;
@@ -410,7 +413,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.gssi.RiffMaster;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gssi.riffmaster;
 				PRODUCT_NAME = RiffMaster;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -424,6 +427,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = GuitarPractice/GuitarPractice.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = J86LL8KXJL;
 				INFOPLIST_FILE = GuitarPractice/Info.plist;
@@ -432,7 +436,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.gssi.RiffMaster;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gssi.riffmaster;
 				PRODUCT_NAME = RiffMaster;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
