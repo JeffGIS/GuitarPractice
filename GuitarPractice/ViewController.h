@@ -95,6 +95,7 @@
 @property (weak, nonatomic) IBOutlet UISwitch *delaySwitch;
 @property (weak, nonatomic) IBOutlet UISwitch *recordSwitch;
 @property (weak, nonatomic) IBOutlet UILabel *delayLabel;
+@property (weak, nonatomic) IBOutlet UIButton *effectsButton;
 @property (weak, nonatomic) IBOutlet UILabel *recordLabel;
 - (IBAction)recordChanged:(id)sender;
 - (IBAction)delayChanged:(id)sender;

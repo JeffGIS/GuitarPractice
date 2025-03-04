@@ -168,7 +168,7 @@
                                     <action selector="saveTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="tKv-uQ-WmJ"/>
                                 </connections>
                             </button>
-                            <slider opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.5" minValue="0.0" maxValue="1" preferredBehavioralStyle="pad" translatesAutoresizingMaskIntoConstraints="NO" id="pOx-ix-Z6F">
+                            <slider opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.5" minValue="0.0" maxValue="1" translatesAutoresizingMaskIntoConstraints="NO" id="pOx-ix-Z6F">
                                 <rect key="frame" x="62" y="333" width="326" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <connections>
@@ -196,10 +196,12 @@
                                 </connections>
                             </button>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="3lz-1F-37j">
-                                <rect key="frame" x="86" y="876" width="249" height="51"/>
+                                <rect key="frame" x="69" y="633" width="299" height="51"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="32"/>
-                                <state key="normal" title="Select Image"/>
+                                <state key="normal" title="Select Image">
+                                    <color key="titleColor" systemColor="labelColor"/>
+                                </state>
                                 <connections>
                                     <action selector="selectPhoto:" destination="BYZ-38-t0r" eventType="touchUpInside" id="wzA-rj-Uqf"/>
                                 </connections>
@@ -256,7 +258,7 @@
                                 </connections>
                             </button>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="vdw-oB-EIc">
-                                <rect key="frame" x="1213" y="15" width="133" height="42"/>
+                                <rect key="frame" x="1213" y="28" width="133" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="filled" title="Full Screen"/>
@@ -454,7 +456,7 @@
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="j7I-aq-Vf1">
                                 <rect key="frame" x="69" y="485" width="319" height="38"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="28"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="22"/>
                                 <inset key="contentEdgeInsets" minX="0.0" minY="5" maxX="0.0" maxY="5"/>
                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
                                 <connections>
@@ -494,7 +496,7 @@
                                 </connections>
                             </button>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="tB3-wZ-h7p">
-                                <rect key="frame" x="1213" y="15" width="133" height="43"/>
+                                <rect key="frame" x="1213" y="28" width="133" height="43"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="filled" title="Return"/>
@@ -608,7 +610,7 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="XuL-iF-qwp">
-                                <rect key="frame" x="873" y="935" width="92" height="52"/>
+                                <rect key="frame" x="641" y="10" width="92" height="52"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="filled" title="Tuner"/>
@@ -635,6 +637,7 @@
                         <outlet property="delayLabel" destination="fq8-ew-hWj" id="7WJ-CW-kMI"/>
                         <outlet property="delaySwitch" destination="YMD-pV-Fn7" id="7Tj-TX-lhr"/>
                         <outlet property="deleteClipButton" destination="3Nw-cI-UsI" id="wgK-GH-1sv"/>
+                        <outlet property="effectsButton" destination="4Ww-Ot-Cuf" id="nSg-hR-WV3"/>
                         <outlet property="endButton" destination="Nku-3w-9z2" id="Uwp-b2-T3q"/>
                         <outlet property="fullScreenButton" destination="vdw-oB-EIc" id="3fV-K2-ZH5"/>
                         <outlet property="fullScreenImageDisplay" destination="kGh-4x-dIs" id="aAi-Fc-a75"/>
@@ -789,6 +792,9 @@
         <image name="hsvLoop.png" width="128" height="128"/>
         <image name="hsvPause.png" width="128" height="128"/>
         <image name="hsvPlay.png" width="128" height="128"/>
+        <systemColor name="labelColor">
+            <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

@@ -458,7 +458,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [popoverTableView hide:YES];
         [self addNewSong];
     }
-    if ([text isEqual:@"Record New Song"])
+    else if ([text isEqual:@"Record New Song"])
     {
         [popoverTableView hide:YES];
         [self recordNewSong];
@@ -501,6 +501,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
         if (url)
         {
             [popoverTableView hide:YES];
+            [_beginButton setEnabled:YES];
+            [_endButton setEnabled:NO];
             if (_currentSongType == SONG)
             {
                 _currentSongURL = [NSURL URLWithString:url];
@@ -619,7 +621,7 @@ void showAlert(NSString *text)
 {
     _slider.maximumValue = _currentSongDuration;
     _slider.minimumValue = 0;
-    _slider.continuous = NO;
+    _slider.continuous = YES;
     _currentTime = 0;
     _beginTime = _currentTime;
     _beginTimes = NSMutableArray.new;
@@ -655,6 +657,11 @@ void showAlert(NSString *text)
 
 - (IBAction)continueTapped:(id)sender {
     BOOL rtn=FALSE;
+    if (_currentSegment < 0)
+    {
+        _beginTime = _currentSongStartTime;
+        _endTime = _currentSongDuration;
+    }
     switch (_currentSongType)
     {
         case SONG:
@@ -728,9 +735,15 @@ void showAlert(NSString *text)
         _beginTime = _appSoundPlayer.currentTime;
     else
         _beginTime = _currentYTTime;
+    [_endButton setEnabled:YES];
+    [_endButton setHidden:NO];
+    _tapToEditLabel.text = @"Tap Mark End to End the Clip";
+
 }
 - (IBAction)markEndTapped:(id)sender
 {
+    _tapToEditLabel.text = @"Tap Mark Begin to Add a Clip";
+
     _currentLinkPrefix = -1;
     if (_currentSongType == SONG)
         _endTime = _appSoundPlayer.currentTime;
@@ -852,6 +865,12 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_saveButton setHidden:YES];
     [_cancelEditButton setHidden:YES];
     [_deleteClipButton setHidden:YES];
+    [_selectPhotoButton setHidden:YES];
+    [_priorSegmentButton setHidden:NO];
+    [_nextSegmentButton setHidden:NO];
+    [_playSegmentButton setHidden:NO];
+    [_loopSegmentButton setHidden:NO];
+
     BOOL opened = [self open];
     NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
     
@@ -873,6 +892,12 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_saveButton setHidden:YES];
     [_cancelEditButton setHidden:YES];
     [_deleteClipButton setHidden:YES];
+    [_selectPhotoButton setHidden:YES];
+    [_priorSegmentButton setHidden:NO];
+    [_nextSegmentButton setHidden:NO];
+    [_playSegmentButton setHidden:NO];
+    [_loopSegmentButton setHidden:NO];
+
     [self setCurrentPositiion:NO];
 }
 
@@ -893,6 +918,10 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_saveButton setEnabled:YES];
     [_deleteClipButton setEnabled:YES];
     [_selectPhotoButton setHidden:NO];
+    [_priorSegmentButton setHidden:YES];
+    [_nextSegmentButton setHidden:YES];
+    [_playSegmentButton setHidden:YES];
+    [_loopSegmentButton setHidden:YES];
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer pause];
@@ -967,16 +996,16 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
      [_appSoundPlayer setDelegate: self];
     _slider.maximumValue = _currentSongDuration;
     _slider.minimumValue = 0;
-    _slider.continuous = NO;
+    _slider.continuous = YES;
     _currentTime = _appSoundPlayer.currentTime;
     _beginTime = _currentTime;
     _beginTimes = NSMutableArray.new;
     _endTimes = NSMutableArray.new;
     _linkPrefixes = NSMutableArray.new;
     _currentSegment = -1;
-    _playButton.enabled=YES;
-    _beginButton.enabled=YES;
-    _endButton.enabled=YES;
+    [_playButton setEnabled:YES];
+    [_beginButton setEnabled:YES];
+    [_endButton setHidden:YES];
     [self updateClipButtons];
     [_saveButton setEnabled:NO];
     _selectPhotoButton.enabled=YES;
@@ -984,14 +1013,16 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [self retrieveSong:_currentSongTitle setTimes:YES];
     [_clipButton setTitle:@"" forState:UIControlStateNormal];
     [_clipButton setHidden:YES];
-    [_tapToEditLabel setHidden:YES];
-    [self playTapped:nil];
+    //[_tapToEditLabel setHidden:YES];
+    //[self playTapped:nil];
     return TRUE;
 }
 - (IBAction)playTapped:(id)sender {
     _inLoop = NO;
+    _currentSegment = -1;
     _beginTime = _currentSongStartTime;
     _endTime = _currentSongDuration;
+    [self updateClipButtons];
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer stop];
@@ -1104,25 +1135,31 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     labelText = @"";
     if (_currentSegment > -1 && !_inFullScreen)
     {
-        labelText = [NSString stringWithFormat:@"Clip %i of %lu",_currentSegment+1,(unsigned long)_endTimes.count];
-        [_clipButton setTitle:labelText forState:UIControlStateNormal];
+        float nseconds = _endTime - _beginTime;
+        NSString * clipText = [NSString stringWithFormat:@"Clip %i of %lu (%.1f seconds)\nTap to Edit",_currentSegment+1,(unsigned long)_beginTimes.count,nseconds];
+        [_clipButton setTitle:clipText forState:UIControlStateNormal];
         [_clipButton setHidden:NO];
+        _tapToEditLabel.text = @"Tap to Edit";
         [_tapToEditLabel setHidden:NO];
     }
     else
     {
         [_clipButton setHidden:YES];
-        [_tapToEditLabel setHidden:YES];
+        _tapToEditLabel.text = @"Tap Mark Begin to Add a Clip";
+        [self updateClipButtons];
+        [_playSegmentButton setSelected:NO];
+        [_loopSegmentButton setSelected:NO];
+        [_tapToEditLabel setHidden:NO];
     }
     [self setSliderValue:_beginTime];
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer stop];
-        _appSoundPlayer.currentTime = _beginTime;
         if (_timer)
             [_timer invalidate];
         if (doPlay)
         {
+            _appSoundPlayer.currentTime = _beginTime;
             _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
             [_appSoundPlayer play];
         }
@@ -1149,7 +1186,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer stop];
-        _appSoundPlayer.currentTime = _beginTime;
     }
     else
     {
@@ -1160,8 +1196,18 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_timer invalidate];
     _timer = nil;
     [_loopSegmentButton setSelected:NO];
-    [_playSegmentButton setSelected:YES];
-    [self continueTapped:nil];
+    if (_playSegmentButton.isSelected)
+    {
+        [_playSegmentButton setSelected:NO];
+        [_pauseButton setHidden:YES];
+        [_continueButton setHidden:NO];
+    }
+    else
+    {
+        _appSoundPlayer.currentTime = _beginTime;
+        [_playSegmentButton setSelected:YES];
+        [self continueTapped:nil];
+    }
 }
 - (void)checkTime:(NSTimer*)timer
 {
@@ -1169,30 +1215,48 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         return;
     if (_currentSongType == SONG)
     {
-        if (_inLoop && _appSoundPlayer.currentTime >= _endTime)
+        float stime = _appSoundPlayer.currentTime;
+        if (_appSoundPlayer.currentTime >= _endTime)
         {
-            if (_appSoundPlayer.playing)
+            if (_inLoop)
             {
-                [_appSoundPlayer stop];
-                [self setSliderValue:_endTime];
-            }
-            else
-            {
-                [timer invalidate];
-                if (_recording)
+                if (_appSoundPlayer.playing)
                 {
-                    _leadInCount = 0;
-                    _leadInTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(playLeadInTick:) userInfo:nil repeats:YES];
+                    [_appSoundPlayer stop];
+                    [self setSliderValue:_endTime];
                 }
                 else
                 {
-                    _inLoop = FALSE;
-                    [self loopSegmentTapped:nil];
+                    [timer invalidate];
+                    if (_recording)
+                    {
+                        _leadInCount = 0;
+                        _leadInTimer = [NSTimer scheduledTimerWithTimeInterval:1 target:self selector:@selector(playLeadInTick:) userInfo:nil repeats:YES];
+                    }
+                    else
+                    {
+                        _inLoop = FALSE;
+                        [self loopSegmentTapped:nil];
+                    }
                 }
+            }
+            else if (_playSegmentButton.isSelected)
+            {
+                if (_appSoundPlayer.playing)
+                {
+                    [_appSoundPlayer stop];
+                    [self setSliderValue:_endTime];
+                }
+                [_playSegmentButton setSelected:NO];
+                [_pauseButton setHidden:YES];
+                [_continueButton setHidden:NO];
             }
         }
         else
-            [self setSliderValue:_appSoundPlayer.currentTime];
+        {
+            if (_appSoundPlayer.playing)
+                [self setSliderValue:_appSoundPlayer.currentTime];
+        }
     }
     else
     {
@@ -1238,8 +1302,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     else
         [_playerView pauseVideo];
-    //[_loopSegmentButton setSelected:NO];
-    //[_playSegmentButton setSelected:NO];
 
 }
 -(void) updateClipButtons
@@ -1250,15 +1312,17 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_loopSegmentButton setEnabled:NO];
     if (_currentSegment < 0)
     {
+        [_nextSegmentButton setTitle:@"First Clip" forState:UIControlStateNormal];
         [_nextSegmentButton setEnabled:YES];
     }
     else
     {
+        [_nextSegmentButton setTitle:@"Next Clip" forState:UIControlStateNormal];
         [_playSegmentButton setEnabled:YES];
         [_loopSegmentButton setEnabled:YES];
         if (_currentSegment > 0)
             [_priorSegmentButton setEnabled:YES];
-        if (_currentSegment < _beginTimes.count -1)
+        if (_currentSegment < (int)_beginTimes.count -1)
             [_nextSegmentButton setEnabled:YES];
     }
 }
@@ -1289,24 +1353,29 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
             [_highlightLinesStepper setHidden:YES];
         }
         [self updateClipButtons];
-        [self playSegmentTapped:nil];
+        [self stopTapped:nil];
+        [_loopSegmentButton setSelected:NO];
+        [_playSegmentButton setSelected:NO];
+
     }
 }
 
 - (IBAction)nextSegmentTapped:(id)sender {
     [_deleteClipButton setEnabled:NO];
 
-    if (_currentSegment + 1 < _beginTimes.count)
+    if (_currentSegment < (int)_beginTimes.count)
     {
         _currentSegment++;
-        NSString * clipText = [NSString stringWithFormat:@"Clip %i of %lu\nTap to Edit",_currentSegment,(unsigned long)_beginTimes.count];
+        _beginTime = (int)_beginTimes[_currentSegment].integerValue/10.0;
+        _endTime = (int)_endTimes[_currentSegment].integerValue/10.0;
+        float nseconds = _endTime - _beginTime;
+        NSString * clipText = [NSString stringWithFormat:@"Clip %i of %lu (%.1f seconds)\nTap to Edit",_currentSegment+1,(unsigned long)_beginTimes.count,nseconds];
         [_clipButton setTitle:clipText forState:UIControlStateHighlighted];
         [_clipButton setSelected:NO];
         [_clipButton setHidden:NO];
+        _tapToEditLabel.text = @"Tap to Edit";
         [_tapToEditLabel setHidden:NO];
         _inLoop = NO;
-        _beginTime = (int)_beginTimes[_currentSegment].integerValue/10.0;
-        _endTime = (int)_endTimes[_currentSegment].integerValue/10.0;
         _currentLinkPrefix = (int)_linkPrefixes[_currentSegment].integerValue;
         _currentFileNum = 1;
         _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
@@ -1323,7 +1392,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
             [_imageHighlightInstructions setHidden:YES];
         }
        [self updateClipButtons];
-       [self playSegmentTapped:nil];
+       [self stopTapped:nil];
+       [_loopSegmentButton setSelected:NO];
+       [_playSegmentButton setSelected:NO];
 
     }
 }
@@ -1349,7 +1420,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_recordSwitch setHidden:YES];
         return;
     }
-    if (_currentSegment >= 0 && _beginTimes.count > _currentSegment)
+    if (_currentSegment >= 0 && (int)_beginTimes.count > _currentSegment)
     {
         _beginTime = (int)_beginTimes[_currentSegment].integerValue/10.0;
         _endTime = (int)_endTimes[_currentSegment].integerValue/10.0;
@@ -1637,6 +1708,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     {
         _currentSegment = -1;
         [self updateNumClipsLabel];
+        [self setCurrentPositiion:NO];
         /*        if (_beginTimes.count)
         {
             _beginTime = (int)_beginTimes[0].integerValue/10.0;
@@ -1677,12 +1749,23 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 -(void) updateNumClipsLabel
 {
     NSString * clipText = [NSString stringWithFormat:@"%i seconds: %lu clips",_currentSongDuration,(unsigned long)_beginTimes.count];
+    if (_beginTimes.count == 1)
+        clipText = [NSString stringWithFormat:@"%i seconds: %lu clip",_currentSongDuration,(unsigned long)_beginTimes.count];
     [_numClipsLabel setText:clipText];
 
 }
 - (IBAction)sliderExit:(id)sender {
-    _beginTime = _slider.value;
-    [self setCurrentPositiion:YES];
+    if (!_changeBeginButton.isHidden && _changeBeginButton.isEnabled &&_changeBeginButton.isSelected)
+        _beginTime = _slider.value;
+    else if (!_changeEndButton.isHidden && _changeEndButton.isEnabled && _changeEndButton.isSelected)
+        _endTime = _slider.value;
+    else
+    {
+        [self stopTapped:nil];
+        _currentSegment = -1;
+    }
+    [self setCurrentPositiion:NO];
+
 }
 
 
@@ -2030,6 +2113,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_fullScreenImageDisplay setImage:_image];
     [_fullScreenImageDisplay setHidden:NO];
     [_fullScreenReturnButton setHidden:NO];
+    [_monitorButton setHidden:YES];
+    [_monitorVolumeSlider setHidden:YES];
+    [_effectsButton setHidden:YES];
     [self displayHighlightForLink:_currentLinkPrefix inView:_fullScreenImageDisplay];
 }
 
@@ -2169,6 +2255,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _inFullScreen = NO;
     [_fullScreenImageDisplay setHidden:YES];
     [_fullScreenReturnButton setHidden:YES];
+    [_monitorButton setHidden:NO];
+    [_monitorVolumeSlider setHidden:NO];
+    [_effectsButton setHidden:NO];
+
 }
 
 - (int) getNumFilesInPrefix:(int)prefix
@@ -2310,7 +2400,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
 {
     _slider.maximumValue = _currentSongDuration;
     _slider.minimumValue = 0;
-    _slider.continuous = NO;
+    _slider.continuous = YES;
     _currentTime = 0;
     _beginTime = _currentTime;
     _beginTimes = NSMutableArray.new;
