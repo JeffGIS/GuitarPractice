@@ -100,7 +100,9 @@
     [self detatchNodes];
     _effectsArray = nil;
     _delegate = nil;
-    [audioSession setActive:NO error:&error];
+//    BOOL st = [audioSession setActive:NO error:&error];
+//    NSAssert(st, @"error closing audio session, %@", [error localizedDescription]);
+
 }
 - (BOOL) setUpSession
 {
@@ -725,6 +727,7 @@
     AVAudioSession *sessionInstance = AVAudioSession.new;
     NSError *error;
     
+    self->audioSession = sessionInstance;
     // set the session category
     //    bool success = [sessionInstance setCategory:AVAudioSessionCategoryPlayback error:&error];
     bool success = [sessionInstance setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:AVAudioSessionCategoryOptionAllowBluetooth error:&error];

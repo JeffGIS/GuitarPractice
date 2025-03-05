@@ -72,9 +72,9 @@
     [self displayEffects];
     return;
 }
-- (IBAction)volumeChanged:(id)sender
+- (IBAction)volumeChanged:(UISlider*)sender
 {
-    
+    [_audioEngine setOutputVolume:sender.value];
     return;
 }
 
@@ -128,8 +128,7 @@
     [efdata setTypeAndID:type
                       ID:effectID];
     [_effectsArray addObject:efdata];
-    [self removeEffects];
-    [self displayEffects];
+    [_delegate EffectsViewController:self didReturn:DID_UPDATE];
 }
 -(void) removeEffectTapped:(UIButton *)button
 {

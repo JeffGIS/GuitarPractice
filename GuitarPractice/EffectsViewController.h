@@ -9,6 +9,7 @@
 #import <UIKit/UIKit.h>
 #import "EffectsData.h"
 #import "CCodeLibrary/CCodeLibrary.h"
+#import "AudioEngine.h"
 
 NS_ASSUME_NONNULL_BEGIN
 @class EffectsViewController;
@@ -17,7 +18,8 @@ typedef NS_ENUM(NSInteger, EffectsReturnStatus)
 {
     DID_COMPLETE,
     DID_CANCEL,
-    DID_CLEAR
+    DID_CLEAR,
+    DID_UPDATE
 };
 
 
@@ -39,6 +41,7 @@ typedef NS_ENUM(NSInteger, EffectsReturnStatus)
 - (IBAction)clearButtonTapped:(id)sender;
 - (IBAction)returnButtonTapped:(id)sender;
 @property NSMutableArray *effectsArray;
+@property AudioEngine * audioEngine;
 @end
 
 NS_ASSUME_NONNULL_END

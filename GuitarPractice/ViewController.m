@@ -10,7 +10,6 @@
 #import "ViewController.h"
 #import "CCodeLibrary/NVPopoverTableView.h"
 #import "CCodeLibrary/StringFunctions.h"
-#import "AudioEngine.h"
 #import "EffectsViewController.h"
 
 typedef NS_ENUM(NSInteger, SongTypes)
@@ -96,6 +95,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property BOOL recordingNewSong;
 @property NSString *NewSongFile;
 @property BOOL playerIsPlaying;
+@property BOOL monOn;
 
 @property NSMutableDictionary *recordSetting;
 @property NSMutableDictionary *editedObject;
@@ -1794,20 +1794,19 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (void) toggleMonitor
 {
     //_audioController = [[AudioController alloc] init];
-    static BOOL monOn = FALSE;
-    if (monOn)
+    if (_monOn)
     {
         NSError *error;
         [_monitorButton setSelected:NO];
         [_audioEngine closeSession];
         _audioEngine = nil;
-        monOn = FALSE;
+        _monOn = FALSE;
     }
     else
     {
         [_monitorButton setSelected:YES];
         [self startMonitor];
-        monOn = TRUE;
+        _monOn = TRUE;
     }
     return;
 }
@@ -1835,7 +1834,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         effectsVC.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
         effectsVC.delegate = self;
         effectsVC.effectsArray = _effectsArray;
-
+        effectsVC.audioEngine = _audioEngine;
         [self presentViewController:effectsVC animated:YES completion:nil];
     }
     return;
@@ -2727,9 +2726,17 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
             [self effectsTapped:nil];
         }
             break;
+        case DID_UPDATE:
+            [self effectsTapped:nil];
+            break;
         case DID_CANCEL:
             break;
     }
+    [_monitorButton setSelected:YES];
+    if (_monOn)
+        [self toggleMonitor];
+    [self toggleMonitor];
+
 }
 - (void)prepareForSegue:(UIStoryboardSegue *)segue
                  sender:(id)sender
