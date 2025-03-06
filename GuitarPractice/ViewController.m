@@ -96,6 +96,12 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property NSString *NewSongFile;
 @property BOOL playerIsPlaying;
 @property BOOL monOn;
+@property int numTrackLines;
+@property UILabel *trackLabel;
+@property LPDPOINT trackPoints;
+@property LPDOUBLE trackLineWidths;
+@property double totTrackLineWidth;
+@property CGPoint trackLineBasePoint;
 
 @property NSMutableDictionary *recordSetting;
 @property NSMutableDictionary *editedObject;
@@ -386,6 +392,27 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 - (void) setSliderValue:(float) value
 {
+    if (_trackLabel && _numTrackLines)
+    {
+        int onLine = 0;
+        double pctAlongClip = (value - _beginTime)/(_endTime - _beginTime);
+        double distAlongClip = pctAlongClip * _totTrackLineWidth;
+        double distAlongLines = _trackLineWidths[0];
+
+        for (int i = 0;i<_numTrackLines-1;i++)
+        {
+            if (distAlongClip > distAlongLines)
+            {
+                distAlongClip -= _trackLineWidths[i];
+                onLine++;
+            }
+        }
+        CGPoint pt = DPointToCGPoint(_trackPoints[onLine * 2]);
+        pt.x += distAlongClip;
+        pt.x += _trackLineBasePoint.x;
+        pt.y += _trackLineBasePoint.y;
+        _trackLabel.center = pt;
+    }
     NSString *sliderText = [NSString stringWithFormat:@"%.1f",value];
     [_sliderTextLabel setText:sliderText];
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
@@ -1339,6 +1366,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _currentFileNum = 1;
         _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
         [self setCurrentPositiion:YES];
+        _numTrackLines = 0;
         if (_numFilesForCurrentLink > 0)
             [self displayFileForClip:_currentLinkPrefix
                              fileNum:_currentFileNum
@@ -1380,6 +1408,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _currentFileNum = 1;
         _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentLinkPrefix];
         [self setCurrentPositiion:YES];
+        _numTrackLines = 0;
         if (_numFilesForCurrentLink > 0)
             [self displayFileForClip:_currentLinkPrefix
                              fileNum:_currentFileNum
@@ -2162,6 +2191,22 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     {
         [layer removeFromSuperlayer];
     }
+    if (_trackLabel)
+    {
+        [_trackLabel removeFromSuperview];
+        _trackLabel = nil;
+    }
+
+    if (_trackPoints)
+    {
+        _trackLabel = 0;
+        free (_trackPoints);
+        free (_trackLineWidths);
+    }
+    _trackPoints = 0;
+    _trackLineWidths = 0;
+    _numTrackLines = 0;
+
 }
 -(void) createHighlight:(CGPoint)point1
                  point2:(CGPoint)point2
@@ -2169,16 +2214,47 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                  inView:(UIImageView *)view
                doUpdate:(BOOL)update
 {
-    CGPoint point={0,0};
+    [self removeHighlightFromView:view];
+    CGPoint pt = point1;
     CGFloat w = view.bounds.size.width;
     CGFloat h = view.bounds.size.height;
     int iw = view.image.size.width;
     int ih = view.image.size.height;
+    int np = 0;
+    _numTrackLines = numLines;
+    _trackPoints = malloc (sizeof(DPOINT)*_numTrackLines*2 + 4);
+    _trackLineWidths = malloc (sizeof(double)*_numTrackLines + 4);
+    int lineHeight = (point2.y - point1.y)/numLines;
+    pt.y += lineHeight;
+    _trackPoints[np++] = CGPointToDPOINT(pt);
+    if (numLines == 1)
+    {
+        pt.x = point2.x;
+        _trackPoints[np++] = CGPointToDPOINT(pt);
+    }
+    else
+    {
+        pt.x = w;
+        _trackPoints[np++] = CGPointToDPOINT(pt);
+        for (int i = 1;i<numLines-1;i++)
+        {
+            pt.x = 0;
+            pt.y += lineHeight;
+            _trackPoints[np++] = CGPointToDPOINT(pt);
+            pt.x = w;
+            _trackPoints[np++] = CGPointToDPOINT(pt);
+        }
+        pt.x = 0;
+        pt.y  = point2.y;
+        _trackPoints[np++] = CGPointToDPOINT(pt);
+        _trackPoints[np++] = CGPointToDPOINT(point2);
+    }
+
+    CGPoint point={0,0};
     float scale = view.image.scale;
     CGPoint framePoints[4];
     [self frameToPoints:view.frame
                  points:(CGPoint *)framePoints];
-    [self removeHighlightFromView:view];
     UIBezierPath *highlightPath = UIBezierPath.new;
     [highlightPath moveToPoint: point];
     point.x = w;
@@ -2204,7 +2280,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     else
     {
         CGPoint points[8];
-        int lineHeight = (point2.y - point1.y)/numLines;
         points[0] = point1;
         point.x = w;
         points[1] = point;
@@ -2228,7 +2303,30 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     highlightLayer.path = highlightPath.CGPath;
     highlightLayer.fillColor = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:0.5].CGColor;
     [view.layer addSublayer:highlightLayer];
-
+    
+    if (_trackLabel)
+        [_trackLabel removeFromSuperview];
+    _trackLabel = UILabel.new;
+    _trackLabel.frame = CGRectMake(0,0,50,50);
+    _trackLabel.backgroundColor = UIColor.clearColor;//[UIColor colorWithRed:0.1 green:0.9 blue:0.1 alpha:0.5];
+    _trackLabel.textColor = UIColor.greenColor;
+    _trackLabel.font =[UIFont boldSystemFontOfSize:40];
+    _trackLabel.adjustsFontSizeToFitWidth = YES;
+    _trackLabel.textAlignment = NSTextAlignmentCenter;
+   
+    _trackLabel.text = @"^";
+    CGPoint pt2 = view.frame.origin;
+    _trackLineBasePoint = pt2;
+    pt2.x += _trackPoints[0].x;
+    pt2.y += _trackPoints[0].y;
+    [self.view addSubview:_trackLabel];
+    _trackLabel.center = pt2;
+    _totTrackLineWidth = 0;
+    for (int i = 0;i<_numTrackLines;i++)
+    {
+        _trackLineWidths[i] = ldistp(_trackPoints[i*2], _trackPoints[i*2+1]);
+        _totTrackLineWidth += _trackLineWidths[i];
+    }
     if (update)
     {
         CGRect viewFrame = [self imageRectInView:view];
@@ -2249,6 +2347,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [self close:opened];
     }
 }
+-(void) displayTrack
+{
+    if (_numTrackLines < 1)
+        return;
+    
+    return;
+}
 - (IBAction)fullScreenReturnButtonTapped:(id)sender {
     [self hideAllViews:NO];
     _inFullScreen = NO;
@@ -2257,6 +2362,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_monitorButton setHidden:NO];
     [_monitorVolumeSlider setHidden:NO];
     [_effectsButton setHidden:NO];
+    [self displayHighlightForLink:_currentLinkPrefix inView:_ImageDisplay];
 
 }
 
