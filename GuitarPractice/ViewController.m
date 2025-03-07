@@ -178,13 +178,25 @@ typedef NS_ENUM(NSInteger, SongTypes)
             [_imageHighlightInstructions setText:@"Tap end point"];
             break;
         case 2:
+        {
+            UIImageView *view = _ImageDisplay;
             _highlightPoint2 = location;
             _highlightRect = _ImageDisplay.frame;
-            [self createHighlight:_highlightPoint1
-                           point2:_highlightPoint2
+            CGRect viewFrame = [self imageRectInView:_ImageDisplay];
+            CGRect imageFrame = CGRectMake(0,0,  view.image.size.width, view.image.size.height);
+            HANDLE hTranImageToView = STRANCGRect (imageFrame,viewFrame);
+            HANDLE hTranViewToImage = STRANCGRect (viewFrame,imageFrame);
+            CGPoint imagePoint1 = TranCGPoint(_highlightPoint1,hTranViewToImage);
+            CGPoint imagePoint2 = TranCGPoint(_highlightPoint2,hTranViewToImage);
+            [self createHighlight:imagePoint1
+                           point2:imagePoint2
                          numLines:_numHighlightLines
                            inView:_ImageDisplay
+                            hTran:hTranImageToView
                          doUpdate:YES];
+            CloseTRANS2 (&hTranImageToView);
+            CloseTRANS2 (&hTranViewToImage);
+        }
             break;
         default:
             break;
@@ -2124,14 +2136,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         CGRect viewFrame = [self imageRectInView:view];
         CGRect imageFrame = CGRectMake(0,0,  view.image.size.width, view.image.size.height);
         HANDLE hTranImageToView = STRANCGRect (imageFrame,viewFrame);
-        DPOINT dPoint = CGPointToDPOINT(imagePoint1);
-        DPOINT dPoint1 = TranPoint (&dPoint,hTranImageToView);
-        dPoint = CGPointToDPOINT(imagePoint2);
-        DPOINT dPoint2 = TranPoint (&dPoint,hTranImageToView);
+        [self createHighlight:imagePoint1
+                       point2:imagePoint2
+                     numLines:numLines
+                       inView:view
+                        hTran:hTranImageToView
+                     doUpdate:NO];
         CloseTRANS2 (&hTranImageToView);
-        CGPoint viewPoint1 = DPointToCGPoint(dPoint1);
-        CGPoint viewPoint2 = DPointToCGPoint(dPoint2);
-        [self createHighlight:viewPoint1 point2:viewPoint2 numLines:numLines inView:view doUpdate:NO];
         rtn = TRUE;
     }
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
@@ -2212,10 +2223,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _numTrackLines = 0;
 
 }
--(void) createHighlight:(CGPoint)point1
-                 point2:(CGPoint)point2
+-(void) createHighlight:(CGPoint)imagePoint1
+                 point2:(CGPoint)imagePoint2
                numLines:(int)numLines
                  inView:(UIImageView *)view
+                  hTran:(HANDLE)hTranImageToView
                doUpdate:(BOOL)update
 {
     int am = view.contentMode;
@@ -2224,86 +2236,102 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self removeHighlightFromView:view];
     CGRect viewRect = view.bounds;
     CGRect imageRect = [self imageRectInView:view];
-    CGPoint pt = point1;
-    CGFloat w = imageRect.size.width;
-    CGFloat h = imageRect.size.height;
+    CGFloat vw = viewRect.size.width;
+    CGFloat vh = viewRect.size.height;
+    CGFloat iw = view.image.size.width;
+    CGFloat ih = view.image.size.height;
     int np = 0;
+
     _numTrackLines = numLines;
     _trackPoints = malloc (sizeof(DPOINT)*_numTrackLines*2 + 4);
     _trackLineWidths = malloc (sizeof(double)*_numTrackLines + 4);
-    int lineHeight = (point2.y - point1.y)/numLines;
+    int lineHeight = (imagePoint2.y - imagePoint1.y)/numLines;
+    CGPoint pt = imagePoint1;
     pt.y += lineHeight;
     _trackPoints[np++] = CGPointToDPOINT(pt);
     if (numLines == 1)
     {
-        pt.x = point2.x;
+        pt.x = imagePoint2.x;
         _trackPoints[np++] = CGPointToDPOINT(pt);
     }
     else
     {
-        pt.x = imageRect.origin.x +  w;
+        pt.x = iw;
         _trackPoints[np++] = CGPointToDPOINT(pt);
         for (int i = 1;i<numLines-1;i++)
         {
-            pt.x = imageRect.origin.x;
+            pt.x = 0;
             pt.y += lineHeight;
             _trackPoints[np++] = CGPointToDPOINT(pt);
-            pt.x = imageRect.origin.x + w;
+            pt.x = iw;
             _trackPoints[np++] = CGPointToDPOINT(pt);
         }
-        pt.x = imageRect.origin.x;
-        pt.y  = point2.y;
+        pt.x = 0;
+        pt.y  = imagePoint2.y;
         _trackPoints[np++] = CGPointToDPOINT(pt);
-        _trackPoints[np++] = CGPointToDPOINT(point2);
+        _trackPoints[np++] = CGPointToDPOINT(imagePoint2);
     }
+    for (int i=0;i<np;i++)
+        _trackPoints[i] = TranPoint (&_trackPoints[i],hTranImageToView);
 
-    CGPoint point={0,0};
-    float scale = view.image.scale;
+    CGPoint vpoint={0,0};
+    CGPoint ipoint={0,0};
     CGPoint framePoints[4];
     [self frameToPoints:view.frame
                  points:(CGPoint *)framePoints];
     UIBezierPath *highlightPath = UIBezierPath.new;
-    [highlightPath moveToPoint: point];
-    point.x = w;
-    [highlightPath addLineToPoint:point];
-    point.y = h;
-    [highlightPath addLineToPoint:point];
-    point.x = 0;
-    [highlightPath addLineToPoint:point];
-    point.y = 0;
-    [highlightPath addLineToPoint:point];
-    point = point1;
-    [highlightPath moveToPoint: point];
+    [highlightPath moveToPoint: vpoint];
+    vpoint.x = vw;
+    [highlightPath addLineToPoint:vpoint];
+    vpoint.y = vh;
+    [highlightPath addLineToPoint:vpoint];
+    vpoint.x = 0;
+    [highlightPath addLineToPoint:vpoint];
+    vpoint.y = 0;
+    [highlightPath addLineToPoint:vpoint];
+    vpoint = TranCGPoint (imagePoint1,hTranImageToView);
+    [highlightPath moveToPoint: vpoint];
     if (numLines == 1)
     {
-        point.y = point2.y;
-        [highlightPath addLineToPoint: point];
-        [highlightPath addLineToPoint:point2];
-        point = point1;
-        point.x = point2.x;
-        [highlightPath addLineToPoint: point];
-        [highlightPath addLineToPoint: point1];
+        ipoint = imagePoint1;
+        ipoint.y = imagePoint2.y;
+        vpoint = TranCGPoint (ipoint,hTranImageToView);
+        [highlightPath addLineToPoint: vpoint];
+        ipoint = imagePoint2;
+        vpoint = TranCGPoint (ipoint,hTranImageToView);
+        [highlightPath addLineToPoint:vpoint];
+        ipoint = imagePoint1;
+        ipoint.x = imagePoint2.x;
+        vpoint = TranCGPoint (ipoint,hTranImageToView);
+        [highlightPath addLineToPoint:vpoint];
+        ipoint = imagePoint1;
+        vpoint = TranCGPoint (ipoint,hTranImageToView);
+        [highlightPath addLineToPoint: vpoint];
     }
     else
     {
         CGPoint points[8];
-        points[0] = point1;
-        point.x = w;
-        points[1] = point;
-        point.y = point2.y - lineHeight;
-        points[2] = point;
-        point.x = point2.x;
-        points[3] = point;
-        point.y = point2.y;
-        points[4] = point;
-        point.x = 0;
-        points[5] = point;
-        point.y = point1.y + lineHeight;
-        points[6] = point;
-        point.x = point1.x;
-        points[7] = point;
+        ipoint = imagePoint1;
+        points[0] = ipoint;
+        ipoint.x = iw;
+        points[1] = ipoint;
+        ipoint.y = imagePoint2.y - lineHeight;
+        points[2] = ipoint;
+        ipoint.x = imagePoint2.x;
+        points[3] = ipoint;
+        ipoint.y = imagePoint2.y;
+        points[4] = ipoint;
+        ipoint.x = 0;
+        points[5] = ipoint;
+        ipoint.y = imagePoint1.y + lineHeight;
+        points[6] = ipoint;
+        ipoint.x = imagePoint1.x;
+        points[7] = ipoint;
         for (int i=7;i>0;i--)
-            [highlightPath addLineToPoint: points[i]];
+        {
+            vpoint = TranCGPoint (points[i],hTranImageToView);
+            [highlightPath addLineToPoint:vpoint];
+        }
     }
     [highlightPath closePath];
     CAShapeLayer *highlightLayer = CAShapeLayer.layer;
@@ -2323,9 +2351,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
    
     _trackLabel.text = @"^";
     CGPoint pt2 = view.frame.origin;
-    _trackLineBasePoint = imageRect.origin;
-    _trackLineBasePoint.x += pt2.x;
-    _trackLineBasePoint.y += pt2.y;
+    _trackLineBasePoint = pt2;
     pt2.x += _trackPoints[0].x;
     pt2.y += _trackPoints[0].y;
     [self.view addSubview:_trackLabel];
@@ -2338,20 +2364,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     if (update)
     {
-        CGRect viewFrame = [self imageRectInView:view];
-        CGRect imageFrame = CGRectMake (0,0,view.image.size.width,view.image.size.height);
-        HANDLE hTranRect = STRANCGRect (viewFrame,imageFrame);
-        DPOINT dPoint = CGPointToDPOINT(point1);
-        DPOINT dPoint1 = TranPoint (&dPoint,hTranRect);
-        dPoint = CGPointToDPOINT(point2);
-        DPOINT dPoint2 = TranPoint (&dPoint,hTranRect);
-        CloseTRANS2 (&hTranRect);
-        CGPoint imagePoint1 = DPointToCGPoint(dPoint1);
-        CGPoint imagePoint2 = DPointToCGPoint(dPoint2);
-
         BOOL opened = [self open];
         NSString *cmd = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CLIPHIGHLIGHT VALUES(%i,%i,%f,%f,%f,%f,%f,%f);",
-                         _currentLinkPrefix,numLines,imagePoint1.x,imagePoint1.y,imagePoint2.x,imagePoint2.y,w,h];
+                         _currentLinkPrefix,numLines,imagePoint1.x,imagePoint1.y,imagePoint2.x,imagePoint2.y,iw,ih];
         BOOL rtn = [self executeCmd:cmd];
         [self close:opened];
     }
