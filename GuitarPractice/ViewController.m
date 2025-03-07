@@ -392,6 +392,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 - (void) setSliderValue:(float) value
 {
+    CGPoint pt={0,0};
     if (_trackLabel && _numTrackLines)
     {
         int onLine = 0;
@@ -407,17 +408,18 @@ typedef NS_ENUM(NSInteger, SongTypes)
                 onLine++;
             }
         }
-        CGPoint pt = DPointToCGPoint(_trackPoints[onLine * 2]);
+        pt = DPointToCGPoint(_trackPoints[onLine * 2]);
         pt.x += distAlongClip;
         pt.x += _trackLineBasePoint.x;
         pt.y += _trackLineBasePoint.y;
-        _trackLabel.center = pt;
     }
     NSString *sliderText = [NSString stringWithFormat:@"%.1f",value];
     [_sliderTextLabel setText:sliderText];
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
         [self->_slider setValue:value];
         [self->_sliderTextLabel setText:sliderText];
+        if (self->_trackLabel && self->_numTrackLines)
+            self->_trackLabel.center = pt;
     }];
 }
 
@@ -2068,12 +2070,14 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     CGRect rtn={0};
     CGRect b = view.bounds;
     CGRect f = view.frame;
+    float bo = view.image.baselineOffsetFromBottom;
+    UIEdgeInsets x = view.image.alignmentRectInsets;
     double iw = view.image.size.width;
     double ih = view.image.size.height;
     double vw = view.bounds.size.width;
     double vh = view.bounds.size.height;
     float csf = view.contentScaleFactor;
-    int cm = view.contentMode;
+    UIViewContentMode cm = view.contentMode;
     CGRect cs = view.contentStretch;
     
     double wfactor = vw / iw;
@@ -2119,12 +2123,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         h = sqlite3_column_double(statement, i++);
         CGRect viewFrame = [self imageRectInView:view];
         CGRect imageFrame = CGRectMake(0,0,  view.image.size.width, view.image.size.height);
-        HANDLE hTranRect = STRANCGRect (imageFrame,viewFrame);
+        HANDLE hTranImageToView = STRANCGRect (imageFrame,viewFrame);
         DPOINT dPoint = CGPointToDPOINT(imagePoint1);
-        DPOINT dPoint1 = TranPoint (&dPoint,hTranRect);
+        DPOINT dPoint1 = TranPoint (&dPoint,hTranImageToView);
         dPoint = CGPointToDPOINT(imagePoint2);
-        DPOINT dPoint2 = TranPoint (&dPoint,hTranRect);
-        CloseTRANS2 (&hTranRect);
+        DPOINT dPoint2 = TranPoint (&dPoint,hTranImageToView);
+        CloseTRANS2 (&hTranImageToView);
         CGPoint viewPoint1 = DPointToCGPoint(dPoint1);
         CGPoint viewPoint2 = DPointToCGPoint(dPoint2);
         [self createHighlight:viewPoint1 point2:viewPoint2 numLines:numLines inView:view doUpdate:NO];
@@ -2214,12 +2218,15 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                  inView:(UIImageView *)view
                doUpdate:(BOOL)update
 {
+    int am = view.contentMode;
+    if (am == UIViewContentModeScaleAspectFill)
+        am = 0;
     [self removeHighlightFromView:view];
+    CGRect viewRect = view.bounds;
+    CGRect imageRect = [self imageRectInView:view];
     CGPoint pt = point1;
-    CGFloat w = view.bounds.size.width;
-    CGFloat h = view.bounds.size.height;
-    int iw = view.image.size.width;
-    int ih = view.image.size.height;
+    CGFloat w = imageRect.size.width;
+    CGFloat h = imageRect.size.height;
     int np = 0;
     _numTrackLines = numLines;
     _trackPoints = malloc (sizeof(DPOINT)*_numTrackLines*2 + 4);
@@ -2234,17 +2241,17 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     else
     {
-        pt.x = w;
+        pt.x = imageRect.origin.x +  w;
         _trackPoints[np++] = CGPointToDPOINT(pt);
         for (int i = 1;i<numLines-1;i++)
         {
-            pt.x = 0;
+            pt.x = imageRect.origin.x;
             pt.y += lineHeight;
             _trackPoints[np++] = CGPointToDPOINT(pt);
-            pt.x = w;
+            pt.x = imageRect.origin.x + w;
             _trackPoints[np++] = CGPointToDPOINT(pt);
         }
-        pt.x = 0;
+        pt.x = imageRect.origin.x;
         pt.y  = point2.y;
         _trackPoints[np++] = CGPointToDPOINT(pt);
         _trackPoints[np++] = CGPointToDPOINT(point2);
@@ -2316,7 +2323,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
    
     _trackLabel.text = @"^";
     CGPoint pt2 = view.frame.origin;
-    _trackLineBasePoint = pt2;
+    _trackLineBasePoint = imageRect.origin;
+    _trackLineBasePoint.x += pt2.x;
+    _trackLineBasePoint.y += pt2.y;
     pt2.x += _trackPoints[0].x;
     pt2.y += _trackPoints[0].y;
     [self.view addSubview:_trackLabel];
