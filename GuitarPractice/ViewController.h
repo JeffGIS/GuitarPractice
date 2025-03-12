@@ -20,26 +20,10 @@
 
 @interface ViewController : UIViewController<NVAlertViewDelegate,MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate,EffectsViewControllerDelegate,RecordSongViewControllerDelegate>
 
-- (IBAction)effectsTapped:(id)sender;
-
-- (IBAction)selectSongTapped:(id)sender;
-- (IBAction)nextSongTapped:(id)sender;
-- (IBAction)playTapped:(id)sender;
-- (IBAction)markEndTapped:(id)sender;
-- (IBAction)markBeginTapped:(id)sender;
-- (IBAction)playSegmentTapped:(id)sender;
-- (IBAction)stopTapped:(id)sender;
-- (IBAction)loopSegmentTapped:(id)sender;
-- (IBAction)nextSegmentTapped:(id)sender;
-- (IBAction)priorSegmentTapped:(id)sender;
-- (IBAction)monitorTapped:(id)sender;
-- (IBAction)saveTapped:(id)sender;
-- (IBAction)monitorVolumeChanged:(id)sender;
-- (IBAction)tunerButtonTapped:(id)sender;
 @property (weak, nonatomic) IBOutlet UISlider *monitorVolumeSlider;
 @property NSMutableArray *effectsArray;
 @property (weak, nonatomic) IBOutlet UIButton *monitorButton;
-@property (weak, nonatomic) IBOutlet UILabel *songTitleLable;
+@property (weak, nonatomic) IBOutlet UILabel *songTitleLabel;
 @property (weak, nonatomic) IBOutlet UIImageView *ImageDisplay;
 @property (weak, nonatomic) IBOutlet UIImageView *fullScreenImageDisplay;
 @property (weak, nonatomic) IBOutlet UIButton *fullScreenButton;
@@ -57,8 +41,6 @@
 @property (weak, nonatomic) IBOutlet UIButton *selectYouTubeVideoButton;
 @property (weak, nonatomic) IBOutlet UIButton *saveImageButton;
 @property (weak, nonatomic) IBOutlet UIButton *cancelImageButton;
-@property (weak, nonatomic) IBOutlet UIButton *priorFileButton;
-@property (weak, nonatomic) IBOutlet UIButton *nextFileButton;
 @property (weak, nonatomic) IBOutlet UILabel *startTimeTitle;
 @property (weak, nonatomic) IBOutlet UILabel *startTimeMinutesTitle;
 @property (weak, nonatomic) IBOutlet UILabel *startTimeSecondsTitle;
@@ -97,6 +79,24 @@
 @property (weak, nonatomic) IBOutlet UILabel *delayLabel;
 @property (weak, nonatomic) IBOutlet UIButton *effectsButton;
 @property (weak, nonatomic) IBOutlet UILabel *recordLabel;
+@property (weak, nonatomic) IBOutlet UIButton *tunerButton;
+@property (weak, nonatomic) IBOutlet UIButton *imageStartAtButton;
+@property (weak, nonatomic) IBOutlet UIButton *imageEndAtButton;
+- (IBAction)effectsTapped:(id)sender;
+- (IBAction)selectSongTapped:(id)sender;
+- (IBAction)nextSongTapped:(id)sender;
+- (IBAction)playTapped:(id)sender;
+- (IBAction)markEndTapped:(id)sender;
+- (IBAction)markBeginTapped:(id)sender;
+- (IBAction)playSegmentTapped:(id)sender;
+- (IBAction)stopTapped:(id)sender;
+- (IBAction)loopSegmentTapped:(id)sender;
+- (IBAction)nextLinkTapped:(id)sender;
+- (IBAction)priorLinkTapped:(id)sender;
+- (IBAction)monitorTapped:(id)sender;
+- (IBAction)saveTapped:(id)sender;
+- (IBAction)monitorVolumeChanged:(id)sender;
+- (IBAction)tunerButtonTapped:(id)sender;
 - (IBAction)recordChanged:(id)sender;
 - (IBAction)delayChanged:(id)sender;
 - (IBAction)highlightLinesChanged:(id)sender;
@@ -116,13 +116,13 @@
 - (IBAction)startTimeCancelTapped:(id)sender;
 - (IBAction)saveYouTubeTapped:(id)sender;
 - (IBAction)selectCollectionTapped:(id)sender;
-- (IBAction)nextFileTapped:(id)sender;
-- (IBAction)priorFileTapped:(id)sender;
 - (IBAction)saveImagePicked:(id)sender;
 - (IBAction)cancelImagePicked:(id)sender;
 - (IBAction)selectPhoto:(id)sender;
 - (IBAction)selectYouTubeVideo:(id)sender;
 - (IBAction)sliderExit:(id)sender;
+- (IBAction)imageStartAtTapped:(id)sender;
+- (IBAction)imageEndAtTapped:(id)sender;
 
 - (void) toggleMonitor;
 
