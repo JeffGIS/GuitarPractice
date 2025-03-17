@@ -26,6 +26,7 @@
 @property (weak, nonatomic) IBOutlet UILabel *songTitleLabel;
 @property (weak, nonatomic) IBOutlet UIImageView *ImageDisplay;
 @property (weak, nonatomic) IBOutlet UIImageView *fullScreenImageDisplay;
+@property (weak, nonatomic) IBOutlet UIImageView *imageFrame;
 @property (weak, nonatomic) IBOutlet UIButton *fullScreenButton;
 @property (weak, nonatomic) IBOutlet UIButton *fullScreenReturnButton;
 @property (weak, nonatomic) IBOutlet UIButton *playButton;
@@ -33,11 +34,11 @@
 @property (weak, nonatomic) IBOutlet UIButton *endButton;
 @property (weak, nonatomic) IBOutlet UIButton *playSegmentButton;
 @property (weak, nonatomic) IBOutlet UIButton *loopSegmentButton;
-@property (weak, nonatomic) IBOutlet UIButton *nextSegmentButton;
-@property (weak, nonatomic) IBOutlet UIButton *priorSegmentButton;
+@property (weak, nonatomic) IBOutlet UIButton *nextClipButton;
+@property (weak, nonatomic) IBOutlet UIButton *priorClipButton;
 @property (weak, nonatomic) IBOutlet UIButton *saveButton;
 @property (weak, nonatomic) IBOutlet UIButton *pauseButton;
-@property (weak, nonatomic) IBOutlet UIButton *selectPhotoButton;
+@property (weak, nonatomic) IBOutlet UIButton *addImageButton;
 @property (weak, nonatomic) IBOutlet UIButton *selectYouTubeVideoButton;
 @property (weak, nonatomic) IBOutlet UIButton *saveImageButton;
 @property (weak, nonatomic) IBOutlet UIButton *cancelImageButton;
@@ -91,8 +92,8 @@
 - (IBAction)playSegmentTapped:(id)sender;
 - (IBAction)stopTapped:(id)sender;
 - (IBAction)loopSegmentTapped:(id)sender;
-- (IBAction)nextLinkTapped:(id)sender;
-- (IBAction)priorLinkTapped:(id)sender;
+- (IBAction)nextClipTapped:(id)sender;
+- (IBAction)priorClipTapped:(id)sender;
 - (IBAction)monitorTapped:(id)sender;
 - (IBAction)saveTapped:(id)sender;
 - (IBAction)monitorVolumeChanged:(id)sender;
@@ -118,7 +119,7 @@
 - (IBAction)selectCollectionTapped:(id)sender;
 - (IBAction)saveImagePicked:(id)sender;
 - (IBAction)cancelImagePicked:(id)sender;
-- (IBAction)selectPhoto:(id)sender;
+- (IBAction)addImageTapped:(id)sender;
 - (IBAction)selectYouTubeVideo:(id)sender;
 - (IBAction)sliderExit:(id)sender;
 - (IBAction)imageStartAtTapped:(id)sender;

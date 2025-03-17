@@ -33,13 +33,11 @@ typedef NS_ENUM(NSInteger, SongTypes)
 
 @interface ImageAndTime : NSObject
 @property long imageID;
-@property NSString* path;
 @property int fromTime;
 @property int toTime;
 @end
 @implementation ImageAndTime
 @synthesize imageID;
-@synthesize path;
 @synthesize fromTime;
 @synthesize toTime;
 
@@ -69,11 +67,11 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property int currentSongStartTime;
 @property NSMutableArray<NSNumber*> *beginTimes;
 @property NSMutableArray<NSNumber*> *endTimes;
-@property NSMutableArray<ImageAndTime*> *images;
-@property NSString *collectionsDirectory;
-@property NSString *linksDirectory;
+@property NSArray<ImageAndTime*> *images;
+@property NSString *recordingsDirectory;
+@property NSString *imagesDirectory;
 @property UIImage *image;
-@property int currentImageID;
+@property long currentImageID;
 @property UIImage *currentImage;
 @property NSString * currentSongTitle;
 @property int numFilesForCurrentLink;
@@ -81,6 +79,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property int currentFileNum, currentNumFiles;
 @property NVWebView * webView;
 @property NSString *currentCollection;
+@property long currentCollectionID;
 @property NSString * currentYouTubeLink;
 @property NSString * YouTubeName;
 @property SongTypes currentSongType;
@@ -123,7 +122,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property CGPoint trackLineBasePoint;
 @property NSString *instrument;
 @property NSString *tuning;
-
+@property float imageStartAt, imageEndAt;
+@property BOOL inAddImageMode;
 @property NSMutableDictionary *recordSetting;
 @property NSMutableDictionary *editedObject;
 @property NSString *recorderFilePath;
@@ -162,20 +162,29 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [self close:opened];
     _instrument = @"6 String Electric";
     _tuning = @"Standard";
-    [self createCollection:@"Blues Guitar"];
-    [self createCollection:@"Rock Guitar"];
-    [self createCollection:@"Acoustic Guitar"];
-    [self createCollection:@"Base Guitar"];
-    [self createCollection:@"Ukulele"];
-    [self createCollection:@"Songs"];
+    _currentCollection = @"All Practice Groups";
     _currentCollectionLabel.text = _currentCollection;
 
     _playbackFile = [NSTemporaryDirectory() stringByAppendingString:@"mixerOutput.caf"];
     self.playerView.delegate = self;
     [self createAllViewsArray];
+    CGRect imageRect = _ImageDisplay.frame;
+    imageRect.size.height += 5;
+    imageRect.size.width -= 2;
+    //imageRect.size.height -= 2;
+    _imageFrame.frame = imageRect;
+    imageRect.origin.x += 2;
+    imageRect.origin.y += 2;
+    imageRect.size.width -= 4;
+    imageRect.size.height -= 4;
+    [_ImageDisplay setFrame:imageRect];
+    [_ImageDisplay removeFromSuperview];
+    [self.view addSubview:_ImageDisplay];
+    //_ImageDisplay.backgroundColor = [UIColor grayColor];
     _tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapFrom:)];
     [_ImageDisplay addGestureRecognizer:_tapGestureRecognizer];
     _tapGestureRecognizer.delegate = self;
+    _currentImageID = -1;
     _numHighlightLines = 1;
     _inFullScreen = NO;
     _maxLeadInTicks = 2;
@@ -240,11 +249,11 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_endButton];
     [_allViewsArray addObject:_playSegmentButton];
     [_allViewsArray addObject:_loopSegmentButton];
-    [_allViewsArray addObject:_nextSegmentButton];
-    [_allViewsArray addObject:_priorSegmentButton];
+    [_allViewsArray addObject:_nextClipButton];
+    [_allViewsArray addObject:_priorClipButton];
     [_allViewsArray addObject:_saveButton];
     [_allViewsArray addObject:_pauseButton];
-    [_allViewsArray addObject:_selectPhotoButton];
+    [_allViewsArray addObject:_addImageButton];
     [_allViewsArray addObject:_saveImageButton];
     [_allViewsArray addObject:_cancelImageButton];
     [_allViewsArray addObject:_startTimeTitle];
@@ -418,15 +427,22 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 
 -(BOOL) createCollection:(NSString *)name
+                   under:(long)parentID
 {
     _currentCollection = name;
-    [self open];
-    [self close:TRUE];
+    int type = 1;
+    BOOL opened = [self open];
+    
+    NSString *cmd = [NSString stringWithFormat:@"INSERT INTO COLLECTIONS (Title,Parent,Type)  VALUES('%@',%li,%i)",name,parentID,type];
+    [self executeCmd:cmd];
+    
+    [self close:opened];
+
     return TRUE;
 }
 - (void) setSliderValue:(float) value
 {
-    NSLog (@"%f,%f,%f",value,_slider.minimumValue,_slider.maximumValue);
+//    NSLog (@"%f,%f,%f",value,_slider.minimumValue,_slider.maximumValue);
     CGPoint pt={0,0};
     if (_trackLabel && _numTrackLines)
     {
@@ -448,10 +464,37 @@ typedef NS_ENUM(NSInteger, SongTypes)
         pt.x += _trackLineBasePoint.x;
         pt.y += _trackLineBasePoint.y;
     }
+    if (!_inAddImageMode)
+    {
+        long imageToLoad = 0;
+        for (ImageAndTime *iat in _images)
+        {
+            if (value >= iat.fromTime && value < iat.toTime)
+                imageToLoad = iat.imageID;
+        }
+        if (imageToLoad && imageToLoad != _currentImageID)
+        {
+            NSString *fileName = [NSString stringWithFormat:@"%@/%li.png",_imagesDirectory,imageToLoad];
+            _image = [UIImage imageWithContentsOfFile:fileName];
+            _currentImageID = imageToLoad;
+            [_ImageDisplay setImage:_image];
+            [_ImageDisplay setHidden:NO];
+            [_fullScreenButton setHidden:YES];
+            [_addImageHighlightButton setHidden:YES];
+            [_highlightLinesLabel setHidden:YES];
+            [_highlightLinesStepper setHidden:YES];
+            [_imageHighlightInstructions setHidden:YES];
+        }
+        else if (!imageToLoad && _currentImageID > -1)
+        {
+            _currentImageID = -1;
+            [_ImageDisplay setImage:nil];
+            [_ImageDisplay setHidden:NO];
+        }
+    }
+    [self->_slider setValue:value];
     NSString *sliderText = [NSString stringWithFormat:@"%.1f",value];
-    [_sliderTextLabel setText:sliderText];
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
-        [self->_slider setValue:value];
         [self->_sliderTextLabel setText:sliderText];
         if (self->_trackLabel && self->_numTrackLines)
             self->_trackLabel.center = pt;
@@ -468,12 +511,27 @@ typedef NS_ENUM(NSInteger, SongTypes)
 
 
 }
--(NSArray *) getAllCollections
+-(NSArray *) getAllCollectionsUnder:(long) parentCollectionID
 {
-    NSFileManager *filemgr = [NSFileManager defaultManager];
-    NSArray *allCollections = [filemgr contentsOfDirectoryAtPath: _collectionsDirectory error: nil];
-    NSArray *sorted = [allCollections sortedArrayUsingSelector:@selector(compare:)];
-    return sorted;
+    NSMutableArray *rtn = NSMutableArray.new;
+    BOOL opened = [self open];
+    NSString *query = [NSString stringWithFormat:@"SELECT CollectionID,Title,Type FROM COLLECTIONS WHERE Parent = %li ORDER BY(Title)",parentCollectionID];
+    
+    sqlite3_stmt *statement = NULL;
+    
+    SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
+    while (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        long cid = sqlite3_column_int64(statement, 0);
+        LPSTR title = (LPSTR)sqlite3_column_text(statement, 1);
+        int type = sqlite3_column_int(statement, 2);
+        NSString *str = [NSString stringWithFormat:@"%s|%i|%li",title,type,cid];
+        [rtn addObject:str];
+   }
+    SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
+
+    [self close:opened];
+    return rtn;
 }
 - (IBAction) showMediaPicker
 {
@@ -532,6 +590,21 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [popoverTableView hide:YES];
         [self addNewSong];
     }
+    else if ([text isEqual:@"All Practice Groups"])
+    {
+        _currentCollection = text;
+        [popoverTableView hide:YES];
+        NSMutableArray *optionList = NSMutableArray.array;
+        
+        [self addSongsToList:optionList];
+        NVPopoverTableView *nvptv = [NVPopoverTableView showPopoverTableViewInView:self.view
+                                                                          delegate:self
+                                                                             title:_currentCollection
+                                                                         textArray:optionList
+                                                                     includeCancel:YES];
+        nvptv.identifier = @"Select Song";
+        nvptv.allowsSubtitle = NO;
+    }
     else if ([text isEqual:@"Add New YouTube Video"])
     {
         [_gotoYouTubeButton setHidden:NO];
@@ -561,22 +634,25 @@ typedef NS_ENUM(NSInteger, SongTypes)
     }
     else if ([popoverTableView.identifier isEqual:@"Select Song"])
     {
-        NSString * url = [self getSong:text];
-        if (url)
         {
-            [popoverTableView hide:YES];
-            [_beginButton setEnabled:YES];
-            [_endButton setEnabled:NO];
-            if (_currentSongType == SONG)
+            NSString * url = [self getSong:text];
+            if (url)
             {
-                _currentSongURL = [NSURL URLWithString:url];
-                if (![self startNewSong])
-                    showAlert(@"Unable to access this song");
-            }
-            else
-            {
-                _currentYouTubeLink = url;
-                [self displayYouTubeVideo:_currentYouTubeLink];
+                [popoverTableView hide:YES];
+                [_beginButton setEnabled:YES];
+                [_endButton setEnabled:NO];
+                if (_currentSongType == SONG)
+                {
+                    _images = [self getImagesForPracticeGroup:_currentPracticeGroupID];
+                    _currentSongURL = [NSURL URLWithString:url];
+                    if (![self startNewSong])
+                        showAlert(@"Unable to access this song");
+                }
+                else
+                {
+                    _currentYouTubeLink = url;
+                    [self displayYouTubeVideo:_currentYouTubeLink];
+                }
             }
         }
     }
@@ -597,7 +673,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _endTimes = NSMutableArray.new;
     _images = NSMutableArray.new;
     [self showMediaPicker];
-    [self setCurrentPositiion:NO];
+    //[self setCurrentPositiion:NO];
 }
 
 - (void) recordNewSong
@@ -618,7 +694,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     recordSongVC.currentSongURL = newSongURL;
     [self presentViewController:recordSongVC animated:YES completion:nil];
     return;
-
+    
 }
 - (void) addNewYouTube
 {
@@ -658,13 +734,15 @@ typedef NS_ENUM(NSInteger, SongTypes)
         _currentSongURL = [_currentSong valueForProperty:MPMediaItemPropertyAssetURL];
         _currentSongDuration = IDNINT(_currentSong.playbackDuration);
         NSString * url = [_currentSongURL absoluteString];
-        if ([self startNewSong])
+        if ([self testNewSong])
         {
             [self saveSongURL:url
                      forTitle:_currentSongTitle
                        ofType:SONG
                      duration:_currentSongDuration
                     startTime:0];
+            [self getSongWithTitle:_currentSongTitle];
+            [self startNewSong];
         }
         else
         {
@@ -802,12 +880,12 @@ void showAlert(NSString *text)
     [_endButton setEnabled:YES];
     [_endButton setHidden:NO];
     _tapToEditLabel.text = @"Tap Mark End to End the Clip";
-
+    
 }
 - (IBAction)markEndTapped:(id)sender
 {
     _tapToEditLabel.text = @"Tap Mark Begin to Add a Clip";
-
+    
     if (_currentSongType == SONG)
         _endTime = _appSoundPlayer.currentTime;
     else
@@ -859,7 +937,7 @@ void showAlert(NSString *text)
         else
         {
             //tunerURL = @"https://itunes.apple.com/us/app/newvision-flyover/id1105410284";
-
+            
             if ([UIApplication.sharedApplication canOpenURL:[NSURL URLWithString:tunerURL]])
                 [UIApplication.sharedApplication openURL:[NSURL URLWithString:tunerURL] options:optionsDict completionHandler:nil];
             
@@ -874,7 +952,7 @@ void showAlert(NSString *text)
                 alert.identifier = @"CannotLaunchTunerApp";
             }
         }
-
+        
     }
     else
     {
@@ -888,7 +966,7 @@ void showAlert(NSString *text)
     
     
     //NSFileManager *filemgr = [NSFileManager defaultManager];
-
+    
     //NSURL *url = [filemgr.containerURL(forSecurityApplicationGroupIdentifier: @"group.com.gssi.appgroup")];
 }
 - (void)alertView:(NVAlertView *)alertView
@@ -913,19 +991,19 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_saveButton setHidden:YES];
     [_cancelEditButton setHidden:YES];
     [_deleteClipButton setHidden:YES];
-    [_selectPhotoButton setHidden:YES];
-    [_priorSegmentButton setHidden:NO];
-    [_nextSegmentButton setHidden:NO];
+    [_addImageButton setHidden:YES];
+    [_priorClipButton setHidden:NO];
+    [_nextClipButton setHidden:NO];
     [_playSegmentButton setHidden:NO];
     [_loopSegmentButton setHidden:NO];
-
+    
     BOOL opened = [self open];
     NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
     
     NSString *cmd = [NSString stringWithFormat:@"UPDATE CLIPS SET STARTTIME=%i,ENDTIME=%i WHERE CLIPID=%i",IDNINT(10*_beginTime),IDNINT(10*_endTime),_currentClipID];
     [self executeCmd:cmd];
     [self retrieveSong:_currentPracticeGroupID setTimes:NO];
-
+    
 }
 
 
@@ -940,12 +1018,12 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_saveButton setHidden:YES];
     [_cancelEditButton setHidden:YES];
     [_deleteClipButton setHidden:YES];
-    [_selectPhotoButton setHidden:YES];
-    [_priorSegmentButton setHidden:NO];
-    [_nextSegmentButton setHidden:NO];
+    [_addImageButton setHidden:YES];
+    [_priorClipButton setHidden:NO];
+    [_nextClipButton setHidden:NO];
     [_playSegmentButton setHidden:NO];
     [_loopSegmentButton setHidden:NO];
-
+    
     [self setCurrentPositiion:NO];
 }
 
@@ -965,15 +1043,15 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_saveButton setHidden:NO];
     [_saveButton setEnabled:YES];
     [_deleteClipButton setEnabled:YES];
-    [_selectPhotoButton setHidden:NO];
-    [_priorSegmentButton setHidden:YES];
-    [_nextSegmentButton setHidden:YES];
+    [_addImageButton setHidden:NO];
+    [_priorClipButton setHidden:YES];
+    [_nextClipButton setHidden:YES];
     [_playSegmentButton setHidden:YES];
     [_loopSegmentButton setHidden:YES];
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer pause];
-        _appSoundPlayer.currentTime = 0;
+        [_appSoundPlayer setCurrentTime:0];
         [self setCurrentPositiion:NO];
         [self setSliderRange];
     }
@@ -988,60 +1066,71 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _clipEditStatus = 1;
     
 }
-
-- (BOOL) startNewSong
+- (BOOL) testNewSong
 {
-    [self updateSongLabel];
-    NSFileManager *fm = NSFileManager.defaultManager;
     NSError *error = nil;
-    
-/*
-    // *** create AVAsset using URL ***
-    AVAsset *asset = [AVAsset assetWithURL:_currentSongURL];
-
-    // *** Create AVPlayerItem using AVAsset ***
-    AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithAsset:asset];
-
-    // *** Initialise AVPlayer ***
-    AVPlayer *avPlayer = [AVPlayer playerWithPlayerItem:playerItem];
-
-    // *** Add AVPlayer to ViewController ***
-    AVPlayerLayer *avPlayerLayer = [AVPlayerLayer playerLayerWithPlayer:avPlayer];
-    avPlayerLayer.frame = CGRectMake(500, 500, 320, 480);
-    [avPlayerLayer setBackgroundColor:[UIColor grayColor].CGColor];
-    [self.view.layer addSublayer:avPlayerLayer];
-
-    // *** Start Playback ***
-    [avPlayer play];
-    return TRUE;
-    // *** Register for playback end notification ***
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(playerItemDidReachEnd:)
-                                                 name:AVPlayerItemDidPlayToEndTimeNotification
-                                               object:[avPlayer currentItem]];
-
-    // *** Register observer for events of AVPlayer status ***
-    [avPlayer addObserver:self forKeyPath:@"status" options:0 context:nil];
-    return TRUE;
-    
-    AVPlayer *avp = AVPlayer.new;
-    [avp initWithURL:_currentSongURL];
-    [avp play];
-    return TRUE;
-    */
     AVAudioPlayer *newPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL: _currentSongURL error:&error];
     if (error)
     {
         NSLog(@"Player ERROR: %@", error.localizedDescription);
         return FALSE;
     }
-     _appSoundPlayer = newPlayer;
-   
-     // "Preparing to play" attaches to the audio hardware and ensures that playback
-     //        starts quickly when the user taps Play
-     [_appSoundPlayer prepareToPlay];
-     [_appSoundPlayer setVolume: 1.0];
-     [_appSoundPlayer setDelegate: self];
+    newPlayer = nil;
+    return TRUE;
+}
+- (BOOL) startNewSong
+{
+    [self updateSongLabel];
+    NSFileManager *fm = NSFileManager.defaultManager;
+    NSError *error = nil;
+    
+    /*
+     // *** create AVAsset using URL ***
+     AVAsset *asset = [AVAsset assetWithURL:_currentSongURL];
+     
+     // *** Create AVPlayerItem using AVAsset ***
+     AVPlayerItem *playerItem = [[AVPlayerItem alloc] initWithAsset:asset];
+     
+     // *** Initialise AVPlayer ***
+     AVPlayer *avPlayer = [AVPlayer playerWithPlayerItem:playerItem];
+     
+     // *** Add AVPlayer to ViewController ***
+     AVPlayerLayer *avPlayerLayer = [AVPlayerLayer playerLayerWithPlayer:avPlayer];
+     avPlayerLayer.frame = CGRectMake(500, 500, 320, 480);
+     [avPlayerLayer setBackgroundColor:[UIColor grayColor].CGColor];
+     [self.view.layer addSublayer:avPlayerLayer];
+     
+     // *** Start Playback ***
+     [avPlayer play];
+     return TRUE;
+     // *** Register for playback end notification ***
+     [[NSNotificationCenter defaultCenter] addObserver:self
+     selector:@selector(playerItemDidReachEnd:)
+     name:AVPlayerItemDidPlayToEndTimeNotification
+     object:[avPlayer currentItem]];
+     
+     // *** Register observer for events of AVPlayer status ***
+     [avPlayer addObserver:self forKeyPath:@"status" options:0 context:nil];
+     return TRUE;
+     
+     AVPlayer *avp = AVPlayer.new;
+     [avp initWithURL:_currentSongURL];
+     [avp play];
+     return TRUE;
+     */
+    AVAudioPlayer *newPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL: _currentSongURL error:&error];
+    if (error)
+    {
+        NSLog(@"Player ERROR: %@", error.localizedDescription);
+        return FALSE;
+    }
+    _appSoundPlayer = newPlayer;
+    
+    // "Preparing to play" attaches to the audio hardware and ensures that playback
+    //        starts quickly when the user taps Play
+    [_appSoundPlayer prepareToPlay];
+    [_appSoundPlayer setVolume: 1.0];
+    [_appSoundPlayer setDelegate: self];
     _slider.maximumValue = _currentSongDuration;
     _slider.minimumValue = 0;
     _slider.continuous = YES;
@@ -1050,16 +1139,11 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _beginTimes = NSMutableArray.new;
     _endTimes = NSMutableArray.new;
     _currentClip = -1;
-    [_playButton setEnabled:YES];
-    [_beginButton setEnabled:YES];
-    [_endButton setHidden:YES];
-    [self updateClipButtons];
-    [_saveButton setEnabled:NO];
-    _selectPhotoButton.enabled=YES;
     _selectYouTubeVideoButton.enabled=YES;
-    [self retrieveSong:_currentSongTitle setTimes:YES];
+    [self retrieveSong:_currentPracticeGroupID setTimes:YES];
     [_clipButton setTitle:@"" forState:UIControlStateNormal];
     [_clipButton setHidden:YES];
+    [self updateClipButtons];
     //[_tapToEditLabel setHidden:YES];
     //[self playTapped:nil];
     return TRUE;
@@ -1073,7 +1157,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer stop];
-        _appSoundPlayer.currentTime = 0;
+        [_appSoundPlayer setCurrentTime:0];
         [self setCurrentPositiion:YES];
     }
     else
@@ -1097,6 +1181,36 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     NSString *cmd = [NSString stringWithFormat:@"INSERT OR REPLACE INTO PRACTICEGROUPS (TITLE,TYPE,URL,DURATION,StartTime,Instrument,Tuning)VALUES('%@',%li,'%@',%i,%i,'%@','%@')",title2,(long)type,url,duration,startTime,_instrument,_tuning];
     [self executeCmd:cmd];
     [self close:opened];
+}
+
+- (BOOL) getSongWithTitle:(NSString *)title
+{
+    BOOL rtn = TRUE;
+    BOOL opened = [self open];
+    NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+    NSString *query = [NSString stringWithFormat:@"SELECT PracticeGroupID,Title,Type,URL,Duration FROM PRACTICEGROUPS WHERE Title = '%@'",title2];
+    
+    sqlite3_stmt *statement = NULL;
+    
+    SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
+    if (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        rtn = TRUE;
+        int i = 0;
+        _currentPracticeGroupID = sqlite3_column_int64(statement, i++);
+        LPSTR title = (LPSTR)sqlite3_column_text(statement,  i++);
+        LPSTR type = (LPSTR)sqlite3_column_text(statement,  i++);
+        LPSTR url = (LPSTR)sqlite3_column_text(statement,  i++);
+        rtn = [NSString stringWithFormat:@"%s",url];
+        _currentSongTitle = [NSString stringWithFormat:@"%s",title];
+        _currentSongDuration = sqlite3_column_int(statement,  i++);
+        _currentSongType = atoi (type);
+    }
+    SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
+
+    [self close:opened];
+
+    return rtn;
 }
 
 - (NSString *) getNextSong
@@ -1127,7 +1241,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [self displayWebLink:link];
     return rtn;
 }
-- (NSString *) getSong:(NSString *)title
+- (NSString *)  getSong:(NSString *)title
 {
     BOOL opened = [self open];
     NSString *title2 = [title stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
@@ -1150,7 +1264,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         [self updateSongLabel];
         _currentSongDuration = sqlite3_column_int(statement, i++);
         _currentSongStartTime = sqlite3_column_int(statement, i++);
-
+        _currentTime = 0;
     }
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
 
@@ -1161,14 +1275,15 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
 - (void) addSongsToList:(NSMutableArray *)array
 {
     BOOL opened = [self open];
-    NSString *query = [NSString stringWithFormat:@"SELECT Title,URL FROM PRACTICEGROUPS"];
+    NSString *query = [NSString stringWithFormat:@"SELECT PracticeGroupID,Title,URL FROM PRACTICEGROUPS ORDER BY (Title)"];
     
     sqlite3_stmt *statement = NULL;
     
     SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
     while (sqlite3_step(statement) == SQLITE_ROW)
     {
-        LPSTR title = (LPSTR)sqlite3_column_text(statement, 0);
+        long practiceGroupID = sqlite3_column_int64(statement, 1);
+        LPSTR title = (LPSTR)sqlite3_column_text(statement, 1);
         NSString *sTitle = [NSString stringWithCString:title];
         [array addObject:sTitle];
     }
@@ -1208,12 +1323,12 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         if (doPlay)
         {
             [self setSliderValue:_beginTime];
-            _appSoundPlayer.currentTime = _beginTime;
+            [_appSoundPlayer setCurrentTime:_beginTime];
             _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
             [_appSoundPlayer play];
         }
         else
-            _appSoundPlayer.currentTime = _slider.value;
+            [_appSoundPlayer setCurrentTime:_slider.value];
     }
     else
     {
@@ -1258,7 +1373,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     else
     {
-        _appSoundPlayer.currentTime = _beginTime;
+        [_appSoundPlayer setCurrentTime:_beginTime];
         [_playSegmentButton setSelected:YES];
         [self continueTapped:nil];
     }
@@ -1360,27 +1475,37 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 -(void) updateClipButtons
 {
-    [_priorSegmentButton setEnabled:NO];
-    [_nextSegmentButton setEnabled:NO];
+    BOOL st = _beginTimes.count == 0;
+    [_playSegmentButton setHidden:st];
+    [_loopSegmentButton setHidden:st];
+    [_nextClipButton setHidden:st];
+    [_priorClipButton setHidden:st];
+    if (_currentClip == 0)
+        [_nextClipButton setTitle:@"First Clip" forState:UIControlStateNormal];
+    else
+        [_nextClipButton setTitle:@"Next Clip" forState:UIControlStateNormal];
+
+    [_priorClipButton setEnabled:NO];
+    [_nextClipButton setEnabled:NO];
     [_playSegmentButton setEnabled:NO];
     [_loopSegmentButton setEnabled:NO];
-    if (_currentClip < 0)
+    if (_currentClip < 0 ||_beginTimes.count < 2)
     {
-        [_nextSegmentButton setTitle:@"First Clip" forState:UIControlStateNormal];
-        [_nextSegmentButton setEnabled:YES];
+        [_nextClipButton setTitle:@"First Clip" forState:UIControlStateNormal];
+        [_nextClipButton setEnabled:YES];
     }
     else
     {
-        [_nextSegmentButton setTitle:@"Next Clip" forState:UIControlStateNormal];
+        [_nextClipButton setTitle:@"Next Clip" forState:UIControlStateNormal];
         [_playSegmentButton setEnabled:YES];
         [_loopSegmentButton setEnabled:YES];
         if (_currentClip > 0)
-            [_priorSegmentButton setEnabled:YES];
+            [_priorClipButton setEnabled:YES];
         if (_currentClip < (int)_beginTimes.count -1)
-            [_nextSegmentButton setEnabled:YES];
+            [_nextClipButton setEnabled:YES];
     }
 }
-- (IBAction)priorLinkTapped:(id)sender
+- (IBAction)priorClipTapped:(id)sender
 {
     [_deleteClipButton setEnabled:NO];
 
@@ -1393,7 +1518,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _currentFileNum = 1;
         [self setCurrentPositiion:YES];
         _numTrackLines = 0;
-        [self displayImageAtTime:_beginTime inGroup:_currentPracticeGroupID];
+        if ([self displayImageAtTime:_beginTime inGroup:_currentPracticeGroupID])
+        {
+            [_addImageHighlightButton setHidden:NO];
+            [_imageHighlightInstructions setHidden:NO];
+            [_highlightLinesLabel setHidden:NO];
+            [_highlightLinesStepper setHidden:NO];
+        }
         [self updateClipButtons];
         [self stopTapped:nil];
         [_loopSegmentButton setSelected:NO];
@@ -1401,7 +1532,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
 }
 
-- (IBAction)nextSegmentTapped:(id)sender {
+- (IBAction)nextClipTapped:(id)sender {
     [_deleteClipButton setEnabled:NO];
     
     if (_currentClip < (int)_beginTimes.count)
@@ -1419,7 +1550,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _inLoop = NO;
         [self setCurrentPositiion:YES];
         _numTrackLines = 0;
-        [self displayImageAtTime:_beginTime inGroup:_currentPracticeGroupID];
+        if ([self displayImageAtTime:_beginTime inGroup:_currentPracticeGroupID])
+        {
+            [_addImageHighlightButton setHidden:NO];
+            [_imageHighlightInstructions setHidden:NO];
+            [_highlightLinesLabel setHidden:NO];
+            [_highlightLinesStepper setHidden:NO];
+        }
         [self updateClipButtons];
         [self stopTapped:nil];
         [_loopSegmentButton setSelected:NO];
@@ -1459,7 +1596,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer stop];
-        _appSoundPlayer.currentTime = _beginTime;
+        [_appSoundPlayer setCurrentTime:_beginTime];
         [self setCurrentPositiion:YES];
     }
     else
@@ -1627,37 +1764,57 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (BOOL)open
 {
     BOOL rtn = FALSE;
-    BOOL delete = FALSE;
+    static BOOL delete = FALSE;
+    BOOL createTables = delete;
     NSError *error = nil;
 
     if (!_isOpen)
     {
         NSString *documentsDirectory = UserDefaults.defaults.localFilePath;
+        NSString *riffMasterDirectory = [NSString stringWithFormat:@"%@/RiffMaster",documentsDirectory];
         NSString *errorText = @"";
-        if (error)
-            errorText = error.localizedDescription;
-        _collectionsDirectory = [NSString stringWithFormat:@"%@/Collections",documentsDirectory];
-        NSString *songDB = [NSString stringWithFormat:@"%@/%@/songs.slt",_collectionsDirectory,_currentCollection];
-        _linksDirectory = [NSString stringWithFormat:@"%@/%@/links",_collectionsDirectory,_currentCollection];
+        _imagesDirectory = [NSString stringWithFormat:@"%@/Images",riffMasterDirectory];
+        NSString *riffMasterDB = [NSString stringWithFormat:@"%@/RiffMaster.slt",riffMasterDirectory];
+        _recordingsDirectory = [NSString stringWithFormat:@"%@/Recordings",riffMasterDirectory];
         if (delete)
-            [NSFileManager.defaultManager removeItemAtPath:_collectionsDirectory
+        {
+            [NSFileManager.defaultManager removeItemAtPath:riffMasterDirectory
                                                      error:&error];
-        [NSFileManager.defaultManager createDirectoryAtPath:_linksDirectory
+            if (error)
+                errorText = error.localizedDescription;
+        }
+        [NSFileManager.defaultManager createDirectoryAtPath:_imagesDirectory
                                 withIntermediateDirectories:YES
                                                  attributes:nil
                                                       error:&error];
+            if (error)
+                errorText = error.localizedDescription;
+        [NSFileManager.defaultManager createDirectoryAtPath:_recordingsDirectory
+                                withIntermediateDirectories:YES
+                                                 attributes:nil
+                                                      error:&error];
+            if (error)
+                errorText = error.localizedDescription;
 
-        _isOpen = !SQLOK(__FILE__,__LINE__,SQLite_Open(songDB.UTF8String, &_database), _database);
+        _isOpen = !SQLOK(__FILE__,__LINE__,SQLite_Open(riffMasterDB.UTF8String, &_database), _database);
         NSLog(@"Music Database open");
         
-        long fileSize = (NSInteger)[NSFileManager.defaultManager attributesOfItemAtPath:songDB
+        long fileSize = (NSInteger)[NSFileManager.defaultManager attributesOfItemAtPath:riffMasterDB
                                                                                   error:nil].fileSize;
-        
+
         rtn = TRUE;
-        //if (!fileSize)
+        if (createTables)
         {
             rtn = [self createDataBaseTables];
+            [self createCollection:@"Blues Guitar" under:0];
+            [self createCollection:@"Rock Guitar" under:0];
+            [self createCollection:@"Acoustic Guitar" under:0];
+            [self createCollection:@"Base Guitar" under:0];
+            [self createCollection:@"Ukulele" under:0];
+
         }
+        delete = FALSE;
+        //[self testImages];
     }
     return rtn;
 }
@@ -1678,16 +1835,22 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     cmd = @"DROP TABLE EFFECTS;";
     //rtn = [self executeCmd:cmd];
 
+    cmd = @"CREATE TABLE IF NOT EXISTS SETTINGS ('Name' CHAR(256), 'IntValue' INT, 'FloatValue' FLOAT,'TextValue' CHAR(256));";
+    rtn = [self executeCmd:cmd];
+    
+    cmd = @"CREATE TABLE IF NOT EXISTS COLLECTIONS ('CollectionID' INTEGER PRIMARY KEY,'Title' CHAR(256), 'Parent' INT, 'Type' INT);";
+    rtn = [self executeCmd:cmd];
+    
     cmd = @"CREATE TABLE IF NOT EXISTS PRACTICEGROUPS ('PracticeGroupID' INTEGER PRIMARY KEY,'Title' CHAR(256),'Type' INT,'StartTime' INT,'Duration' INT, 'URL' CHAR(1024), 'Instrument' CHAR(256),'Tuning' CHAR(256));";
     rtn = [self executeCmd:cmd];
     
-    cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('CLIPID' INTEGER PRIMARY KEY,'PracticeGroupID' INT,'Type' INT,'StartTime' INT,'EndTime' INT);";
+    cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('CLIPID' INTEGER PRIMARY KEY,'PracticeGroupID' INT,'Type' INT,'StartTime' INT,'EndTime' INT);CREATE INDEX IF NOT EXISTS idx_clips_pg ON CLIPS (PracticeGroupID);";
     rtn = [self executeCmd:cmd];
 
     cmd = @"CREATE TABLE IF NOT EXISTS SUBCLIPS ('SUBCLIPID' INTEGER PRIMARY KEY,'ClipID' INT,'StartTime' INT,'EndTime' INT);";
     rtn = [self executeCmd:cmd];
 
-    cmd = @"CREATE TABLE IF NOT EXISTS IMAGES ('IMAGEID' INTEGER PRIMARY KEY,'PracticeGroupID' INT,'FromTime' INT,'ToTime' INT, 'URL' CHAR(1024));";
+    cmd = @"CREATE TABLE IF NOT EXISTS IMAGES ('IMAGEID' INTEGER PRIMARY KEY,'PracticeGroupID' INT,'FromTime' INT,'ToTime' INT, 'LeftMargin' INT, 'RightMargin' INT);CREATE INDEX IF NOT EXISTS idx_images_pg ON IMAGES (PracticeGroupID);";
     rtn = [self executeCmd:cmd];
 
     cmd = @"CREATE TABLE IF NOT EXISTS CLIPHIGHLIGHT ('ClipID' INT,'ImageID' INT,'NumLines' INT,'StartX' FLOAT,'StartY' FLOAT,'EndX' FLOAT,'EndY' FLOAT,'BoundsWidth' FLOAT ,'BoundsHeight' FLOAT,PRIMARY KEY (ClipID))";
@@ -1722,7 +1885,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     BOOL opened = [self open];
 
-    NSString *query = [NSString stringWithFormat:@"SELECT StartTime,EndTime FROM CLIPS WHERE PracticeGroupID = %li ORDER BY StartTime",(long)practiceGroupID];
+    NSString *query = [NSString stringWithFormat:@"SELECT StartTime,EndTime FROM CLIPS WHERE PracticeGroupID = %li ORDER BY StartTime",(long)_currentPracticeGroupID];
     
     sqlite3_stmt *statement = NULL;
     
@@ -1745,24 +1908,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     {
         _currentClip = -1;
         [self updateNumClipsLabel];
+        [self setSliderValue:_beginTime];
+        //_appSoundPlayer.currentTime = _beginTime;
+        [_appSoundPlayer setCurrentTime:_beginTime];
         [self setCurrentPositiion:NO];
-        /*        if (_beginTimes.count)
-        {
-            _beginTime = (int)_beginTimes[0].integerValue/10.0;
-            _endTime = (int)_endTimes[0].integerValue/10.0;
-        }
-        
-        if (_linkPrefixes.count > 0)
-            _currentClipPrefix = _linkPrefixes[0].intValue;
-        else
-            _currentClipPrefix = 0;
-        _numFilesForCurrentLink = [self getNumFilesInPrefix:_currentClipPrefix];
-        if (_numFilesForCurrentLink > 0)
-            [self displayFileForLink:_currentClipPrefix
-                             fileNum:1
-                            numFiles:_numFilesForCurrentLink];
-        [self updateNumClipsLabel];
-        [self setCurrentPositiion:NO];*/
+        [self newSongButtonSettings];
     }
 }
 - (void) deleteClip:(int)clipID
@@ -1785,12 +1935,38 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 -(void) updateNumClipsLabel
 {
-    NSString * clipText = [NSString stringWithFormat:@"%i seconds: %lu clips",_currentSongDuration,(unsigned long)_beginTimes.count];
+    NSString *clip = @"clips";
+    NSString *image = @"images";
+    if (_images.count == 1)
+        image = @"image";
     if (_beginTimes.count == 1)
-        clipText = [NSString stringWithFormat:@"%i seconds: %lu clip",_currentSongDuration,(unsigned long)_beginTimes.count];
+        clip = @"clip";
+    NSString * clipText = [NSString stringWithFormat:@"%i seconds: %lu %@: %lu %@",_currentSongDuration,(unsigned long)_images.count,image,(unsigned long)_beginTimes.count,clip];
     [_numClipsLabel setText:clipText];
-
 }
+
+-(void) newSongButtonSettings
+{
+    BOOL st = _beginTimes.count == 0;
+    [_playSegmentButton setHidden:st];
+    [_loopSegmentButton setHidden:st];
+    [_nextClipButton setHidden:st];
+    [_priorClipButton setHidden:st];
+    [_priorClipButton setEnabled:_currentClip > 1];
+    if (_currentClip == 0)
+        [_nextClipButton setTitle:@"First Clip" forState:UIControlStateNormal];
+    else
+        [_nextClipButton setTitle:@"Next Clip" forState:UIControlStateNormal];
+    [_beginButton setHidden:NO];
+    [_endButton setHidden:YES];
+    [_addImageButton setHidden:NO];
+    [_pauseButton setHidden:YES];
+    [_continueButton setHidden:NO];
+    [_slider setHidden:NO];
+    [_playButton setHidden:NO];
+    [_sliderTextLabel setHidden:NO];
+}
+
 - (IBAction)sliderExit:(id)sender
 {
 //    NSLog (@"%f",_slider.value);
@@ -1853,22 +2029,28 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (IBAction)imageEndAtTapped:(id)sender
 {
+    if (sender)
+        _imageEndAt = _slider.value;
     UIButtonConfiguration *config = _imageEndAtButton.configuration;
     NSString *subTitle = _imageEndAtButton.configuration.subtitle;
-    subTitle = [NSString stringWithFormat:@"%.1f",_slider.value];
+    subTitle = [NSString stringWithFormat:@"%.1f",_imageEndAt];
     config.subtitle = subTitle;
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
         self->_imageEndAtButton.configuration = config;
     }];
+    if (_imageEndAt > 0 && _imageStartAt < _imageEndAt)
+        [_saveImageButton setEnabled:YES];
     
 }
 
 
 - (IBAction)imageStartAtTapped:(id)sender
 {
+    if (sender)
+        _imageStartAt = _slider.value;
     UIButtonConfiguration *config = _imageStartAtButton.configuration;
     NSString *subTitle = _imageStartAtButton.configuration.subtitle;
-    subTitle = [NSString stringWithFormat:@"%.1f",_slider.value];
+    subTitle = [NSString stringWithFormat:@"%.1f",_imageStartAt];
     config.subtitle = subTitle;
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
         self->_imageStartAtButton.configuration = config;
@@ -2040,9 +2222,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 }
 
-- (IBAction)selectPhoto:(id)sender {
-    
-    
+- (IBAction)addImageTapped:(id)sender
+{
     UIImagePickerController *picker = [[UIImagePickerController alloc] init];
     picker.delegate = self;
     picker.allowsEditing = YES;
@@ -2050,40 +2231,48 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
     [self presentViewController:picker animated:YES completion:NULL];
 
-
 }
 
 - (IBAction)cancelImagePicked:(id)sender {
+    _inAddImageMode = NO;
     [_saveImageButton setHidden:YES];
     [_cancelImageButton setHidden:YES];
+    [_imageEndAtButton setHidden:YES];
+    [_imageStartAtButton setHidden:YES];
     [_ImageDisplay setImage:nil];
-}
-
-- (int) getNextFileInPrefix:(int)prefix
-{
-    int rtn = 1;
-    NSFileManager *filemgr = [NSFileManager defaultManager];
-    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linksDirectory error: nil];
-    NSString *prefixText = [NSString stringWithFormat:@"%i",prefix];
-    for (NSString *file in allLinks)
-    {
-        NSString *beforeText = textBefor(file, @"_");
-        if ([beforeText isEqual:prefixText])
-            rtn++;
-    }
-    return rtn;
+    _currentImageID = -1;
 }
 
 -(BOOL) displayImageAtTime:(int)time
                   inGroup:(long)practiceGroup
 {
     BOOL rtn = FALSE;
-    [_ImageDisplay setHidden:YES];
-    [_fullScreenButton setHidden:YES];
-    [_addImageHighlightButton setHidden:YES];
-    [_imageHighlightInstructions setHidden:YES];
-    [_highlightLinesLabel setHidden:YES];
-    [_highlightLinesStepper setHidden:YES];
+    long imageToLoad = 0;
+    for (ImageAndTime *iat in _images)
+    {
+        if (time >= iat.fromTime && time < iat.toTime)
+            imageToLoad = iat.imageID;
+    }
+    if (imageToLoad && imageToLoad != _currentImageID)
+    {
+        NSString *fileName = [NSString stringWithFormat:@"%@/%li.png",_imagesDirectory,imageToLoad];
+        _image = [UIImage imageWithContentsOfFile:fileName];
+        _currentImageID = imageToLoad;
+        [_ImageDisplay setImage:_image];
+        [_ImageDisplay setHidden:NO];
+        [_fullScreenButton setHidden:YES];
+        [_addImageHighlightButton setHidden:YES];
+        [_highlightLinesLabel setHidden:YES];
+        [_highlightLinesStepper setHidden:YES];
+        [_imageHighlightInstructions setHidden:YES];
+        rtn = TRUE;
+    }
+    else if (!imageToLoad && _currentImageID > -1)
+    {
+        _currentImageID = -1;
+        [_ImageDisplay setImage:nil];
+        [_ImageDisplay setHidden:NO];
+    }
     return rtn;
 }
 
@@ -2091,24 +2280,21 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     NSMutableArray *images = NSMutableArray.new;
     BOOL opened = [self open];
-    NSString *query = [NSString stringWithFormat:@"SELECT ImageID, FromTime,ToTime,URL From IMAGES WHERE PracticeGroupdID=%li ORDER BY FromTime",practiceGroup];
+    NSString *query = [NSString stringWithFormat:@"SELECT ImageID, FromTime,ToTime FROM IMAGES WHERE PracticeGroupID=%li ORDER BY FromTime",practiceGroup];
     
     sqlite3_stmt *statement = NULL;
     
     SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
-    if (sqlite3_step(statement) == SQLITE_ROW)
+    while (sqlite3_step(statement) == SQLITE_ROW)
     {
         int i = 0;
         long imageID = sqlite3_column_int64(statement, i++);
         int fromTime = sqlite3_column_int(statement, i++);
         int toTime = sqlite3_column_int(statement, i++);
-        LPSTR url = sqlite3_column_text(statement, i++);
-        NSString * path = [NSString stringWithFormat:@"%s",url];
         ImageAndTime *imageAndTime = ImageAndTime.new;
         imageAndTime.fromTime = fromTime;
         imageAndTime.toTime = toTime;
         imageAndTime.imageID = imageID;
-        imageAndTime.path = path;
         [images addObject:imageAndTime];
     }
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
@@ -2121,7 +2307,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                    fileNum:(int)fileNum
                   numFiles:(int)numFiles
 {
-    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linksDirectory,clipID,fileNum];
+    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_imagesDirectory,clipID,fileNum];
     _image = [UIImage imageWithContentsOfFile:fileName];
     [_ImageDisplay setImage:_image];
     [_ImageDisplay setHidden:NO];
@@ -2449,56 +2635,72 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 }
 
-- (int) getNumFilesInPrefix:(int)prefix
-{
-    int rtn = 0;
-    NSFileManager *filemgr = [NSFileManager defaultManager];
-    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linksDirectory error: nil];
-    NSString *prefixText = [NSString stringWithFormat:@"%i",prefix];
-    for (NSString *file in allLinks)
-    {
-        NSString *beforeText = textBefor(file, @"_");
-        if ([beforeText isEqual:prefixText])
-            rtn++;
-    }
-    return rtn;
-}
-- (NSString *) getFileInPrefix:(int)prefix
-                  fileInPrefix:(int)fileInPrefix
-{
-    NSString *rtn = nil;
-
-    NSFileManager *filemgr = [NSFileManager defaultManager];
-    NSArray *allLinks = [filemgr contentsOfDirectoryAtPath: _linksDirectory error: nil];
-    NSString *prefixText = [NSString stringWithFormat:@"%i",prefix];
-    NSString *fileInPrefixText = [NSString stringWithFormat:@"%i",fileInPrefix];
-    for (NSString *file in allLinks)
-    {
-        NSString *name = textBefor(file, @".");
-        NSString *beforeText = textBefor(name, @"_");
-        NSString *afterText = textAfter(name, @"_");
-        if ([beforeText isEqual:prefixText] && [afterText isEqual:fileInPrefixText])
-            rtn = file;
-    }
-    return rtn;
-}
-
 - (IBAction)saveImagePicked:(id)sender
 {
-    NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_linksDirectory,_currentPracticeGroupID,_currentTime];
-    [UIImagePNGRepresentation(_currentImage) writeToFile:fileName atomically:YES];
+    BOOL opened = [self open];
+    NSString *cmd = [NSString stringWithFormat:@"INSERT INTO IMAGES (PracticeGroupID,FromTime,ToTime) VALUES(%li,%.1f,%.1f)",(long)_currentPracticeGroupID,_imageStartAt,_imageEndAt];
+    [self executeCmd:cmd];
+
+    NSString *query = @"SELECT MAX(IMAGEID) FROM IMAGES";
+    
+    sqlite3_stmt *statement = NULL;
+    
+    SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
+    if (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        _currentImageID = sqlite3_column_int64(statement, 0);
+    }
+    else
+        _currentImageID = 0;
+    SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
+    
+    NSString *path = [NSString stringWithFormat:@"%@/%li.png",_imagesDirectory,_currentImageID];
+    BOOL st = [UIImagePNGRepresentation(_currentImage) writeToFile:path atomically:YES];
+    [self close:opened];
+
     [_saveImageButton setHidden:YES];
     [_cancelImageButton setHidden:YES];
+    [_imageStartAtButton setHidden:YES];
+    [_imageEndAtButton setHidden:YES];
     [_ImageDisplay setImage:nil];
+    _currentImageID = -1;
+
+    _images = [self getImagesForPracticeGroup:_currentPracticeGroupID];
+    _inAddImageMode = NO;
+    [self updateNumClipsLabel];
+}
+-(void) testImages
+{
+    BOOL opened = [self open];
+
+    NSString *query = @"SELECT * FROM IMAGES";
+    
+    sqlite3_stmt *statement = NULL;
+    
+    SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
+    while (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        int i=0;
+        long _currentImageID = sqlite3_column_int64(statement, i++);
+        long pgID = sqlite3_column_int64(statement, i++);
+        float ft = sqlite3_column_double(statement, i++);
+        float tt = sqlite3_column_double(statement, i++);
+        i++;
+    }
+    SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
+    
+    [self close:opened];
+
 }
 
 - (IBAction)selectCollectionTapped:(id)sender {
 {
         NSMutableArray *optionList = NSMutableArray.array;
 
-        [optionList addObject:@"Add New Collection"];
+    [optionList addObject:@"Add New Collection"];
+    [optionList addObject:@"All Practice Groups"];
         [optionList addObject:@"________________________"];
-        NSArray *collections = [self getAllCollections];
+    NSArray *collections = [self getAllCollectionsUnder:_currentCollectionID];
         for (NSString * name in collections)
         {
             [optionList addObject:name];
@@ -2570,7 +2772,12 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     [_imageStartAtButton setHidden:NO];
     [_imageEndAtButton setHidden:NO];
     [_saveImageButton setHidden:NO];
+    [_saveImageButton setEnabled:NO];
     [_cancelImageButton setHidden:NO];
+    _imageStartAt = _imageEndAt = 0;
+    [self imageEndAtTapped:nil];
+    [self imageStartAtTapped:nil];
+    _inAddImageMode = YES;
     return;
 }
 - (BOOL) displayYouTubeVideo:(NSString *) link
@@ -2588,11 +2795,12 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _endButton.enabled=YES;
     _playSegmentButton.enabled=YES;
     _loopSegmentButton.enabled=YES;
-    _nextSegmentButton.enabled=YES;
-    _priorSegmentButton.enabled=YES;
+    _nextClipButton.enabled=YES;
+    _priorClipButton.enabled=YES;
     [_saveButton setEnabled:NO];
     _YouTubeName = _currentSongTitle;
-    [self retrieveSong:_currentSongTitle   setTimes:YES];
+    [self retrieveSong:_currentPracticeGroupID
+              setTimes:YES];
     [_playerView setHidden:NO];
     link = textAfterLastChar(link, @"/");
     NSString *subLink = textBefore(link, @"=");
@@ -2835,7 +3043,8 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     {
         _appSoundPlayer = _saveSoundPlayer;
     }
-    [self loopSegmentTapped:nil];
+    if (_inLoop)
+        [self loopSegmentTapped:nil];
 }
 - (BOOL)playRecording:(NSString *) path
 {
