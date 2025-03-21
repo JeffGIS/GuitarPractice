@@ -35,11 +35,15 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property long imageID;
 @property int fromTime;
 @property int toTime;
+@property int leftMargin;
+@property int rightMargin;
 @end
 @implementation ImageAndTime
 @synthesize imageID;
 @synthesize fromTime;
 @synthesize toTime;
+@synthesize leftMargin;
+@synthesize rightMargin;
 
 - (id)init
 {
@@ -100,10 +104,13 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property NSMutableArray *allViewsArray;
 @property NSMutableArray *allViewsAndStatusArray;
 @property UITapGestureRecognizer *tapGestureRecognizer;
+@property UITapGestureRecognizer *tapGestureRecognizerFullScreen;
+@property UILongPressGestureRecognizer *longPressRecognizerFullScreen;
 @property int highlightPointNumber;
 @property CGPoint highlightPoint1, highlightPoint2;
 @property CGRect highlightRect;
 @property int numHighlightLines;
+@property int numHighlightBars;
 @property BOOL inFullScreen;
 @property SystemSoundID leadInTick;
 @property BOOL recording;
@@ -128,6 +135,12 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property NSMutableDictionary *editedObject;
 @property NSString *recorderFilePath;
 @property AVAudioRecorder *recorder;
+@property BOOL adjustingLeftMargin;
+@property int leftMargin, rightMargin;
+@property HANDLE hTranImageToView, hTranViewToImage;
+@property UILabel *leftMarginMarker, *rightMarginMarker;
+
+
 
 @property SystemSoundID soundID;
 //@property(nonatomic,strong) AVAudioEngine *AVaudioEngine;
@@ -169,20 +182,32 @@ typedef NS_ENUM(NSInteger, SongTypes)
     self.playerView.delegate = self;
     [self createAllViewsArray];
     CGRect imageRect = _ImageDisplay.frame;
-    imageRect.size.height += 5;
+    CGRect selfRect = self.view.frame;
+    int newWidth = selfRect.size.width - imageRect.origin.x;
+    int newHeight = selfRect.size.height - imageRect.origin.y;
+    imageRect.size.width = newWidth;
+    imageRect.size.height = newHeight;
     imageRect.size.width -= 2;
-    //imageRect.size.height -= 2;
+    imageRect.size.height -= 2;
     _imageFrame.frame = imageRect;
     imageRect.origin.x += 2;
     imageRect.origin.y += 2;
     imageRect.size.width -= 4;
     imageRect.size.height -= 4;
+    _hTranImageToView = _hTranViewToImage = 0;
     [_ImageDisplay setFrame:imageRect];
     [_ImageDisplay removeFromSuperview];
     [self.view addSubview:_ImageDisplay];
     //_ImageDisplay.backgroundColor = [UIColor grayColor];
     _tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapFrom:)];
     [_ImageDisplay addGestureRecognizer:_tapGestureRecognizer];
+    _tapGestureRecognizerFullScreen = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleFullScreenTapFrom:)];
+    [_fullScreenImageDisplay addGestureRecognizer:_tapGestureRecognizerFullScreen];
+    _longPressRecognizerFullScreen = [[UILongPressGestureRecognizer alloc]
+                                          initWithTarget:self action:@selector(handleLongPress:)];
+    //_longPressRecognizerFullScreen.minimumPressDuration = 2;
+    [_fullScreenImageDisplay addGestureRecognizer:_longPressRecognizerFullScreen];
+
     _tapGestureRecognizer.delegate = self;
     _currentImageID = -1;
     _numHighlightLines = 1;
@@ -198,6 +223,19 @@ typedef NS_ENUM(NSInteger, SongTypes)
     NSURL *url = [NSURL URLWithString:soundFile];
     AudioServicesCreateSystemSoundID((__bridge CFURLRef _Nonnull)(url), &_leadInTick);
 
+}
+- (void) handleLongPress:(UILongPressGestureRecognizer *)recognizer
+{
+    CGPoint location = [recognizer locationInView:_fullScreenImageDisplay];
+    NSLog (@"Long press at:%.1f %.1f  state=%i",location.x,location.y,recognizer.state);
+    return;
+
+}
+- (void) handleFullScreenTapFrom: (UITapGestureRecognizer *)recognizer
+{
+    CGPoint location = [recognizer locationInView:_fullScreenImageDisplay];
+    NSLog (@"Tap at:%.1f %.1f]",location.x,location.y);
+    return;
 }
 - (void) handleTapFrom: (UITapGestureRecognizer *)recognizer
 {
@@ -282,13 +320,16 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_cancelEditButton];
     [_allViewsArray addObject:_changeBeginButton];
     [_allViewsArray addObject:_changeEndButton];
+    [_allViewsArray addObject:_splitClipButton];
     [_allViewsArray addObject:_numClipsLabel];
     [_allViewsArray addObject:_deleteClipButton];
     [_allViewsArray addObject:_slider];
     [_allViewsArray addObject:_addImageHighlightButton];
     [_allViewsArray addObject:_imageHighlightInstructions];
     [_allViewsArray addObject:_highlightLinesLabel];
+    [_allViewsArray addObject:_highlightBarsLabel];
     [_allViewsArray addObject:_highlightLinesStepper];
+    [_allViewsArray addObject:_highlightBarsStepper];
     [_allViewsArray addObject:_delaySwitch];
     [_allViewsArray addObject:_recordSwitch];
     [_allViewsArray addObject:_delayLabel];
@@ -470,7 +511,11 @@ typedef NS_ENUM(NSInteger, SongTypes)
         for (ImageAndTime *iat in _images)
         {
             if (value >= iat.fromTime && value < iat.toTime)
+            {
                 imageToLoad = iat.imageID;
+                _leftMargin = iat.leftMargin;
+                _rightMargin = iat.rightMargin;
+            }
         }
         if (imageToLoad && imageToLoad != _currentImageID)
         {
@@ -479,18 +524,30 @@ typedef NS_ENUM(NSInteger, SongTypes)
             _currentImageID = imageToLoad;
             [_ImageDisplay setImage:_image];
             [_ImageDisplay setHidden:NO];
-            [_fullScreenButton setHidden:YES];
+            [_fullScreenButton setHidden:NO];
             [_addImageHighlightButton setHidden:YES];
+            [_highlightBarsLabel setHidden:YES];
+            [_highlightBarsStepper setHidden:YES];
             [_highlightLinesLabel setHidden:YES];
             [_highlightLinesStepper setHidden:YES];
             [_imageHighlightInstructions setHidden:YES];
+            [self displayHighlightForClip:_currentClip inView:_ImageDisplay];
         }
         else if (!imageToLoad && _currentImageID > -1)
         {
             _currentImageID = -1;
             [_ImageDisplay setImage:nil];
             [_ImageDisplay setHidden:NO];
+            [_fullScreenButton setHidden:YES];
+            [self removeHighlightFromView:_ImageDisplay];
         }
+        else if (!imageToLoad)
+        {
+            [_fullScreenImageDisplay setHidden:YES];
+            [_ImageDisplay setHidden:NO];
+            [_fullScreenButton setHidden:YES];
+        }
+            
     }
     [self->_slider setValue:value];
     NSString *sliderText = [NSString stringWithFormat:@"%.1f",value];
@@ -617,6 +674,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [_ImageDisplay setHidden:YES];
         [_addImageHighlightButton setHidden:YES];
         [_imageHighlightInstructions setHidden:YES];
+        [_highlightBarsStepper setHidden:YES];
+        [_highlightBarsLabel setHidden:YES];
         [_highlightLinesLabel setHidden:YES];
         [_highlightLinesStepper setHidden:YES];
         [_startTimeSaveButton setHidden:NO];
@@ -984,6 +1043,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _clipEditStatus = 0;
     [_beginButton setHidden:NO];
     [_endButton setHidden:NO];
+    [_splitClipButton setHidden:YES];
     [_changeEndButton setHidden:YES];
     [_changeBeginButton setHidden:YES];
     [_saveButton setEnabled:NO];
@@ -1011,6 +1071,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _clipEditStatus = 0;
     [_beginButton setHidden:NO];
     [_endButton setHidden:NO];
+    [_splitClipButton setHidden:YES];
     [_changeEndButton setHidden:YES];
     [_changeBeginButton setHidden:YES];
     [_saveButton setEnabled:NO];
@@ -1034,6 +1095,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_playSegmentButton setSelected:NO];
     [_beginButton setHidden:YES];
     [_endButton setHidden:YES];
+    [_splitClipButton setHidden:NO];
     [_changeEndButton setHidden:NO];
     [_changeBeginButton setHidden:NO];
     [_changeBeginButton setSelected:NO];
@@ -1297,6 +1359,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     int seconds = IDNINT(_endTime - _beginTime);
     NSString *labelText;
     labelText = @"";
+
+    [_addImageHighlightButton setHidden:!(_currentClip > -1)];
     if (_currentClip > -1 && !_inFullScreen)
     {
         float nseconds = _endTime - _beginTime;
@@ -1352,6 +1416,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (IBAction)playSegmentTapped:(id)sender {
     _inLoop = NO;
+    _currentImageID = 0;
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer stop];
@@ -1497,13 +1562,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     else
     {
         [_nextClipButton setTitle:@"Next Clip" forState:UIControlStateNormal];
-        [_playSegmentButton setEnabled:YES];
-        [_loopSegmentButton setEnabled:YES];
-        if (_currentClip > 0)
-            [_priorClipButton setEnabled:YES];
-        if (_currentClip < (int)_beginTimes.count -1)
-            [_nextClipButton setEnabled:YES];
     }
+    [_playSegmentButton setEnabled:YES];
+    [_loopSegmentButton setEnabled:YES];
+    if (_currentClip > 0)
+        [_priorClipButton setEnabled:YES];
+    if (_currentClip < (int)_beginTimes.count -1)
+        [_nextClipButton setEnabled:YES];
 }
 - (IBAction)priorClipTapped:(id)sender
 {
@@ -1516,15 +1581,17 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _beginTime = (int)_beginTimes[_currentClip].integerValue/10.0;
         _endTime = (int)_endTimes[_currentClip].integerValue/10.0;
         _currentFileNum = 1;
-        [self setCurrentPositiion:YES];
         _numTrackLines = 0;
         if ([self displayImageAtTime:_beginTime inGroup:_currentPracticeGroupID])
         {
             [_addImageHighlightButton setHidden:NO];
             [_imageHighlightInstructions setHidden:NO];
+            [_highlightBarsStepper setHidden:NO];
+            [_highlightBarsLabel setHidden:NO];
             [_highlightLinesLabel setHidden:NO];
             [_highlightLinesStepper setHidden:NO];
         }
+        [self setCurrentPositiion:YES];
         [self updateClipButtons];
         [self stopTapped:nil];
         [_loopSegmentButton setSelected:NO];
@@ -1535,7 +1602,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)nextClipTapped:(id)sender {
     [_deleteClipButton setEnabled:NO];
     
-    if (_currentClip < (int)_beginTimes.count)
+    if (_currentClip < (int)_beginTimes.count-1)
     {
         _currentClip++;
         _beginTime = (int)_beginTimes[_currentClip].integerValue/10.0;
@@ -1548,15 +1615,17 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _tapToEditLabel.text = @"Tap to Edit";
         [_tapToEditLabel setHidden:NO];
         _inLoop = NO;
-        [self setCurrentPositiion:YES];
         _numTrackLines = 0;
         if ([self displayImageAtTime:_beginTime inGroup:_currentPracticeGroupID])
         {
             [_addImageHighlightButton setHidden:NO];
             [_imageHighlightInstructions setHidden:NO];
+            [_highlightBarsStepper setHidden:NO];
+            [_highlightBarsLabel setHidden:NO];
             [_highlightLinesLabel setHidden:NO];
             [_highlightLinesStepper setHidden:NO];
         }
+        [self setCurrentPositiion:YES];
         [self updateClipButtons];
         [self stopTapped:nil];
         [_loopSegmentButton setSelected:NO];
@@ -1844,10 +1913,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     cmd = @"CREATE TABLE IF NOT EXISTS PRACTICEGROUPS ('PracticeGroupID' INTEGER PRIMARY KEY,'Title' CHAR(256),'Type' INT,'StartTime' INT,'Duration' INT, 'URL' CHAR(1024), 'Instrument' CHAR(256),'Tuning' CHAR(256));";
     rtn = [self executeCmd:cmd];
     
-    cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('CLIPID' INTEGER PRIMARY KEY,'PracticeGroupID' INT,'Type' INT,'StartTime' INT,'EndTime' INT);CREATE INDEX IF NOT EXISTS idx_clips_pg ON CLIPS (PracticeGroupID);";
+    cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('CLIPID' INTEGER PRIMARY KEY,'PracticeGroupID' INT,'Type' INT,'StartTime' INT,'EndTime' INT, 'Bars' INT);CREATE INDEX IF NOT EXISTS idx_clips_pg ON CLIPS (PracticeGroupID);";
     rtn = [self executeCmd:cmd];
 
-    cmd = @"CREATE TABLE IF NOT EXISTS SUBCLIPS ('SUBCLIPID' INTEGER PRIMARY KEY,'ClipID' INT,'StartTime' INT,'EndTime' INT);";
+    cmd = @"CREATE TABLE IF NOT EXISTS SUBCLIPS ('SUBCLIPID' INTEGER PRIMARY KEY,'ClipID' INT,'StartTime' INT,'EndTime' INT);CREATE INDEX IF NOT EXISTS idx_subclips_clip ON SUBCLIPS (ClipID);";
     rtn = [self executeCmd:cmd];
 
     cmd = @"CREATE TABLE IF NOT EXISTS IMAGES ('IMAGEID' INTEGER PRIMARY KEY,'PracticeGroupID' INT,'FromTime' INT,'ToTime' INT, 'LeftMargin' INT, 'RightMargin' INT);CREATE INDEX IF NOT EXISTS idx_images_pg ON IMAGES (PracticeGroupID);";
@@ -1988,6 +2057,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)monitorTapped:(id)sender {
     //[self displayYouTubeVideo:@"www.youtube.com"];
     [self toggleMonitor];
+}
+
+- (IBAction)splitClipTapped:(id)sender {
 }
 /*
 - (void) testMonitorx
@@ -2239,10 +2311,81 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_cancelImageButton setHidden:YES];
     [_imageEndAtButton setHidden:YES];
     [_imageStartAtButton setHidden:YES];
+    [_marginIncreaseButton setHidden:YES];
+    [_marginDecreaseButton setHidden:YES];
+    [_marginSelectionButton setHidden:YES];
     [_ImageDisplay setImage:nil];
     _currentImageID = -1;
 }
+- (IBAction)marginSelectionTapped:(id)sender
+{
+    _adjustingLeftMargin = !_adjustingLeftMargin;
+    if (_adjustingLeftMargin)
+        [_marginSelectionButton setTitle:@"Set Left Margin" forState:UIControlStateNormal];
+    else
+        [_marginSelectionButton setTitle:@"Set Right Margin" forState:UIControlStateNormal];
 
+
+}
+
+- (IBAction)touchMargin:(id)sender {
+    NSLog (@"Touch");
+    return;
+}
+- (IBAction)marginIncreaseButtonTapped:(id)sender
+{
+    NSLog (@"Release");
+    [self adjustMargin:1];
+}
+- (IBAction)marginDecreaseButtonTapped:(id)sender
+{
+    [self adjustMargin:-1];
+}
+- (void)adjustMargin:(int) amount
+{
+    if (_adjustingLeftMargin)
+        _leftMargin += amount;
+    else
+        _rightMargin += amount;
+    [self displayMargins];
+}
+- (void)displayMargins
+{
+    CGPoint imagePoint1, imagePoint2;
+    if (_leftMarginMarker)
+        [_leftMarginMarker removeFromSuperview];
+    else
+    {
+        _leftMarginMarker = UILabel.new;
+        _leftMarginMarker.backgroundColor = UIColor.greenColor;
+    }
+    if (_rightMarginMarker)
+        [_rightMarginMarker removeFromSuperview];
+    else
+    {
+        _rightMarginMarker = UILabel.new;
+        _rightMarginMarker.backgroundColor = UIColor.greenColor;
+    }
+    imagePoint1.x = _leftMargin;
+    imagePoint1.y = 0;
+    imagePoint2 = imagePoint1;
+    imagePoint2.y = _ImageDisplay.image.size.height;
+    CGPoint viewPoint1 = TranCGPoint(imagePoint1,_hTranImageToView);
+    CGPoint viewPoint2 = TranCGPoint(imagePoint2,_hTranImageToView);
+    CGRect frame = CGRectMake(viewPoint1.x, viewPoint1.y, 2, viewPoint2.y - viewPoint1.y);
+    [_leftMarginMarker setFrame:frame];
+    [_ImageDisplay addSubview:_leftMarginMarker];
+    imagePoint1.x = _rightMargin;
+    imagePoint1.y = 0;
+    imagePoint2 = imagePoint1;
+    imagePoint2.y = _ImageDisplay.image.size.height;
+    viewPoint1 = TranCGPoint(imagePoint1,_hTranImageToView);
+    viewPoint2 = TranCGPoint(imagePoint2,_hTranImageToView);
+    frame = CGRectMake(viewPoint1.x, viewPoint1.y, 2, viewPoint2.y - viewPoint1.y);
+    [_rightMarginMarker setFrame:frame];
+    [_ImageDisplay addSubview:_rightMarginMarker];
+
+}
 -(BOOL) displayImageAtTime:(int)time
                   inGroup:(long)practiceGroup
 {
@@ -2251,7 +2394,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     for (ImageAndTime *iat in _images)
     {
         if (time >= iat.fromTime && time < iat.toTime)
+        {
             imageToLoad = iat.imageID;
+            _leftMargin = iat.leftMargin;
+            _rightMargin = iat.rightMargin;
+        }
     }
     if (imageToLoad && imageToLoad != _currentImageID)
     {
@@ -2262,9 +2409,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_ImageDisplay setHidden:NO];
         [_fullScreenButton setHidden:YES];
         [_addImageHighlightButton setHidden:YES];
+        [_highlightBarsStepper setHidden:YES];
+        [_highlightBarsLabel setHidden:YES];
         [_highlightLinesLabel setHidden:YES];
         [_highlightLinesStepper setHidden:YES];
         [_imageHighlightInstructions setHidden:YES];
+        [self displayHighlightForClip:_currentClip inView:_ImageDisplay];
         rtn = TRUE;
     }
     else if (!imageToLoad && _currentImageID > -1)
@@ -2272,6 +2422,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _currentImageID = -1;
         [_ImageDisplay setImage:nil];
         [_ImageDisplay setHidden:NO];
+        [self removeHighlightFromView:_ImageDisplay];
+
     }
     return rtn;
 }
@@ -2280,7 +2432,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     NSMutableArray *images = NSMutableArray.new;
     BOOL opened = [self open];
-    NSString *query = [NSString stringWithFormat:@"SELECT ImageID, FromTime,ToTime FROM IMAGES WHERE PracticeGroupID=%li ORDER BY FromTime",practiceGroup];
+    NSString *query = [NSString stringWithFormat:@"SELECT ImageID, FromTime,ToTime, LeftMargin, RightMargin FROM IMAGES WHERE PracticeGroupID=%li ORDER BY FromTime",practiceGroup];
     
     sqlite3_stmt *statement = NULL;
     
@@ -2291,10 +2443,14 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         long imageID = sqlite3_column_int64(statement, i++);
         int fromTime = sqlite3_column_int(statement, i++);
         int toTime = sqlite3_column_int(statement, i++);
+        int leftMargin = sqlite3_column_int(statement, i++);
+        int rightMargin = sqlite3_column_int(statement, i++);
         ImageAndTime *imageAndTime = ImageAndTime.new;
         imageAndTime.fromTime = fromTime;
         imageAndTime.toTime = toTime;
         imageAndTime.imageID = imageID;
+        imageAndTime.leftMargin = leftMargin;
+        imageAndTime.rightMargin = rightMargin;
         [images addObject:imageAndTime];
     }
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
@@ -2313,6 +2469,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_ImageDisplay setHidden:NO];
     [_fullScreenButton setHidden:NO];
     [_addImageHighlightButton setHidden:NO];
+    [_highlightBarsStepper setHidden:YES];
+    [_highlightBarsLabel setHidden:YES];
     [_highlightLinesLabel setHidden:YES];
     [_highlightLinesStepper setHidden:YES];
     [_imageHighlightInstructions setHidden:YES];
@@ -2359,6 +2517,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                           inView:(UIImageView*) view
 {
     [self removeHighlightFromView:view];
+    if (clipID < 0)
+    {
+        [self removeHighlightFromView:view];
+        return FALSE;
+    }
     BOOL rtn = FALSE;
     BOOL opened = [self open];
     NSString *query = [NSString stringWithFormat:@"SELECT NumLines,StartX,StartY,EndX,EndY,BoundsWidth,BoundsHeight FROM CLIPHIGHLIGHT WHERE ClipID=%i",clipID];
@@ -2398,6 +2561,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)fullScreenTapped:(id)sender {
     [self hideAllViews:YES];
     _inFullScreen = YES;
+    CGRect frame = _imageFrame.frame;
+    frame.origin.x = 0;
+    frame.size.width = self.view.frame.size.width;
+    [_fullScreenImageDisplay setFrame:frame];
     [_fullScreenImageDisplay setImage:_image];
     [_fullScreenImageDisplay setHidden:NO];
     [_fullScreenReturnButton setHidden:NO];
@@ -2414,6 +2581,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)addImageHighlightTapped:(id)sender {
     [_imageHighlightInstructions setHidden:NO];
     [_imageHighlightInstructions setText:@"Tap start point"];
+    [_highlightBarsStepper setHidden:NO];
+    [_highlightBarsLabel setHidden:NO];
     [_highlightLinesLabel setHidden:NO];
     [_highlightLinesStepper setHidden:NO];
 
@@ -2424,6 +2593,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _numHighlightLines = _highlightLinesStepper.value;
     NSString *label = [NSString stringWithFormat:@"Lines: %i",_numHighlightLines];
     [_highlightLinesLabel setText:label];
+}
+- (IBAction)highlightBarsChanged:(id)sender {
+    _numHighlightBars = _highlightBarsStepper.value;
+    NSString *label = [NSString stringWithFormat:@"Bars: %i",_numHighlightBars];
+    [_highlightBarsLabel setText:label];
 }
 
 - (IBAction)delayChanged:(id)sender {
@@ -2484,6 +2658,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     CGFloat vw = viewRect.size.width;
     CGFloat vh = viewRect.size.height;
     CGFloat iw = view.image.size.width;
+    iw = _rightMargin;
     CGFloat ih = view.image.size.height;
     int np = 0;
 
@@ -2505,13 +2680,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _trackPoints[np++] = CGPointToDPOINT(pt);
         for (int i = 1;i<numLines-1;i++)
         {
-            pt.x = 0;
+            pt.x = _leftMargin;
             pt.y += lineHeight;
             _trackPoints[np++] = CGPointToDPOINT(pt);
             pt.x = iw;
             _trackPoints[np++] = CGPointToDPOINT(pt);
         }
-        pt.x = 0;
+        pt.x = _leftMargin;
         pt.y  = imagePoint2.y;
         _trackPoints[np++] = CGPointToDPOINT(pt);
         _trackPoints[np++] = CGPointToDPOINT(imagePoint2);
@@ -2610,7 +2785,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (update)
     {
         BOOL opened = [self open];
-        NSString *cmd = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CLIPHIGHLIGHT VALUES(%i,%i,%i,%f,%f,%f,%f,%f,%f);",
+        NSString *cmd = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CLIPHIGHLIGHT VALUES(%i,%li,%i,%f,%f,%f,%f,%f,%f);",
                          _currentClipID,_currentImageID,numLines,imagePoint1.x,imagePoint1.y,imagePoint2.x,imagePoint2.y,iw,ih];
         BOOL rtn = [self executeCmd:cmd];
         [self close:opened];
@@ -2638,7 +2813,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)saveImagePicked:(id)sender
 {
     BOOL opened = [self open];
-    NSString *cmd = [NSString stringWithFormat:@"INSERT INTO IMAGES (PracticeGroupID,FromTime,ToTime) VALUES(%li,%.1f,%.1f)",(long)_currentPracticeGroupID,_imageStartAt,_imageEndAt];
+    NSString *cmd = [NSString stringWithFormat:@"INSERT INTO IMAGES (PracticeGroupID,FromTime,ToTime, LeftMargin, RightMargin) VALUES(%li,%.1f,%.1f,%i,%i)",(long)_currentPracticeGroupID,_imageStartAt,_imageEndAt,_leftMargin,_rightMargin];
     [self executeCmd:cmd];
 
     NSString *query = @"SELECT MAX(IMAGEID) FROM IMAGES";
@@ -2661,9 +2836,14 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_saveImageButton setHidden:YES];
     [_cancelImageButton setHidden:YES];
     [_imageStartAtButton setHidden:YES];
+    [_marginIncreaseButton setHidden:YES];
+    [_marginDecreaseButton setHidden:YES];
+    [_marginSelectionButton setHidden:YES];
     [_imageEndAtButton setHidden:YES];
     [_ImageDisplay setImage:nil];
     _currentImageID = -1;
+    CloseTRANS2 (&_hTranImageToView);
+    CloseTRANS2 (&_hTranViewToImage);
 
     _images = [self getImagesForPracticeGroup:_currentPracticeGroupID];
     _inAddImageMode = NO;
@@ -2770,6 +2950,9 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     [_ImageDisplay setImage:_currentImage];
     [_ImageDisplay setHidden:NO];
     [_imageStartAtButton setHidden:NO];
+    [_marginIncreaseButton setHidden:NO];
+    [_marginDecreaseButton setHidden:NO];
+    [_marginSelectionButton setHidden:NO];
     [_imageEndAtButton setHidden:NO];
     [_saveImageButton setHidden:NO];
     [_saveImageButton setEnabled:NO];
@@ -2777,6 +2960,16 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _imageStartAt = _imageEndAt = 0;
     [self imageEndAtTapped:nil];
     [self imageStartAtTapped:nil];
+    [self removeHighlightFromView:_ImageDisplay];
+    _adjustingLeftMargin = YES;
+    _leftMargin = 0;
+    _rightMargin = _currentImage.size.width;
+    [_marginSelectionButton setTitle:@"Set Left Margin" forState:UIControlStateNormal];
+    CGRect viewFrame = [self imageRectInView:_ImageDisplay];
+    CGRect imageFrame = CGRectMake(0,0,  _ImageDisplay.image.size.width, _ImageDisplay.image.size.height);
+    _hTranImageToView = STRANCGRect (imageFrame,viewFrame);
+    _hTranViewToImage = STRANCGRect (viewFrame,imageFrame);
+
     _inAddImageMode = YES;
     return;
 }

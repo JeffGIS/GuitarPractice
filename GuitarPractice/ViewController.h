@@ -83,6 +83,17 @@
 @property (weak, nonatomic) IBOutlet UIButton *tunerButton;
 @property (weak, nonatomic) IBOutlet UIButton *imageStartAtButton;
 @property (weak, nonatomic) IBOutlet UIButton *imageEndAtButton;
+@property (weak, nonatomic) IBOutlet UIButton *splitClipButton;
+@property (weak, nonatomic) IBOutlet UILabel *highlightBarsLabel;
+@property (weak, nonatomic) IBOutlet UIStepper *highlightBarsStepper;
+@property (weak, nonatomic) IBOutlet UIButton *marginDecreaseButton;
+@property (weak, nonatomic) IBOutlet UIButton *marginIncreaseButton;
+@property (weak, nonatomic) IBOutlet UIButton *marginSelectionButton;
+- (IBAction)touchMargin:(id)sender;
+- (IBAction)marginSelectionTapped:(id)sender;
+- (IBAction)marginIncreaseButtonTapped:(id)sender;
+- (IBAction)marginDecreaseButtonTapped:(id)sender;
+- (IBAction)highlightBarsChanged:(id)sender;
 - (IBAction)effectsTapped:(id)sender;
 - (IBAction)selectSongTapped:(id)sender;
 - (IBAction)nextSongTapped:(id)sender;
@@ -94,6 +105,7 @@
 - (IBAction)loopSegmentTapped:(id)sender;
 - (IBAction)nextClipTapped:(id)sender;
 - (IBAction)priorClipTapped:(id)sender;
+- (IBAction)splitClipTapped:(id)sender;
 - (IBAction)monitorTapped:(id)sender;
 - (IBAction)saveTapped:(id)sender;
 - (IBAction)monitorVolumeChanged:(id)sender;
