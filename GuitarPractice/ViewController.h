@@ -21,6 +21,7 @@
 @interface ViewController : UIViewController<NVAlertViewDelegate,MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate,EffectsViewControllerDelegate,RecordSongViewControllerDelegate>
 
 @property (weak, nonatomic) IBOutlet UISlider *monitorVolumeSlider;
+@property (weak, nonatomic) IBOutlet UIButton *selectCollectionButton;
 @property NSMutableArray *effectsArray;
 @property (weak, nonatomic) IBOutlet UIButton *monitorButton;
 @property (weak, nonatomic) IBOutlet UILabel *songTitleLabel;
@@ -83,7 +84,6 @@
 @property (weak, nonatomic) IBOutlet UIButton *tunerButton;
 @property (weak, nonatomic) IBOutlet UIButton *imageStartAtButton;
 @property (weak, nonatomic) IBOutlet UIButton *imageEndAtButton;
-@property (weak, nonatomic) IBOutlet UIButton *splitClipButton;
 @property (weak, nonatomic) IBOutlet UILabel *highlightBarsLabel;
 @property (weak, nonatomic) IBOutlet UIStepper *highlightBarsStepper;
 @property (weak, nonatomic) IBOutlet UIButton *marginDecreaseButton;
@@ -105,7 +105,6 @@
 - (IBAction)loopSegmentTapped:(id)sender;
 - (IBAction)nextClipTapped:(id)sender;
 - (IBAction)priorClipTapped:(id)sender;
-- (IBAction)splitClipTapped:(id)sender;
 - (IBAction)monitorTapped:(id)sender;
 - (IBAction)saveTapped:(id)sender;
 - (IBAction)monitorVolumeChanged:(id)sender;

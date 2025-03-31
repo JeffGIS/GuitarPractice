@@ -507,7 +507,7 @@
                                     <action selector="deleteClipTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="SkR-Ic-cjY"/>
                                 </connections>
                             </button>
-                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WH3-sG-T99">
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WH3-sG-T99">
                                 <rect key="frame" x="40" y="510" width="178" height="51"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="28"/>
@@ -528,18 +528,6 @@
                                 </state>
                                 <connections>
                                     <action selector="changeEndTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="qS2-pK-Cac"/>
-                                </connections>
-                            </button>
-                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="3BZ-Ac-nnU">
-                                <rect key="frame" x="40" y="560" width="178" height="51"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="28"/>
-                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                                <state key="normal" title="Split Clip">
-                                    <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                </state>
-                                <connections>
-                                    <action selector="splitClipTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="zWT-22-i9y"/>
                                 </connections>
                             </button>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="tB3-wZ-h7p">
@@ -574,10 +562,10 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Bars: 0" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8Cb-df-x1y">
-                                <rect key="frame" x="870" y="45" width="180" height="42"/>
+                            <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Bars: 0" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8Cb-df-x1y">
+                                <rect key="frame" x="40" y="560" width="180" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="28"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
@@ -589,14 +577,14 @@
                                 </connections>
                             </stepper>
                             <stepper hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" maximumValue="100" translatesAutoresizingMaskIntoConstraints="NO" id="ATx-0P-10t">
-                                <rect key="frame" x="1010" y="48" width="94" height="32"/>
+                                <rect key="frame" x="190" y="560" width="94" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <connections>
                                     <action selector="highlightBarsChanged:" destination="BYZ-38-t0r" eventType="valueChanged" id="ODR-cJ-rll"/>
                                 </connections>
                             </stepper>
                             <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Lines: 1" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VQH-kL-jTF">
-                                <rect key="frame" x="565" y="42" width="94" height="48"/>
+                                <rect key="frame" x="1010" y="48" width="94" height="48"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="textColor"/>
@@ -747,10 +735,10 @@
                         <outlet property="recordSwitch" destination="F1g-6t-FjY" id="nmN-pX-iJP"/>
                         <outlet property="saveButton" destination="CrY-BU-Nyf" id="qrp-Ig-SIF"/>
                         <outlet property="saveImageButton" destination="ppx-6k-HPT" id="Vyv-FO-svd"/>
+                        <outlet property="selectCollectionButton" destination="gQK-F3-q8R" id="TiQ-O9-P5z"/>
                         <outlet property="slider" destination="pOx-ix-Z6F" id="d11-vL-Tbm"/>
                         <outlet property="sliderTextLabel" destination="1xh-wr-1cz" id="PsZ-N4-pwJ"/>
                         <outlet property="songTitleLabel" destination="JaH-lt-vyi" id="lc8-DT-gYA"/>
-                        <outlet property="splitClipButton" destination="3BZ-Ac-nnU" id="LsV-ab-r4a"/>
                         <outlet property="startTimeCancelButton" destination="1Nd-0D-Jlo" id="3BB-o0-rxu"/>
                         <outlet property="startTimeMinutesInput" destination="eWc-Nf-QJ3" id="DhW-1F-GAD"/>
                         <outlet property="startTimeMinutesStepper" destination="L9K-vM-3vc" id="5Xr-zB-oZ4"/>
