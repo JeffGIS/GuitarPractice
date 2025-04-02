@@ -724,13 +724,13 @@
 - (void)initAVAudioSession
 {
     // Configure the audio session
-    AVAudioSession *sessionInstance = AVAudioSession.new;
+    AVAudioSession *sessionInstance = AVAudioSession.sharedInstance;
     NSError *error;
     
     self->audioSession = sessionInstance;
     // set the session category
     //    bool success = [sessionInstance setCategory:AVAudioSessionCategoryPlayback error:&error];
-    bool success = [sessionInstance setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:AVAudioSessionCategoryOptionAllowBluetooth error:&error];
+    bool success = [sessionInstance setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:AVAudioSessionCategoryOptionMixWithOthers error:&error];
 
     if (!success) NSLog(@"Error setting AVAudioSession category! %@\n", [error localizedDescription]);
     

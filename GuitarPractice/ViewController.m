@@ -355,6 +355,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 -(void) createAllViewsArray
 {
     _allViewsArray = NSMutableArray.new;
+    [_allViewsArray addObject:self.playerView];
     [_allViewsArray addObject:_selectCollectionButton];
     [_allViewsArray addObject:_songTitleLabel];
     [_allViewsArray addObject:_ImageDisplay];
@@ -1427,7 +1428,6 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     {
         [self.ImageDisplay setHidden:YES];
         [self.playerView setHidden:NO];
-        [self.playerView setPlaybackRate:0.5];
         [self.playerView pauseVideo];
         [self.playerView seekToSeconds:_currentSongStartTime allowSeekAhead:YES];
     }
@@ -2366,15 +2366,24 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (void) setPlaybackSpeed:(int)playbackSpeed
 {
-    [_appSoundPlayer stop];
-    if (playbackSpeed == 10)
-        _appSoundPlayer.enableRate = NO;
+    if (_currentSongType == SONG)
+    {
+        [_appSoundPlayer stop];
+        if (playbackSpeed == 10)
+            _appSoundPlayer.enableRate = NO;
+        else
+        {
+            _appSoundPlayer.enableRate = YES;
+            _appSoundPlayer.rate = playbackSpeed / 10.0;
+        }
+        [_appSoundPlayer play];
+    }
     else
     {
-        _appSoundPlayer.enableRate = YES;
-        _appSoundPlayer.rate = playbackSpeed / 10.0;
+        [self.playerView pauseVideo];
+        [self.playerView setPlaybackRate:playbackSpeed / 10.0];
+        [self.playerView playVideo];
     }
-    [_appSoundPlayer play];
 }
 
 - (IBAction)imageEndAtTapped:(id)sender
@@ -2844,9 +2853,17 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     CGRect frame = _imageFrame.frame;
     frame.origin.x = 0;
     frame.size.width = self.view.frame.size.width;
-    [_fullScreenImageDisplay setFrame:frame];
-    [_fullScreenImageDisplay setImage:_image];
-    [_fullScreenImageDisplay setHidden:NO];
+    if (_currentSongType == SONG)
+    {
+        [_fullScreenImageDisplay setFrame:frame];
+        [_fullScreenImageDisplay setImage:_image];
+        [_fullScreenImageDisplay setHidden:NO];
+    }
+    else
+    {
+        [self.playerView setFrame:frame];
+        [self.playerView setHidden:NO];
+    }
     [_fullScreenReturnButton setHidden:NO];
     [_monitorButton setHidden:YES];
     [_monitorVolumeSlider setHidden:YES];
@@ -3105,6 +3122,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)fullScreenReturnButtonTapped:(id)sender {
     [self hideAllViews:NO];
     _inFullScreen = NO;
+    if (_currentSongType == YOUTUBEVIDEO)
+    {
+        CGRect frame = _ImageDisplay.frame;
+        [self.playerView setFrame:frame];
+        [self.playerView setHidden:NO];
+    }
     [_fullScreenImageDisplay setHidden:YES];
     [_fullScreenReturnButton setHidden:YES];
     [_monitorButton setHidden:NO];
@@ -3286,6 +3309,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
 }
 - (BOOL) displayYouTubeVideo:(NSString *) link
 {
+    [self hideAllViews:YES];
     _slider.maximumValue = _currentSongDuration;
     _slider.minimumValue = 0;
     _slider.continuous = YES;
@@ -3296,14 +3320,16 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _endTimes = NSMutableArray.new;
     _barsInClip = NSMutableArray.new;
     _currentClip = -1;
-    _playButton.enabled=YES;
-    _beginButton.enabled=YES;
-    _endButton.enabled=YES;
-    _playSegmentButton.enabled=YES;
-    _loopSegmentButton.enabled=YES;
-    _nextClipButton.enabled=YES;
-    _priorClipButton.enabled=YES;
+    [_playButton setEnabled:YES];
+    [_beginButton setEnabled:YES];
+    [_endButton setEnabled:YES];
+    [_playSegmentButton setEnabled:YES];
+    [_loopSegmentButton setEnabled:YES];
+    [_nextClipButton setEnabled:YES];
+    [_priorClipButton setEnabled:YES];
+    [_fullScreenButton setHidden:NO];
     [_saveButton setEnabled:NO];
+    [_ImageDisplay setHidden:YES];
     _YouTubeName = _currentSongTitle;
     [self retrieveSong:_currentPracticeGroupID
               setTimes:YES];
