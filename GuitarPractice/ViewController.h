@@ -19,6 +19,7 @@
 
 
 @interface ViewController : UIViewController<NVAlertViewDelegate,MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate,EffectsViewControllerDelegate,RecordSongViewControllerDelegate>
+@property (weak, nonatomic) IBOutlet UIButton *playbackSpeedButton;
 
 @property (weak, nonatomic) IBOutlet UISlider *monitorVolumeSlider;
 @property (weak, nonatomic) IBOutlet UIButton *selectCollectionButton;
@@ -89,6 +90,9 @@
 @property (weak, nonatomic) IBOutlet UIButton *marginDecreaseButton;
 @property (weak, nonatomic) IBOutlet UIButton *marginIncreaseButton;
 @property (weak, nonatomic) IBOutlet UIButton *marginSelectionButton;
+@property (weak, nonatomic) IBOutlet UIButton *playbackSpeedIncreaseButton;
+@property (weak, nonatomic) IBOutlet UIButton *playbackSpeedDecreaseButton;
+
 - (IBAction)touchMargin:(id)sender;
 - (IBAction)marginSelectionTapped:(id)sender;
 - (IBAction)marginIncreaseButtonTapped:(id)sender;
@@ -135,6 +139,10 @@
 - (IBAction)sliderExit:(id)sender;
 - (IBAction)imageStartAtTapped:(id)sender;
 - (IBAction)imageEndAtTapped:(id)sender;
+- (IBAction)playbackSpeedReset:(id)sender;
+- (IBAction)playbackSpeedIncrease:(id)sender;
+
+- (IBAction)playbackSpeedDecrease:(id)sender;
 
 - (void) toggleMonitor;
 

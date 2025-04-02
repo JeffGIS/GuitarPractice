@@ -30,6 +30,8 @@
 		EBB8DBFC2C306FB7000653FE /* EffectsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = EBB8DBFB2C306FB7000653FE /* EffectsViewController.m */; };
 		EBBBFD672AE5F8FC00A27F86 /* libNVCoordinateLibrary.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */; };
 		EBC290CB2D6A39240017526B /* RecordSongViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = EBC290CA2D6A39240017526B /* RecordSongViewController.m */; };
+		EBDEFB1D2D9C3D5500914922 /* plus.rectangle.svg in Resources */ = {isa = PBXBuildFile; fileRef = EBDEFB1C2D9C3D5500914922 /* plus.rectangle.svg */; };
+		EBDEFB1E2D9C3D5500914922 /* minus.rectangle.svg in Resources */ = {isa = PBXBuildFile; fileRef = EBDEFB1B2D9C3D5500914922 /* minus.rectangle.svg */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -69,6 +71,8 @@
 		EBBBFD662AE5F8FC00A27F86 /* libNVCoordinateLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libNVCoordinateLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		EBC290C92D6A39240017526B /* RecordSongViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RecordSongViewController.h; sourceTree = "<group>"; };
 		EBC290CA2D6A39240017526B /* RecordSongViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RecordSongViewController.m; sourceTree = "<group>"; };
+		EBDEFB1B2D9C3D5500914922 /* minus.rectangle.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = minus.rectangle.svg; sourceTree = "<group>"; };
+		EBDEFB1C2D9C3D5500914922 /* plus.rectangle.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = plus.rectangle.svg; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -95,6 +99,8 @@
 		EB547D6323D4195B009BE924 = {
 			isa = PBXGroup;
 			children = (
+				EBDEFB1B2D9C3D5500914922 /* minus.rectangle.svg */,
+				EBDEFB1C2D9C3D5500914922 /* plus.rectangle.svg */,
 				EB93FAE72C4DD8C700D8423B /* Info.md */,
 				EB547D6E23D4195B009BE924 /* GuitarPractice */,
 				EB547D6D23D4195B009BE924 /* Products */,
@@ -230,6 +236,8 @@
 			files = (
 				EB547D7F23D4195C009BE924 /* LaunchScreen.storyboard in Resources */,
 				EBB8DBC72C2B7657000653FE /* bluesyRiff.mid in Resources */,
+				EBDEFB1D2D9C3D5500914922 /* plus.rectangle.svg in Resources */,
+				EBDEFB1E2D9C3D5500914922 /* minus.rectangle.svg in Resources */,
 				EB547D7C23D4195C009BE924 /* Assets.xcassets in Resources */,
 				EBB8DBC52C2B7657000653FE /* drumLoop.caf in Resources */,
 				EBA3438A2BABAF17004413F1 /* Podfile in Resources */,

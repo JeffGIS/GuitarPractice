@@ -147,6 +147,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property CGRect savePlaySegmentFrame, saveLoopSegmentFrame;
 @property float tempHighlightPCT1, tempHighlightPCT2;
 @property int tempHighlightNumLines;
+@property (nonatomic) int playbackSpeed;
 @property CGPoint tempHighlightImagePoint1, tempHighlightImagePoint2;
 @property BOOL haveTempHighlight;
 
@@ -192,6 +193,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [self createAllViewsArray];
     CGRect imageRect = _ImageDisplay.frame;
     CGRect selfRect = self.view.frame;
+    [self.playerView setFrame:imageRect];
     int newWidth = selfRect.size.width - imageRect.origin.x;
     int newHeight = selfRect.size.height - imageRect.origin.y;
     imageRect.size.width = newWidth;
@@ -231,7 +233,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     NSString *soundFile = [NSString stringWithUTF8String:"///System/Library/Audio/UISounds/begin_record.caf"];
     NSURL *url = [NSURL URLWithString:soundFile];
     AudioServicesCreateSystemSoundID((__bridge CFURLRef _Nonnull)(url), &_leadInTick);
-
+    _playbackSpeed = 10;
 }
 - (void) handleLongPress:(UILongPressGestureRecognizer *)recognizer
 {
@@ -249,6 +251,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 - (void) handleFullScreenTapFrom: (UITapGestureRecognizer *)recognizer
 {
+    if (!_haveStartLocation && !_numBarsInClip)
+        return;
     [self stopTapped:nil];
     CGPoint location = [recognizer locationInView:_fullScreenImageDisplay];
     NSLog (@"Tap at:%.1f %.1f]",location.x,location.y);
@@ -398,7 +402,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_numClipsLabel];
     [_allViewsArray addObject:_deleteClipButton];
     [_allViewsArray addObject:_slider];
-    [_allViewsArray addObject:_addImageHighlightButton];
+    //[_allViewsArray addObject:_addImageHighlightButton];
     [_allViewsArray addObject:_imageHighlightInstructions];
     [_allViewsArray addObject:_highlightLinesLabel];
     [_allViewsArray addObject:_highlightBarsLabel];
@@ -409,6 +413,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_delayLabel];
     [_allViewsArray addObject:_recordLabel];
     [_allViewsArray addObject:_tunerButton];
+    [_allViewsArray addObject:_playbackSpeedButton];
+    [_allViewsArray addObject:_playbackSpeedDecreaseButton];
+    [_allViewsArray addObject:_playbackSpeedIncreaseButton];
 
 }
 -(void) hideAllViews:(BOOL)hide
@@ -712,6 +719,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
                 [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
             }
         }
+        /*
         else if (!imageToLoad && _currentImageID > -1)
         {
             _currentImageID = -1;
@@ -725,7 +733,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
             [_fullScreenImageDisplay setHidden:YES];
             [_ImageDisplay setHidden:NO];
             [_fullScreenButton setHidden:YES];
-        }
+        }*/
             
     }
     [self->_slider setValue:value];
@@ -1063,6 +1071,8 @@ void showAlert(NSString *text)
         case YOUTUBEVIDEO:
             [_pauseButton setHidden:NO];
             [_continueButton setHidden:YES];
+            [_playerView setHidden:NO];
+            [_ImageDisplay setHidden:YES];
             [self.playerView playVideo];
             [_timer invalidate];
             _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
@@ -1377,9 +1387,6 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         return FALSE;
     }
     _appSoundPlayer = newPlayer;
-    _appSoundPlayer.rate = 0.8;
-    _appSoundPlayer.enableRate = NO;
-    
     // "Preparing to play" attaches to the audio hardware and ensures that playback
     //        starts quickly when the user taps Play
     [_appSoundPlayer prepareToPlay];
@@ -1418,6 +1425,9 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     }
     else
     {
+        [self.ImageDisplay setHidden:YES];
+        [self.playerView setHidden:NO];
+        [self.playerView setPlaybackRate:0.5];
         [self.playerView pauseVideo];
         [self.playerView seekToSeconds:_currentSongStartTime allowSeekAhead:YES];
     }
@@ -1639,21 +1649,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 - (void)checkTime:(NSTimer*)timer
 {
-    static int onoff = 0;
-    static BOOL isOn = FALSE;
     if (!_timer)
         return;
     if (_currentSongType == SONG)
     {
- /*       if (!(onoff++ % 10))
-        {
-            if (isOn)
-                [_appSoundPlayer pause];
-            else
-                [_appSoundPlayer play];
-            isOn = !isOn;
-        }*/
-
         float stime = _appSoundPlayer.currentTime;
         if (_appSoundPlayer.currentTime >= _endTime)
         {
@@ -1689,6 +1688,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                 [_playSegmentButton setSelected:NO];
                 [_pauseButton setHidden:YES];
                 [_continueButton setHidden:NO];
+                [timer invalidate];
             }
         }
         else
@@ -1774,6 +1774,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_priorClipButton setEnabled:YES];
     if (_currentClip < (int)_beginTimes.count -1)
         [_nextClipButton setEnabled:YES];
+    if (_currentClip < 0)
+    {
+        [_playSegmentButton setHidden:YES];
+        [_loopSegmentButton setHidden:YES];
+    }
 }
 - (IBAction)priorClipTapped:(id)sender
 {
@@ -1819,6 +1824,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 - (void) setupClip
 {
+    if (_currentClip < 0)
+        return;
     _currentClipID = (int) _clipIDs[_currentClip].integerValue;
     _beginTime = (int)_beginTimes[_currentClip].integerValue/10.0;
     _endTime = (int)_endTimes[_currentClip].integerValue/10.0;
@@ -2322,6 +2329,54 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     return;
 }
 
+- (IBAction)playbackSpeedDecrease:(id)sender
+{
+    if (_playbackSpeed > 1)
+        _playbackSpeed--;
+    [self displayPlaybackSpeed];
+}
+
+- (IBAction)playbackSpeedIncrease:(id)sender
+{
+    if (_playbackSpeed < 20)
+        _playbackSpeed++;
+    [self displayPlaybackSpeed];
+}
+
+- (IBAction)playbackSpeedReset:(id)sender
+{
+    if (_playbackSpeed == 10)
+        return;
+    _playbackSpeed = 10;
+    [self displayPlaybackSpeed];
+}
+
+- (void) displayPlaybackSpeed
+{
+    UIButtonConfiguration *config = _playbackSpeedButton.configuration;
+    NSString *subTitle = @"Normal";
+    if (_playbackSpeed != 10)
+        subTitle = [NSString stringWithFormat:@"%i percent",IDNINT(_playbackSpeed*10)];
+    config.subtitle = subTitle;
+    [NSOperationQueue.mainQueue addOperationWithBlock:^{
+        self->_playbackSpeedButton.configuration = config;
+    }];
+    [self setPlaybackSpeed:_playbackSpeed];
+}
+
+- (void) setPlaybackSpeed:(int)playbackSpeed
+{
+    [_appSoundPlayer stop];
+    if (playbackSpeed == 10)
+        _appSoundPlayer.enableRate = NO;
+    else
+    {
+        _appSoundPlayer.enableRate = YES;
+        _appSoundPlayer.rate = playbackSpeed / 10.0;
+    }
+    [_appSoundPlayer play];
+}
+
 - (IBAction)imageEndAtTapped:(id)sender
 {
     if (sender)
@@ -2796,7 +2851,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_monitorButton setHidden:YES];
     [_monitorVolumeSlider setHidden:YES];
     [_effectsButton setHidden:YES];
-    
+    [_playbackSpeedButton setHidden:NO];
+    [_playbackSpeedDecreaseButton setHidden:NO];
+    [_playbackSpeedIncreaseButton setHidden:NO];
     CGRect viewFrame = [self imageRectInView:_fullScreenImageDisplay];
     CGRect imageFrame = CGRectMake(0,0,  _fullScreenImageDisplay.image.size.width, _fullScreenImageDisplay.image.size.height);
 
@@ -2816,7 +2873,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     frame.origin.y = 10;
     [_loopSegmentButton setFrame:frame];
     [_loopSegmentButton setHidden:NO];
-    [self displayHighlightForClip:_currentClip inView:_fullScreenImageDisplay];
+    [self displayHighlightForClip:_currentClipID inView:_fullScreenImageDisplay];
 }
 
 - (IBAction)deleteClipTapped:(id)sender {
@@ -3035,6 +3092,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         BOOL rtn = [self executeCmd:cmd];
         [self close:opened];
     }
+    if (_totTrackLineWidth == 0)
+        ii = 1;
 }
 -(void) displayTrack
 {
