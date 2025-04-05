@@ -421,7 +421,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_numClipsLabel];
     [_allViewsArray addObject:_deleteClipButton];
     [_allViewsArray addObject:_slider];
-    [_allViewsArray addObject:_addImageHighlightButton];
     [_allViewsArray addObject:_imageHighlightInstructions];
     [_allViewsArray addObject:_highlightLinesLabel];
     [_allViewsArray addObject:_highlightBarsLabel];
@@ -726,7 +725,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
                 [_fullScreenImageDisplay setHidden:NO];
                 [_fullScreenButton setHidden:YES];
                 [_fullScreenReturnButton setHidden:NO];
-                [_addImageHighlightButton setHidden:YES];
                 [_highlightLinesLabel setHidden:YES];
                 [_highlightLinesStepper setHidden:YES];
                 [_imageHighlightInstructions setHidden:YES];
@@ -737,10 +735,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
                 [_ImageDisplay setImage:_image];
                 [_ImageDisplay setHidden:NO];
                 [_fullScreenButton setHidden:NO];
-                [_addImageHighlightButton setHidden:YES];
-                [_highlightLinesLabel setHidden:YES];
-                [_highlightLinesStepper setHidden:YES];
-                [_imageHighlightInstructions setHidden:YES];
                 [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
             }
         }
@@ -884,12 +878,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
         [_linkNameLabel setHidden:NO];
         [_playerView setHidden:YES];
         [_ImageDisplay setHidden:YES];
-        [_addImageHighlightButton setHidden:YES];
-        [_imageHighlightInstructions setHidden:YES];
-        [_highlightBarsStepper setHidden:YES];
-        [_highlightBarsLabel setHidden:YES];
-        [_highlightLinesLabel setHidden:YES];
-        [_highlightLinesStepper setHidden:YES];
+        [self displayImageHighlightButtons:NO];
         [_startTimeSaveButton setHidden:NO];
         [_startTimeCancelButton setHidden:NO];
         [_pasteURLButton setHidden:NO];
@@ -1263,10 +1252,9 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
 
 - (IBAction)saveTapped:(id)sender {
     _clipEditStatus = 0;
+    [self displayImageHighlightButtons:NO];
     [_beginButton setHidden:NO];
     [_endButton setHidden:NO];
-    [_highlightBarsLabel setHidden:YES];
-    [_highlightBarsStepper setHidden:YES];
     [_changeEndButton setHidden:YES];
     [_changeBeginButton setHidden:YES];
     [_saveButton setEnabled:NO];
@@ -1295,8 +1283,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _clipEditStatus = 0;
     [_beginButton setHidden:NO];
     [_endButton setHidden:NO];
-    [_highlightBarsLabel setHidden:YES];
-    [_highlightBarsStepper setHidden:YES];
+    [self displayImageHighlightButtons:NO];
+
     [_changeEndButton setHidden:YES];
     [_changeBeginButton setHidden:YES];
     [_saveButton setEnabled:NO];
@@ -1307,9 +1295,9 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_addImageButton setHidden:YES];
     [_priorClipButton setHidden:NO];
     [_nextClipButton setHidden:NO];
-    [_playSegmentButton setHidden:NO];
-    [_loopSegmentButton setHidden:NO];
-    
+    [self playSegmentButton:NO];
+    [self loopSegmentButton:NO];
+
     [self setCurrentPositiion:NO];
 }
 
@@ -1318,8 +1306,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _timer = nil;
     [_beginButton setHidden:YES];
     [_endButton setHidden:YES];
-    [_highlightBarsLabel setHidden:NO];
-    [_highlightBarsStepper setHidden:NO];
+    [self displayImageHighlightButtons:YES];
     [_changeEndButton setHidden:NO];
     [_changeBeginButton setHidden:NO];
     [_changeBeginButton setSelected:NO];
@@ -1332,8 +1319,10 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_addImageButton setHidden:_currentSongType != SONG];
     [_priorClipButton setHidden:YES];
     [_nextClipButton setHidden:YES];
-    [self playSegmentButton:YES];
-    [self loopSegmentButton:YES];
+    [_playSegmentButton setHidden:YES];
+    [_playSegmentButtonSelected setHidden:YES];
+    [_loopSegmentButton setHidden:YES];
+    [_loopSegmentButtonSelected setHidden:YES];
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer pause];
@@ -1834,11 +1823,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _numTrackLines = 0;
         if ([self displayImageAtTime:_beginTime inGroup:_currentPracticeGroupID])
         {
-            [_addImageHighlightButton setHidden:NO];
-            [_imageHighlightInstructions setHidden:NO];
-            [_highlightLinesLabel setHidden:NO];
-            [_highlightLinesStepper setHidden:NO];
-            [_addImageButton setHidden:YES];
+            [self displayImageHighlightButtons:YES];
         }
         [self setCurrentPositiion:YES];
         [self updateClipButtons];
@@ -1880,10 +1865,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _numTrackLines = 0;
     if ([self displayImageAtTime:_beginTime inGroup:_currentPracticeGroupID])
     {
-        [_addImageHighlightButton setHidden:NO];
-        [_imageHighlightInstructions setHidden:NO];
-        [_highlightLinesLabel setHidden:NO];
-        [_highlightLinesStepper setHidden:NO];
+        [self displayImageHighlightButtons:YES];
         [_addImageButton setHidden:YES];
     }
     [self setCurrentPositiion:YES];
@@ -2735,7 +2717,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_ImageDisplay setImage:_image];
         [_ImageDisplay setHidden:NO];
         [_fullScreenButton setHidden:NO];
-        [_addImageHighlightButton setHidden:YES];
         [_highlightLinesLabel setHidden:YES];
         [_highlightLinesStepper setHidden:YES];
         [_imageHighlightInstructions setHidden:YES];
@@ -2750,10 +2731,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [self removeHighlightFromView:_ImageDisplay];
 
     }
-    [_addImageHighlightButton setHidden:NO];
-    [_imageHighlightInstructions setHidden:NO];
-    [_highlightLinesLabel setHidden:NO];
-    [_highlightLinesStepper setHidden:NO];
     [_addImageButton setHidden:YES];
 
     return rtn;
@@ -2799,10 +2776,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_ImageDisplay setImage:_image];
     [_ImageDisplay setHidden:NO];
     [_fullScreenButton setHidden:NO];
-    [_addImageHighlightButton setHidden:NO];
-    [_highlightLinesLabel setHidden:YES];
-    [_highlightLinesStepper setHidden:YES];
-    [_imageHighlightInstructions setHidden:YES];
+    [self displayImageHighlightButtons:NO];
     _currentFileNum = fileNum;
     _currentNumFiles = numFiles;
     [self displayHighlightForClip:clipID
@@ -2920,7 +2894,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_monitorButton setHidden:YES];
     [_monitorVolumeSlider setHidden:YES];
     [_effectsButton setHidden:YES];
-    [_addImageHighlightButton setHidden:YES];
     [_playbackSpeedButton setHidden:NO];
     [_playbackSpeedDecreaseButton setHidden:NO];
     [_playbackSpeedIncreaseButton setHidden:NO];
@@ -2975,11 +2948,14 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self verifyDelete:1];
 }
 
-- (IBAction)addImageHighlightTapped:(id)sender {
-    [_imageHighlightInstructions setHidden:NO];
-    [_imageHighlightInstructions setText:@"Tap start point"];
-    [_highlightLinesLabel setHidden:NO];
-    [_highlightLinesStepper setHidden:NO];
+- (void)displayImageHighlightButtons:(BOOL)show
+{
+    [_imageHighlightInstructions setHidden:!show];
+    [_highlightLinesLabel setHidden:!show];
+    [_highlightLinesStepper setHidden:!show];
+    [_highlightBarsLabel setHidden:!show];
+    [_highlightBarsStepper setHidden:!show];
+    [_imageHighlightInstructions setText:@""];
 
     _highlightPointNumber = 1;
 }

@@ -75,7 +75,6 @@
 @property (weak, nonatomic) IBOutlet UISlider *slider;
 @property (weak, nonatomic) IBOutlet UIButton *deleteClipButton;
 @property (weak, nonatomic) IBOutlet UILabel *tapToEditLabel;
-@property (weak, nonatomic) IBOutlet UIButton *addImageHighlightButton;
 @property (weak, nonatomic) IBOutlet UILabel *imageHighlightInstructions;
 @property (weak, nonatomic) IBOutlet UILabel *highlightLinesLabel;
 @property (weak, nonatomic) IBOutlet UIStepper *highlightLinesStepper;
@@ -118,7 +117,6 @@
 - (IBAction)recordChanged:(id)sender;
 - (IBAction)delayChanged:(id)sender;
 - (IBAction)highlightLinesChanged:(id)sender;
-- (IBAction)addImageHighlightTapped:(id)sender;
 - (IBAction)deleteClipTapped:(id)sender;
 - (IBAction)fullScreenTapped:(id)sender;
 - (IBAction)fullScreenReturnButtonTapped:(id)sender;
