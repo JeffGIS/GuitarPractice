@@ -32,6 +32,7 @@
 		EBC290CB2D6A39240017526B /* RecordSongViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = EBC290CA2D6A39240017526B /* RecordSongViewController.m */; };
 		EBDEFB1D2D9C3D5500914922 /* plus.rectangle.svg in Resources */ = {isa = PBXBuildFile; fileRef = EBDEFB1C2D9C3D5500914922 /* plus.rectangle.svg */; };
 		EBDEFB1E2D9C3D5500914922 /* minus.rectangle.svg in Resources */ = {isa = PBXBuildFile; fileRef = EBDEFB1B2D9C3D5500914922 /* minus.rectangle.svg */; };
+		EBDEFB202DA04BDC00914922 /* blueImage.png in Resources */ = {isa = PBXBuildFile; fileRef = EBDEFB1F2DA04BDC00914922 /* blueImage.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -73,6 +74,7 @@
 		EBC290CA2D6A39240017526B /* RecordSongViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RecordSongViewController.m; sourceTree = "<group>"; };
 		EBDEFB1B2D9C3D5500914922 /* minus.rectangle.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = minus.rectangle.svg; sourceTree = "<group>"; };
 		EBDEFB1C2D9C3D5500914922 /* plus.rectangle.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = plus.rectangle.svg; sourceTree = "<group>"; };
+		EBDEFB1F2DA04BDC00914922 /* blueImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = blueImage.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -99,6 +101,7 @@
 		EB547D6323D4195B009BE924 = {
 			isa = PBXGroup;
 			children = (
+				EBDEFB1F2DA04BDC00914922 /* blueImage.png */,
 				EBDEFB1B2D9C3D5500914922 /* minus.rectangle.svg */,
 				EBDEFB1C2D9C3D5500914922 /* plus.rectangle.svg */,
 				EB93FAE72C4DD8C700D8423B /* Info.md */,
@@ -235,6 +238,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EB547D7F23D4195C009BE924 /* LaunchScreen.storyboard in Resources */,
+				EBDEFB202DA04BDC00914922 /* blueImage.png in Resources */,
 				EBB8DBC72C2B7657000653FE /* bluesyRiff.mid in Resources */,
 				EBDEFB1D2D9C3D5500914922 /* plus.rectangle.svg in Resources */,
 				EBDEFB1E2D9C3D5500914922 /* minus.rectangle.svg in Resources */,

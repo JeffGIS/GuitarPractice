@@ -234,6 +234,24 @@ typedef NS_ENUM(NSInteger, SongTypes)
     NSURL *url = [NSURL URLWithString:soundFile];
     AudioServicesCreateSystemSoundID((__bridge CFURLRef _Nonnull)(url), &_leadInTick);
     _playbackSpeed = 10;
+    CGRect b = self.view.bounds;
+    return;
+}
+
+- (void) viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    int top = self.view.safeAreaInsets.top;
+    CGRect b = self.view.bounds;
+    return;
+}
+- (void) viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+    int top = self.view.safeAreaInsets.top;
+    CGRect b = self.view.bounds;
+    UIEdgeInsets ei = self.view.safeAreaInsets;
+    return;
 }
 - (void) handleLongPress:(UILongPressGestureRecognizer *)recognizer
 {
@@ -403,7 +421,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_numClipsLabel];
     [_allViewsArray addObject:_deleteClipButton];
     [_allViewsArray addObject:_slider];
-    //[_allViewsArray addObject:_addImageHighlightButton];
+    [_allViewsArray addObject:_addImageHighlightButton];
     [_allViewsArray addObject:_imageHighlightInstructions];
     [_allViewsArray addObject:_highlightLinesLabel];
     [_allViewsArray addObject:_highlightBarsLabel];
@@ -659,6 +677,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 {
 //    NSLog (@"%f,%f,%f",value,_slider.minimumValue,_slider.maximumValue);
     CGPoint pt={0,0};
+    if (value > 122)
+        ii = 1;
     if (_trackLabel && _numTrackLines)
     {
         int onLine = 0;
@@ -670,7 +690,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
         {
             if (distAlongClip > distAlongLines)
             {
-                distAlongClip -= _trackLineWidths[i];
+                double d = _trackLineWidths[i];
+                distAlongClip -= d;
+                distAlongLines = _trackLineWidths[i+1];
                 onLine++;
             }
         }
@@ -678,6 +700,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
         pt.x += distAlongClip;
         pt.x += _trackLineBasePoint.x;
         pt.y += _trackLineBasePoint.y;
+        if (pt.x < 0)
+            ii = 1;
     }
     if (!_inAddImageMode)
     {
@@ -897,6 +921,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
                 }
                 else
                 {
+                    _images = NSMutableArray.new;
                     _currentYouTubeLink = url;
                     [self displayYouTubeVideo:_currentYouTubeLink];
                 }
@@ -1252,9 +1277,9 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_addImageButton setHidden:YES];
     [_priorClipButton setHidden:NO];
     [_nextClipButton setHidden:NO];
-    [_playSegmentButton setHidden:NO];
-    [_loopSegmentButton setHidden:NO];
-    
+    [self playSegmentButton:NO];
+    [self loopSegmentButton:NO];
+
     BOOL opened = [self open];
     NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
     
@@ -1291,8 +1316,6 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
 - (IBAction)clipButtonTapped:(id)sender {
     [_timer invalidate];
     _timer = nil;
-    [_loopSegmentButton setSelected:NO];
-    [_playSegmentButton setSelected:NO];
     [_beginButton setHidden:YES];
     [_endButton setHidden:YES];
     [_highlightBarsLabel setHidden:NO];
@@ -1306,11 +1329,11 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_saveButton setHidden:NO];
     [_saveButton setEnabled:YES];
     [_deleteClipButton setEnabled:YES];
-    [_addImageButton setHidden:NO];
+    [_addImageButton setHidden:_currentSongType != SONG];
     [_priorClipButton setHidden:YES];
     [_nextClipButton setHidden:YES];
-    [_playSegmentButton setHidden:YES];
-    [_loopSegmentButton setHidden:YES];
+    [self playSegmentButton:YES];
+    [self loopSegmentButton:YES];
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer pause];
@@ -1431,11 +1454,23 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         [self.playerView pauseVideo];
         [self.playerView seekToSeconds:_currentSongStartTime allowSeekAhead:YES];
     }
-    [_loopSegmentButton setSelected:NO];
-    [_playSegmentButton setSelected:NO];
+    [self playSegmentButton:NO];
+    [self loopSegmentButton:NO];
     [self continueTapped:nil];
 }
 
+- (void) loopSegmentButton:(BOOL) setSelected
+{
+    [_loopSegmentButton setSelected:setSelected];
+    [_loopSegmentButton setHidden:setSelected];
+    [_loopSegmentButtonSelected setHidden:!setSelected];
+}
+- (void) playSegmentButton:(BOOL) setSelected
+{
+    [_playSegmentButton setSelected:setSelected];
+    [_playSegmentButton setHidden:setSelected];
+    [_playSegmentButtonSelected setHidden:!setSelected];
+}
 - (void) saveSongURL:(NSString *)url
             forTitle:(NSString *)title
               ofType:(SongTypes)type
@@ -1564,7 +1599,6 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     NSString *labelText;
     labelText = @"";
 
-    [_addImageHighlightButton setHidden:!(_currentClip > -1)];
     if (_currentClip > -1 && !_inFullScreen)
     {
         float nseconds = _endTime - _beginTime;
@@ -1579,8 +1613,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         [_clipButton setHidden:YES];
         _tapToEditLabel.text = @"Tap Mark Begin to Add a Clip";
         [self updateClipButtons];
-        [_playSegmentButton setSelected:NO];
-        [_loopSegmentButton setSelected:NO];
+        [self playSegmentButton:NO];
+        [self loopSegmentButton:NO];
         [_tapToEditLabel setHidden:NO];
     }
     if (_currentSongType == SONG)
@@ -1621,6 +1655,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)playSegmentTapped:(id)sender {
     _inLoop = NO;
     _currentImageID = -1;
+    [_delayLabel setHidden:YES];
+    [_delaySwitch setHidden:YES];
+    [_recordLabel setHidden:YES];
+    [_recordSwitch setHidden:YES];
     if (_currentSongType == SONG)
     {
         [_appSoundPlayer stop];
@@ -1633,17 +1671,17 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (_timer)
         [_timer invalidate];
     _timer = nil;
-    [_loopSegmentButton setSelected:NO];
     if (_playSegmentButton.isSelected)
     {
-        [_playSegmentButton setSelected:NO];
+        [self playSegmentButton:NO];
         [_pauseButton setHidden:YES];
         [_continueButton setHidden:NO];
     }
     else
     {
         [_appSoundPlayer setCurrentTime:_beginTime];
-        [_playSegmentButton setSelected:YES];
+        [self playSegmentButton:YES];
+        [self loopSegmentButton:NO];
         [self continueTapped:nil];
     }
 }
@@ -1685,7 +1723,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                     [_appSoundPlayer stop];
                     [self setSliderValue:_endTime];
                 }
-                [_playSegmentButton setSelected:NO];
+                [self playSegmentButton:NO];
                 [_pauseButton setHidden:YES];
                 [_continueButton setHidden:NO];
                 [timer invalidate];
@@ -1757,8 +1795,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
     [_priorClipButton setEnabled:NO];
     [_nextClipButton setEnabled:NO];
-    [_playSegmentButton setEnabled:NO];
-    [_loopSegmentButton setEnabled:NO];
+    [self playSegmentButton:NO];
+    [self loopSegmentButton:NO];
     if (_currentClip < 0 ||_beginTimes.count < 2)
     {
         [_nextClipButton setTitle:@"First Clip" forState:UIControlStateNormal];
@@ -1768,8 +1806,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     {
         [_nextClipButton setTitle:@"Next Clip" forState:UIControlStateNormal];
     }
-    [_playSegmentButton setEnabled:YES];
-    [_loopSegmentButton setEnabled:YES];
     if (_currentClip > 0)
         [_priorClipButton setEnabled:YES];
     if (_currentClip < (int)_beginTimes.count -1)
@@ -1802,12 +1838,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
             [_imageHighlightInstructions setHidden:NO];
             [_highlightLinesLabel setHidden:NO];
             [_highlightLinesStepper setHidden:NO];
+            [_addImageButton setHidden:YES];
         }
         [self setCurrentPositiion:YES];
         [self updateClipButtons];
         [self stopTapped:nil];
-        [_loopSegmentButton setSelected:NO];
-        [_playSegmentButton setSelected:NO];
+        [self playSegmentButton:NO];
+        [self loopSegmentButton:NO];
     }
 }
 
@@ -1847,12 +1884,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_imageHighlightInstructions setHidden:NO];
         [_highlightLinesLabel setHidden:NO];
         [_highlightLinesStepper setHidden:NO];
+        [_addImageButton setHidden:YES];
     }
     [self setCurrentPositiion:YES];
     [self updateClipButtons];
     [self stopTapped:nil];
-    [_loopSegmentButton setSelected:NO];
-    [_playSegmentButton setSelected:NO];
+    [self playSegmentButton:NO];
+    [self loopSegmentButton:NO];
 
 }
 - (IBAction)loopSegmentTapped:(id)sender
@@ -1868,7 +1906,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         {
             [self.playerView pauseVideo];
         }
-        [_loopSegmentButton setSelected:NO];
+        [_loopSegmentButton setHidden:NO];
+        [_loopSegmentButtonSelected setHidden:YES];
         [_playSegmentButton setSelected:NO];
         [_delayLabel setHidden:YES];
         [_delaySwitch setHidden:YES];
@@ -1901,8 +1940,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
         [self.playerView playVideo];
     }
-    [_loopSegmentButton setSelected:YES];
-    [_playSegmentButton setSelected:NO];
+    [self playSegmentButton:NO];
+    [self loopSegmentButton:YES];
+    [self setPlayAndRecordButtonLocation];
     [_delayLabel setHidden:NO];
     [_delaySwitch setHidden:NO];
     [_recordLabel setHidden:NO];
@@ -2710,6 +2750,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [self removeHighlightFromView:_ImageDisplay];
 
     }
+    [_addImageHighlightButton setHidden:NO];
+    [_imageHighlightInstructions setHidden:NO];
+    [_highlightLinesLabel setHidden:NO];
+    [_highlightLinesStepper setHidden:NO];
+    [_addImageButton setHidden:YES];
+
     return rtn;
 }
 
@@ -2853,21 +2899,28 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     CGRect frame = _imageFrame.frame;
     frame.origin.x = 0;
     frame.size.width = self.view.frame.size.width;
+    frame.origin.y += 16;
+    frame.size.height -= 16;
+    [_imageFrame setHidden:YES];
+    [_ImageDisplay setHidden:YES];
     if (_currentSongType == SONG)
     {
         [_fullScreenImageDisplay setFrame:frame];
         [_fullScreenImageDisplay setImage:_image];
         [_fullScreenImageDisplay setHidden:NO];
+        [self.playerView setHidden:YES];
     }
     else
     {
         [self.playerView setFrame:frame];
         [self.playerView setHidden:NO];
+        [_fullScreenImageDisplay setHidden:YES];
     }
     [_fullScreenReturnButton setHidden:NO];
     [_monitorButton setHidden:YES];
     [_monitorVolumeSlider setHidden:YES];
     [_effectsButton setHidden:YES];
+    [_addImageHighlightButton setHidden:YES];
     [_playbackSpeedButton setHidden:NO];
     [_playbackSpeedDecreaseButton setHidden:NO];
     [_playbackSpeedIncreaseButton setHidden:NO];
@@ -2880,19 +2933,44 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _hTranViewToImage = STRANCGRect (viewFrame,imageFrame);
     frame = _playSegmentButton.frame;
     _savePlaySegmentFrame = frame;
-    frame.origin.x = 10;
-    frame.origin.y = 10;
+    frame.origin.x = 2;
+    frame.origin.y = 20;
     [_playSegmentButton setFrame:frame];
+    [_playSegmentButtonSelected setFrame:frame];
+
     [_playSegmentButton setHidden:NO];
     frame = _loopSegmentButton.frame;
     _saveLoopSegmentFrame = frame;
-    frame.origin.x = _savePlaySegmentFrame.origin.x + _savePlaySegmentFrame.size.width + 10;
-    frame.origin.y = 10;
+    frame.origin.x = _playSegmentButton.frame.origin.x + _savePlaySegmentFrame.size.width + 10;
+    frame.origin.y = 20;
     [_loopSegmentButton setFrame:frame];
+    [_loopSegmentButtonSelected setFrame:frame];
+    [_recordLabel setHidden:YES];
+    [_recordSwitch setHidden:YES];
     [_loopSegmentButton setHidden:NO];
     [self displayHighlightForClip:_currentClipID inView:_fullScreenImageDisplay];
 }
+- (void) setPlayAndRecordButtonLocation
+{
+    CGRect frame = _playSegmentButton.frame;
+    frame.origin.x += 30;
+    frame.origin.y += frame.size.height + 6;
+    frame.size.height = _delayLabel.frame.size.height;
+    frame.size.width = _delayLabel.frame.size.width;
+    [_delayLabel setFrame:frame];
+    frame.origin.x += _delayLabel.frame.size.width + 8;
+    [_delaySwitch setFrame:frame];
+    
+    frame = _loopSegmentButton.frame;
+    frame.origin.x += 25;
+    frame.origin.y += frame.size.height + 6;
+    frame.size.height = _recordLabel.frame.size.height;
+    frame.size.width = _recordLabel.frame.size.width;
+    [_recordLabel setFrame:frame];
+    frame.origin.x += _recordLabel.frame.size.width + 8;
+    [_recordSwitch setFrame:frame];
 
+}
 - (IBAction)deleteClipTapped:(id)sender {
     [self verifyDelete:1];
 }
@@ -3128,13 +3206,23 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [self.playerView setFrame:frame];
         [self.playerView setHidden:NO];
     }
+    else
+    {
+        [self.playerView setHidden:YES];       
+        [_imageFrame setHidden:NO];
+        [_ImageDisplay setHidden:NO];
+    }
     [_fullScreenImageDisplay setHidden:YES];
     [_fullScreenReturnButton setHidden:YES];
     [_monitorButton setHidden:NO];
+    [_tunerButton setHidden:NO];
     [_monitorVolumeSlider setHidden:NO];
     [_effectsButton setHidden:NO];
     [_playSegmentButton setFrame:_savePlaySegmentFrame];
     [_loopSegmentButton setFrame:_saveLoopSegmentFrame];
+    [_playSegmentButtonSelected setFrame:_savePlaySegmentFrame];
+    [_loopSegmentButtonSelected setFrame:_saveLoopSegmentFrame];
+
     _haveTempHighlight = NO;
     [self setupClip];
     [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
@@ -3330,6 +3418,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     [_fullScreenButton setHidden:NO];
     [_saveButton setEnabled:NO];
     [_ImageDisplay setHidden:YES];
+    [_tunerButton setHidden:NO];
     _YouTubeName = _currentSongTitle;
     [self retrieveSong:_currentPracticeGroupID
               setTimes:YES];
