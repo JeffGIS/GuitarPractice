@@ -150,6 +150,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property (nonatomic) int playbackSpeed;
 @property CGPoint tempHighlightImagePoint1, tempHighlightImagePoint2;
 @property BOOL haveTempHighlight;
+@property int tempClipStatus;
+@property float tempClipStart, tempClipEnd;
+@property float saveClipStart, saveClipEnd;
 
 
 @property SystemSoundID soundID;
@@ -434,6 +437,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_playbackSpeedButton];
     [_allViewsArray addObject:_playbackSpeedDecreaseButton];
     [_allViewsArray addObject:_playbackSpeedIncreaseButton];
+    [_allViewsArray addObject:_tempClipButton];
 
 }
 -(void) hideAllViews:(BOOL)hide
@@ -2641,6 +2645,53 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     NSLog (@"Touch");
     return;
 }
+
+- (IBAction)tempClipTapped:(id)sender {
+    _currentTime = _appSoundPlayer.currentTime;
+    switch (_tempClipStatus)
+    {
+    case 0://mark start
+            _saveClipStart = _beginTime;
+            _saveClipEnd = _endTime;
+            _tempClipStart = _currentTime;
+            [self setTempClipSubtitle:@"Mark End"];
+            _tempClipStatus++;
+        break;
+    case 1://mark end
+            _tempClipEnd = _currentTime;
+            [self setTempClipSubtitle:@"Clear"];
+            _tempClipStatus++;
+            _beginTime = _tempClipStart;
+            _endTime = _tempClipEnd;
+        break;
+    case 2://reset
+            [self setTempClipSubtitle:@"Mark Start"];
+            _tempClipStatus = 0;
+            _beginTime = _saveClipStart;
+            _endTime = _saveClipEnd;
+        break;
+    }
+}
+- (void) setTempClipSubtitle:(NSString *)subTitle
+{
+    
+    UIButtonConfiguration *config = _tempClipButton.configuration;
+    if (_tempClipStatus == 1)
+    {
+        config.baseBackgroundColor = UIColor.redColor;
+        config.baseForegroundColor = UIColor.whiteColor;
+    }
+    else
+    {
+        config.baseBackgroundColor = UIColor.yellowColor;
+        config.baseForegroundColor = UIColor.blackColor;
+    }
+    config.subtitle = subTitle;
+    [NSOperationQueue.mainQueue addOperationWithBlock:^{
+        self->_tempClipButton.configuration = config;
+    }];
+
+}
 - (IBAction)marginIncreaseButtonTapped:(id)sender
 {
     NSLog (@"Release");
@@ -2897,6 +2948,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_playbackSpeedButton setHidden:NO];
     [_playbackSpeedDecreaseButton setHidden:NO];
     [_playbackSpeedIncreaseButton setHidden:NO];
+    [_tempClipButton setHidden:NO];
     CGRect viewFrame = [self imageRectInView:_fullScreenImageDisplay];
     CGRect imageFrame = CGRectMake(0,0,  _fullScreenImageDisplay.image.size.width, _fullScreenImageDisplay.image.size.height);
 
