@@ -763,7 +763,7 @@
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="filled" cornerStyle="capsule">
+                                <buttonConfiguration key="configuration" style="filled" title=" " cornerStyle="capsule">
                                     <imageReference key="image" image="minus.rectangle" catalog="system" symbolScale="large" variableValue="1"/>
                                     <backgroundConfiguration key="background">
                                         <color key="backgroundColor" systemColor="systemMintColor"/>
@@ -780,7 +780,7 @@
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="filled" cornerStyle="capsule">
+                                <buttonConfiguration key="configuration" style="filled" title=" " cornerStyle="capsule">
                                     <imageReference key="image" image="plus.rectangle" catalog="system" symbolScale="large" variableValue="1"/>
                                     <backgroundConfiguration key="background">
                                         <color key="backgroundColor" systemColor="systemMintColor"/>
