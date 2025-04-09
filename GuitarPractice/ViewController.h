@@ -94,6 +94,8 @@
 @property (weak, nonatomic) IBOutlet UIButton *playbackSpeedIncreaseButton;
 @property (weak, nonatomic) IBOutlet UIButton *playbackSpeedDecreaseButton;
 @property (weak, nonatomic) IBOutlet UIButton *tempClipButton;
+@property (weak, nonatomic) IBOutlet UIButton *nextSongButton;
+@property (weak, nonatomic) IBOutlet UIButton *selectSongButton;
 - (IBAction)tempClipTapped:(id)sender;
 
 - (IBAction)touchMargin:(id)sender;

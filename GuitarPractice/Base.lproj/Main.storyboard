@@ -837,6 +837,7 @@
                         <outlet property="monitorButton" destination="CBa-rr-Yli" id="W7d-VA-myv"/>
                         <outlet property="monitorVolumeSlider" destination="6UE-iN-sBF" id="TEs-a3-a0L"/>
                         <outlet property="nextClipButton" destination="shT-IL-a1e" id="Jmu-Lh-Ogv"/>
+                        <outlet property="nextSongButton" destination="1vE-sB-u4o" id="evn-Aa-emf"/>
                         <outlet property="numClipsLabel" destination="WuM-WL-xoF" id="Oyg-oC-Hlh"/>
                         <outlet property="pasteURLButton" destination="KU1-Mz-4UO" id="Ejk-xZ-Oah"/>
                         <outlet property="pauseButton" destination="sMO-BT-D1S" id="CAY-TU-1yi"/>
@@ -853,6 +854,7 @@
                         <outlet property="saveButton" destination="CrY-BU-Nyf" id="qrp-Ig-SIF"/>
                         <outlet property="saveImageButton" destination="ppx-6k-HPT" id="Vyv-FO-svd"/>
                         <outlet property="selectCollectionButton" destination="gQK-F3-q8R" id="TiQ-O9-P5z"/>
+                        <outlet property="selectSongButton" destination="lrU-mU-uWa" id="jJw-A8-oaQ"/>
                         <outlet property="slider" destination="pOx-ix-Z6F" id="d11-vL-Tbm"/>
                         <outlet property="sliderTextLabel" destination="1xh-wr-1cz" id="PsZ-N4-pwJ"/>
                         <outlet property="songTitleLabel" destination="JaH-lt-vyi" id="lc8-DT-gYA"/>

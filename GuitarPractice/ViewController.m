@@ -66,7 +66,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property MPMediaPickerController *picker;
 @property int currentTime;
 @property float beginTime;
-@property float endTime;
+@property (nonatomic)float endTime;
 @property float timerInterval;
 @property int currentSongStartTime;
 @property NSMutableArray<NSNumber*> *clipIDs;
@@ -256,6 +256,12 @@ typedef NS_ENUM(NSInteger, SongTypes)
     UIEdgeInsets ei = self.view.safeAreaInsets;
     return;
 }
+
+- (void) setEndTime:(float)endTime
+{
+    _endTime = endTime;
+    return;
+}
 - (void) handleLongPress:(UILongPressGestureRecognizer *)recognizer
 {
     [self stopTapped:nil];
@@ -365,6 +371,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
                          doUpdate:YES];
             CloseTRANS2 (&hTranImageToView);
             CloseTRANS2 (&hTranViewToImage);
+            [_imageHighlightInstructions setText:@""];
         }
             break;
         default:
@@ -377,8 +384,10 @@ typedef NS_ENUM(NSInteger, SongTypes)
 {
     _allViewsArray = NSMutableArray.new;
     [_allViewsArray addObject:self.playerView];
-    [_allViewsArray addObject:_selectCollectionButton];
-    [_allViewsArray addObject:_songTitleLabel];
+    //[_allViewsArray addObject:_selectCollectionButton];
+    //[_allViewsArray addObject:_songTitleLabel];
+    //[_allViewsArray addObject:_numClipsLabel];
+    //[_allViewsArray addObject:_currentCollectionLabel];
     [_allViewsArray addObject:_ImageDisplay];
     [_allViewsArray addObject:_fullScreenImageDisplay];
     [_allViewsArray addObject:_fullScreenButton];
@@ -404,7 +413,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_startTimeSecondsStepper];
     [_allViewsArray addObject:_startTimeSaveButton];
     [_allViewsArray addObject:_startTimeCancelButton];
-    [_allViewsArray addObject:_currentCollectionLabel];
     [_allViewsArray addObject:_linkName];
     [_allViewsArray addObject:_linkNameLabel];
     [_allViewsArray addObject:_playerView];
@@ -421,7 +429,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
     [_allViewsArray addObject:_cancelEditButton];
     [_allViewsArray addObject:_changeBeginButton];
     [_allViewsArray addObject:_changeEndButton];
-    [_allViewsArray addObject:_numClipsLabel];
     [_allViewsArray addObject:_deleteClipButton];
     [_allViewsArray addObject:_slider];
     [_allViewsArray addObject:_imageHighlightInstructions];
@@ -509,7 +516,6 @@ typedef NS_ENUM(NSInteger, SongTypes)
 {
     return;
 }
-
 - (void)playerView:(nonnull YTPlayerView *)playerView didPlayTime:(float)playTime
 {
     _currentYTTime = playTime;
@@ -556,18 +562,46 @@ typedef NS_ENUM(NSInteger, SongTypes)
     {
         case kYTPlayerStatePlaying:
             NSLog(@"Started playback");
+            [_continueButton setHidden:YES];
+            [_pauseButton setHidden:NO];
+
             _playerIsPlaying = TRUE;
             break;
         case kYTPlayerStatePaused:
             NSLog(@"Paused playback");
+            [_continueButton setHidden:NO];
+            [_pauseButton setHidden:YES];
             _playerIsPlaying = FALSE;
             break;
         case kYTPlayerStateEnded:
             NSLog(@"Ended playback");
             _playerIsPlaying = FALSE;
+            break;
+        case kYTPlayerStateBuffering:
+            NSLog(@"Buffering");
+            _playerIsPlaying = FALSE;
+            break;
+        case kYTPlayerStateUnstarted:
+            NSLog(@"Unstarted");
+            [self pauseVideoAfterTime:0.5];
+            _playerIsPlaying = FALSE;
+            break;
+        case kYTPlayerStateCued:
+            NSLog(@"Qued playback");
+            break;
         default:
+            ii=1;
             break;
     }
+}
+-(void) doPauseVideo:(NSTimer*)time
+{
+    [self.playerView pauseVideo];
+}
+
+-(void) pauseVideoAfterTime:(float)time
+{
+    [NSTimer scheduledTimerWithTimeInterval:time target:self selector:@selector(doPauseVideo:) userInfo:nil repeats:NO];
 }
 
 -(BOOL) createCollection:(NSString *)name
@@ -1049,6 +1083,7 @@ void showAlert(NSString *text)
     if ([self displayYouTubeVideo:URL])
     {
         _startingExistingVideo =YES;
+        [self updateClipButtons];
         [_timer invalidate];
         _timer = [NSTimer scheduledTimerWithTimeInterval:3 target:self selector:@selector(playTapped:) userInfo:nil repeats:NO];
     }
@@ -1071,8 +1106,9 @@ void showAlert(NSString *text)
     if (_currentClip < 0)
     {
         _beginTime = _currentSongStartTime;
-        _endTime = _currentSongDuration;
     }
+    if (sender)
+        self.endTime = _currentSongDuration;
     switch (_currentSongType)
     {
         case SONG:
@@ -1279,7 +1315,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [self executeCmd:cmd];
     [self close:opened];
     [self retrieveSong:_currentPracticeGroupID setTimes:NO];
-    
+    [self setCurrentPositiion:NO];
+
 }
 
 
@@ -1419,6 +1456,9 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _endTimes = NSMutableArray.new;
     _barsInClip = NSMutableArray.new;
     _currentClip = -1;
+    _currentImageID = -1;
+    _currentClipID = -1;
+    [self removeHighlightFromView:_ImageDisplay];
     _selectYouTubeVideoButton.enabled=YES;
     [self retrieveSong:_currentPracticeGroupID setTimes:YES];
     [_clipButton setTitle:@"" forState:UIControlStateNormal];
@@ -1675,6 +1715,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_appSoundPlayer setCurrentTime:_beginTime];
         [self playSegmentButton:YES];
         [self loopSegmentButton:NO];
+        self.endTime = _clipEndTime;
         [self continueTapped:nil];
     }
 }
@@ -1771,7 +1812,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_appSoundPlayer stop];
     }
     else
-        [_playerView pauseVideo];
+    {
+        if (_playerIsPlaying)
+            [_playerView pauseVideo];
+    }
 
 }
 -(void) updateClipButtons
@@ -1829,7 +1873,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         {
             [self displayImageHighlightButtons:YES];
         }
-        [self setCurrentPositiion:YES];
+        [self setCurrentPositiion:_currentSongType == SONG];
         [self updateClipButtons];
         [self stopTapped:nil];
         [self playSegmentButton:NO];
@@ -1869,10 +1913,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _numTrackLines = 0;
     if ([self displayImageAtTime:_beginTime inGroup:_currentPracticeGroupID])
     {
-        [self displayImageHighlightButtons:YES];
         [_addImageButton setHidden:YES];
     }
-    [self setCurrentPositiion:YES];
+    [self setCurrentPositiion:_currentSongType == SONG];
     [self updateClipButtons];
     [self stopTapped:nil];
     [self playSegmentButton:NO];
@@ -1899,8 +1942,14 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_delaySwitch setHidden:YES];
         [_recordLabel setHidden:YES];
         [_recordSwitch setHidden:YES];
-        return;
     }
+    else
+        [self initLoop];
+    return;
+}
+
+-(void) initLoop
+{
     if (_currentClip >= 0 && (int)_beginTimes.count > _currentClip)
     {
         _currentClipID = _clipIDs[_currentClip].integerValue;
@@ -1908,6 +1957,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         //_endTime = (int)_endTimes[_currentClip].integerValue/10.0;
         _numBarsInClip = _barsInClip[_currentClip].integerValue;
     }
+    if (!_tempClipStatus)
+        self.endTime = _clipEndTime;
+
     _inLoop = YES;
     [_pauseButton setHidden:NO];
     [_continueButton setHidden:YES];
@@ -2280,7 +2332,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_nextClipButton setHidden:st];
     [_priorClipButton setHidden:st];
     [_priorClipButton setEnabled:_currentClip > 1];
-    if (_currentClip == 0)
+    if (_currentClip <= 0)
         [_nextClipButton setTitle:@"First Clip" forState:UIControlStateNormal];
     else
         [_nextClipButton setTitle:@"Next Clip" forState:UIControlStateNormal];
@@ -2646,8 +2698,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     return;
 }
 
-- (IBAction)tempClipTapped:(id)sender {
-    _currentTime = _appSoundPlayer.currentTime;
+- (IBAction)tempClipTapped:(id)sender
+{
+    if (_currentSongType == SONG)
+        _currentTime = _appSoundPlayer.currentTime;
+    else
+        _currentTime = _currentYTTime + 0.15;
     switch (_tempClipStatus)
     {
     case 0://mark start
@@ -2676,21 +2732,26 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     
     UIButtonConfiguration *config = _tempClipButton.configuration;
-    if (_tempClipStatus == 1)
+    switch (_tempClipStatus)
     {
-        config.baseBackgroundColor = UIColor.redColor;
-        config.baseForegroundColor = UIColor.whiteColor;
-    }
-    else
-    {
-        config.baseBackgroundColor = UIColor.yellowColor;
-        config.baseForegroundColor = UIColor.blackColor;
+        case 0:
+            config.baseBackgroundColor = UIColor.brownColor;
+            config.baseForegroundColor = UIColor.whiteColor;
+            break;
+        case 1:
+            config.baseBackgroundColor = UIColor.redColor;
+            config.baseForegroundColor = UIColor.whiteColor;
+            break;
+        case 2:
+            config.baseBackgroundColor = UIColor.yellowColor;
+            config.baseForegroundColor = UIColor.blackColor;
+            break;
     }
     config.subtitle = subTitle;
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
         self->_tempClipButton.configuration = config;
     }];
-
+    
 }
 - (IBAction)marginIncreaseButtonTapped:(id)sender
 {
@@ -2941,6 +3002,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [self.playerView setHidden:NO];
         [_fullScreenImageDisplay setHidden:YES];
     }
+    [_selectCollectionButton setHidden:YES];
+    [_songTitleLabel setHidden:YES];
+    [_numClipsLabel setHidden:YES];
+    [_currentCollectionLabel setHidden:YES];
+    
     [_fullScreenReturnButton setHidden:NO];
     [_monitorButton setHidden:YES];
     [_monitorVolumeSlider setHidden:YES];
@@ -3010,12 +3076,17 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_imageHighlightInstructions setText:@""];
 
     _highlightPointNumber = 1;
+    if (show)
+        ii=1;
 }
 
 - (IBAction)highlightLinesChanged:(id)sender {
     _numHighlightLines = _highlightLinesStepper.value;
     NSString *label = [NSString stringWithFormat:@"Lines: %i",_numHighlightLines];
     [_highlightLinesLabel setText:label];
+    [_imageHighlightInstructions setText:@"Tap Begin Point"];
+    _highlightPointNumber = 1;
+
 }
 - (IBAction)highlightBarsChanged:(id)sender {
     _numBarsInClip = _highlightBarsStepper.value;
@@ -3240,6 +3311,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_imageFrame setHidden:NO];
         [_ImageDisplay setHidden:NO];
     }
+    [_selectCollectionButton setHidden:NO];
+    [_songTitleLabel setHidden:NO];
+    [_numClipsLabel setHidden:NO];
+    [_currentCollectionLabel setHidden:NO];
+    
     [_fullScreenImageDisplay setHidden:YES];
     [_fullScreenReturnButton setHidden:YES];
     [_monitorButton setHidden:NO];
@@ -3250,6 +3326,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_loopSegmentButton setFrame:_saveLoopSegmentFrame];
     [_playSegmentButtonSelected setFrame:_savePlaySegmentFrame];
     [_loopSegmentButtonSelected setFrame:_saveLoopSegmentFrame];
+    [self setPlayAndRecordButtonLocation];
 
     _haveTempHighlight = NO;
     [self setupClip];
@@ -3436,6 +3513,8 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _endTimes = NSMutableArray.new;
     _barsInClip = NSMutableArray.new;
     _currentClip = -1;
+    _currentClipID = -1;
+    [self removeHighlightFromView:_ImageDisplay];
     [_playButton setEnabled:YES];
     [_beginButton setEnabled:YES];
     [_endButton setEnabled:YES];
@@ -3693,7 +3772,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
         _appSoundPlayer = _saveSoundPlayer;
     }
     if (_inLoop)
-        [self loopSegmentTapped:nil];
+        [self initLoop];
 }
 - (BOOL)playRecording:(NSString *) path
 {
