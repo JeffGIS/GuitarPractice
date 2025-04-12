@@ -44,6 +44,29 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @synthesize toTime;
 @synthesize leftMargin;
 @synthesize rightMargin;
+- (id)init
+{
+    self = [super init];
+    return self;
+}
+@end
+
+
+@interface BarMarker : NSObject
+@property long markerID;
+@property long clipID;
+@property float fromTime;
+@property float toTime;
+@property int  onLine;
+@property float pctAlongLine;
+@end
+@implementation BarMarker
+@synthesize markerID;
+@synthesize clipID;
+@synthesize fromTime;
+@synthesize toTime;
+@synthesize onLine;
+@synthesize pctAlongLine;
 
 - (id)init
 {
@@ -153,7 +176,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property int tempClipStatus;
 @property float tempClipStart, tempClipEnd;
 @property float saveClipStart, saveClipEnd;
-
+@property NSMutableArray *barMarkers;
+@property UIPanGestureRecognizer *panBarMarker;
+@property UILabel *selectedBarMarker;
 
 @property SystemSoundID soundID;
 //@property(nonatomic,strong) AVAudioEngine *AVaudioEngine;
@@ -238,6 +263,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     AudioServicesCreateSystemSoundID((__bridge CFURLRef _Nonnull)(url), &_leadInTick);
     _playbackSpeed = 10;
     CGRect b = self.view.bounds;
+    _barMarkers = NSMutableArray.new;
+    _panBarMarker = nil;
     return;
 }
 
@@ -379,6 +406,94 @@ typedef NS_ENUM(NSInteger, SongTypes)
     }
     return;
 }
+
+- (void) clearBarMarkers
+{
+    for (UILabel *barMarker in _barMarkers)
+    {
+        [barMarker removeFromSuperview];
+    }
+    _barMarkers = NSMutableArray.new;
+    if (_panBarMarker)
+        [_ImageDisplay removeGestureRecognizer:_panBarMarker];
+    _panBarMarker = nil;
+}
+- (void) createBarMarkers:(int)numMarkers
+{
+    [self clearBarMarkers];
+    _selectedBarMarker = nil;
+    if (!_numTrackLines)
+        return;
+    float pct = 0;
+    int atLine;
+    float offset = _trackLineSpacing;
+    float pctInc = 1.0/numMarkers;
+    for (int i = 0;i<numMarkers+1;i++)
+    {
+        CGPoint pt = [self PointOnTrackLinesAtPCT:pct
+                                        andOffset:offset
+                                           onLine:&atLine];
+        UILabel *barMarker = UILabel.new;
+        barMarker.backgroundColor = [UIColor colorWithRed:1 green:1 blue:0.0 alpha:1];
+        CGRect frame = CGRectMake(pt.x,pt.y,5,offset);
+        [barMarker setFrame:frame];
+        [_ImageDisplay addSubview:barMarker];
+        [_barMarkers addObject:barMarker];
+        pct += pctInc;
+    }
+    _panBarMarker = UIPanGestureRecognizer.new;
+    [_panBarMarker addTarget:self action:@selector(barMarkerDragged:)];
+    [_ImageDisplay addGestureRecognizer:_panBarMarker];
+    return;
+}
+
+- (void)barMarkerDragged:(UIPanGestureRecognizer *)gesture
+{
+    static DPOINT lastPoint;
+    CGPoint pt = [gesture locationInView:_ImageDisplay];
+    DPOINT curLoc = CGPointToDPOINT(pt);
+    switch (gesture.state)
+    {
+        case UIGestureRecognizerStateBegan:
+        {
+            NSLog (@"Began");
+            if (_selectedBarMarker)
+                [_selectedBarMarker setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:0.0 alpha:0.5]];
+            CGFloat minDist = MAXFLOAT;
+            lastPoint = curLoc;
+            for (UILabel* marker in _barMarkers)
+            {
+                DPOINT barLoc = CGPointToDPOINT(marker.frame.origin);
+                float dist = ldistpp (&curLoc,&barLoc);
+                if (dist < minDist)
+                {
+                    minDist = dist;
+                    _selectedBarMarker = marker;
+                }
+            }
+            [_selectedBarMarker setBackgroundColor:UIColor.redColor];
+        }
+            break;
+        case UIGestureRecognizerStateEnded:
+            [_selectedBarMarker setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:0.0 alpha:0.5]];
+            NSLog (@"Ended");
+            break;
+        case UIGestureRecognizerStateChanged:
+        {
+            NSLog (@"Changed");
+            float xdiff = curLoc.x - lastPoint.x;
+            CGRect frame = _selectedBarMarker.frame;
+            frame.origin.x += xdiff;
+            [_selectedBarMarker setFrame:frame];
+            lastPoint = curLoc;
+        }
+            break;
+        default:
+            NSLog (@"State:%i",gesture.state);
+            break;
+    }
+}
+
 
 -(void) createAllViewsArray
 {
@@ -652,6 +767,38 @@ typedef NS_ENUM(NSInteger, SongTypes)
     }
     double pctAlongLine = alongLine / totLen;
 
+    return pctAlongLine;
+}
+
+- (double) pctAlongLineInClip:(CGPoint)location
+                       onLine:(int *)pOnLine
+{
+    DPOINT atPoint = CGPointToDPOINT (location);
+    DPOINT intPoint;
+    int leftOrRight;
+    double minDist = DBL_MAX;
+    double alongLine = 0;
+    double totLen = 0;
+    int nearLine = 0;
+    float pctAlongLine = 0;
+    for (int onLine = 0;onLine < _numTrackLines;onLine++)
+    {
+        if (GetPerpendicularIntersect (&atPoint,&_trackPoints[onLine * 2],&intPoint,TRUE,&leftOrRight))
+        {
+            if (leftOrRight == RIGHT)//RIGHT because coord system is down is increasing y
+            {
+                double offDist = ldistpp (&atPoint,&intPoint);
+                if (offDist <= minDist)
+                {
+                    minDist = offDist;
+                    nearLine = onLine;
+                    alongLine = ldistpp (&intPoint,&_trackPoints[onLine * 2]);
+                    pctAlongLine = alongLine / _trackLineWidths[onLine];
+                }
+            }
+        }
+    }
+    *pOnLine = nearLine;
     return pctAlongLine;
 }
 - (int) barBeginTime:(CGPoint)location
@@ -1290,9 +1437,62 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_audioEngine setOutputVolume:sender.value];
 }
 
+- (void) saveBarMarkers
+{
+    if (!_barMarkers || !_barMarkers.count)
+        return;
+    BOOL opened = [self open];
+    NSString *cmd = [NSString stringWithFormat:@"DELETE FROM SUBCLIPS WHERE CLIPID = %i",_currentClipID];
+    [self executeCmd:cmd];
+    float startTime = _clipStartTime;
+    float incTime = (_clipEndTime - _clipStartTime) / _barMarkers.count;
+    for (UILabel* marker in _barMarkers)
+    {
+        CGPoint barLoc = marker.frame.origin;
+        int onLine;
+        float pctAlongLine = [self pctAlongLineInClip:barLoc
+                                               onLine:&onLine];
+        NSString *cmd = [NSString stringWithFormat:@"INSERT INTO SUBCLIPS ('ClipID','StartTime','EndTime','Line','PCTAlongLine') VALUES(%i,%f,%f,%i,%f)",_currentClipID,startTime,startTime + incTime,onLine,pctAlongLine];
+        [self executeCmd:cmd];
+        startTime += incTime;
+    }
+    [self close:opened];
+    return;
+}
+
+- (void) loadBarMarkers:(int)clipID
+{
+    [self clearBarMarkers];
+    BOOL opened = [self open];
+    NSString *query = [NSString stringWithFormat:@"SELECT * FROM SUBCLIPS WHERE CLIPID = %i",clipID];
+    sqlite3_stmt *statement = NULL;
+    
+    SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
+    int n=0;
+    while (sqlite3_step(statement) == SQLITE_ROW)
+    {
+        BarMarker *bm = BarMarker.new;
+        int i = 0;
+        bm.markerID = sqlite3_column_int(statement,  i++);
+        bm.clipID = sqlite3_column_int(statement,  i++);
+        bm.fromTime = sqlite3_column_double(statement, i++);
+        bm.toTime = sqlite3_column_double(statement, i++);
+        bm.onLine = sqlite3_column_int(statement,  i++);
+        bm.pctAlongLine = sqlite3_column_double(statement, i++);
+        [_barMarkers addObject:bm];
+        n++;
+    }
+    SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
+
+    [self close:opened];
+
+}
 - (IBAction)saveTapped:(id)sender {
     _clipEditStatus = 0;
     [self displayImageHighlightButtons:NO];
+    [self saveBarMarkers];
+    [self clearBarMarkers];
+
     [_beginButton setHidden:NO];
     [_endButton setHidden:NO];
     [_changeEndButton setHidden:YES];
@@ -1325,6 +1525,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_beginButton setHidden:NO];
     [_endButton setHidden:NO];
     [self displayImageHighlightButtons:NO];
+    [self clearBarMarkers];
 
     [_changeEndButton setHidden:YES];
     [_changeBeginButton setHidden:YES];
@@ -1860,24 +2061,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (_currentClip > 0)
     {
         _currentClip--;
-        _inLoop = NO;
-        _currentClipID = (int)_clipIDs[_currentClip].integerValue;
-        _beginTime = (int)_beginTimes[_currentClip].integerValue/10.0;
-        _endTime = (int)_endTimes[_currentClip].integerValue/10.0;
-        _numBarsInClip = _barsInClip[_currentClip].integerValue;
-        _clipStartTime = _beginTime;
-        _clipEndTime = _endTime;
-        _currentFileNum = 1;
-        _numTrackLines = 0;
-        if ([self displayImageAtTime:_beginTime inGroup:_currentPracticeGroupID])
-        {
-            [self displayImageHighlightButtons:YES];
-        }
-        [self setCurrentPositiion:_currentSongType == SONG];
-        [self updateClipButtons];
-        [self stopTapped:nil];
-        [self playSegmentButton:NO];
-        [self loopSegmentButton:NO];
+        [self setupClip];
     }
 }
 
@@ -1899,7 +2083,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _currentClipID = (int) _clipIDs[_currentClip].integerValue;
     _beginTime = (int)_beginTimes[_currentClip].integerValue/10.0;
     _endTime = (int)_endTimes[_currentClip].integerValue/10.0;
-    _numBarsInClip = _barsInClip[_currentClip].integerValue;
+    _numBarsInClip = (int)_barsInClip[_currentClip].integerValue;
     _clipStartTime = _beginTime;
     _clipEndTime = _endTime;
     float nseconds = _endTime - _beginTime;
@@ -1915,6 +2099,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     {
         [_addImageButton setHidden:YES];
     }
+    [self loadBarMarkers:_currentClipID];
     [self setCurrentPositiion:_currentSongType == SONG];
     [self updateClipButtons];
     [self stopTapped:nil];
@@ -2136,7 +2321,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     BOOL rtn = FALSE;
     static BOOL delete = FALSE;
-    BOOL createTables = delete;
+    BOOL createTables = FALSE;
     NSError *error = nil;
 
     if (!_isOpen)
@@ -2199,7 +2384,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     //rtn = [self executeCmd:cmd];
     cmd = @"DROP TABLE CLIPS;";
     //rtn = [self executeCmd:cmd];
-    cmd = @"DROP TABLE SUBCLIPS;";
+    cmd = @"DROP TABLE SUBCLIPS;DROP INDEX idx_subclips_clip";
     //rtn = [self executeCmd:cmd];
     cmd = @"DROP TABLE CLIPHIGHLIGHT;";
     //rtn = [self executeCmd:cmd];
@@ -2218,7 +2403,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('CLIPID' INTEGER PRIMARY KEY,'PracticeGroupID' INT,'Type' INT,'StartTime' INT,'EndTime' INT, 'Bars' INT);CREATE INDEX IF NOT EXISTS idx_clips_pg ON CLIPS (PracticeGroupID);";
     rtn = [self executeCmd:cmd];
 
-    cmd = @"CREATE TABLE IF NOT EXISTS SUBCLIPS ('SUBCLIPID' INTEGER PRIMARY KEY,'ClipID' INT,'StartTime' INT,'EndTime' INT);CREATE INDEX IF NOT EXISTS idx_subclips_clip ON SUBCLIPS (ClipID);";
+    cmd = @"CREATE TABLE IF NOT EXISTS SUBCLIPS ('SUBCLIPID' INTEGER PRIMARY KEY,'ClipID' INT,'StartTime' FLOAT,'EndTime' FLOAT,'Line' INT,'PCTAlongLine' FLOAT);CREATE INDEX IF NOT EXISTS idx_subclips_clip ON SUBCLIPS (ClipID);";
     rtn = [self executeCmd:cmd];
 
     cmd = @"CREATE TABLE IF NOT EXISTS IMAGES ('IMAGEID' INTEGER PRIMARY KEY,'PracticeGroupID' INT,'FromTime' INT,'ToTime' INT, 'LeftMargin' INT, 'RightMargin' INT);CREATE INDEX IF NOT EXISTS idx_images_pg ON IMAGES (PracticeGroupID);";
@@ -2843,6 +3028,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [self removeHighlightFromView:_ImageDisplay];
 
     }
+    else if (imageToLoad)
+        [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
     [_addImageButton setHidden:YES];
 
     return rtn;
@@ -2979,6 +3166,18 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     return rtn;
 }
+
+-(void) createTransforms:(UIImageView*)view
+{
+    CGRect viewFrame = [self imageRectInView:view];
+    CGRect imageFrame = CGRectMake(0,0,  view.image.size.width, view.image.size.height);
+
+    CloseTRANS2 (&_hTranImageToView);
+    CloseTRANS2 (&_hTranViewToImage);
+    _hTranImageToView = STRANCGRect (imageFrame,viewFrame);
+    _hTranViewToImage = STRANCGRect (viewFrame,imageFrame);
+
+}
 - (IBAction)fullScreenTapped:(id)sender {
     [self hideAllViews:YES];
     _inFullScreen = YES;
@@ -2989,6 +3188,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     frame.size.height -= 16;
     [_imageFrame setHidden:YES];
     [_ImageDisplay setHidden:YES];
+    [self createTransforms:_fullScreenImageDisplay];
     if (_currentSongType == SONG)
     {
         [_fullScreenImageDisplay setFrame:frame];
@@ -3015,13 +3215,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_playbackSpeedDecreaseButton setHidden:NO];
     [_playbackSpeedIncreaseButton setHidden:NO];
     [_tempClipButton setHidden:NO];
-    CGRect viewFrame = [self imageRectInView:_fullScreenImageDisplay];
-    CGRect imageFrame = CGRectMake(0,0,  _fullScreenImageDisplay.image.size.width, _fullScreenImageDisplay.image.size.height);
-
-    CloseTRANS2 (&_hTranImageToView);
-    CloseTRANS2 (&_hTranViewToImage);
-    _hTranImageToView = STRANCGRect (imageFrame,viewFrame);
-    _hTranViewToImage = STRANCGRect (viewFrame,imageFrame);
     frame = _playSegmentButton.frame;
     _savePlaySegmentFrame = frame;
     frame.origin.x = 2;
@@ -3092,6 +3285,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _numBarsInClip = _highlightBarsStepper.value;
     NSString *label = [NSString stringWithFormat:@"Bars: %i",_numBarsInClip];
     [_highlightBarsLabel setText:label];
+    [self createBarMarkers:_numBarsInClip];
 }
 
 - (IBAction)delayChanged:(id)sender {
@@ -3489,13 +3683,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _leftMargin = 0;
     _rightMargin = _currentImage.size.width;
     [_marginSelectionButton setTitle:@"Set Left Margin" forState:UIControlStateNormal];
-    CGRect viewFrame = [self imageRectInView:_ImageDisplay];
-    CGRect imageFrame = CGRectMake(0,0,  _ImageDisplay.image.size.width, _ImageDisplay.image.size.height);
-
-    CloseTRANS2 (&_hTranImageToView);
-    CloseTRANS2 (&_hTranViewToImage);
-    _hTranImageToView = STRANCGRect (imageFrame,viewFrame);
-    _hTranViewToImage = STRANCGRect (viewFrame,imageFrame);
+    [self createTransforms:_ImageDisplay];
 
     _inAddImageMode = YES;
     return;
