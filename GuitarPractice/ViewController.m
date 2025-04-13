@@ -54,23 +54,30 @@ typedef NS_ENUM(NSInteger, SongTypes)
 
 @interface BarMarker : NSObject
 @property long markerID;
+@property int markerNum;
 @property long clipID;
 @property float fromTime;
 @property float toTime;
 @property int  onLine;
-@property float pctAlongLine;
+@property double pctAlongClip;
+@property double pctAlongLine;
+@property UILabel *label;
 @end
 @implementation BarMarker
 @synthesize markerID;
+@synthesize markerNum;
 @synthesize clipID;
 @synthesize fromTime;
 @synthesize toTime;
 @synthesize onLine;
+@synthesize pctAlongClip;
 @synthesize pctAlongLine;
+@synthesize label;
 
 - (id)init
 {
     self = [super init];
+    self.label = UILabel.new;
     return self;
 }
 @end
@@ -178,7 +185,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property float saveClipStart, saveClipEnd;
 @property NSMutableArray *barMarkers;
 @property UIPanGestureRecognizer *panBarMarker;
-@property UILabel *selectedBarMarker;
+@property BarMarker *selectedBarMarker;
 
 @property SystemSoundID soundID;
 //@property(nonatomic,strong) AVAudioEngine *AVaudioEngine;
@@ -291,6 +298,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 - (void) handleLongPress:(UILongPressGestureRecognizer *)recognizer
 {
+    if (_panBarMarker)
+        return;
     [self stopTapped:nil];
     if (recognizer.state == 3)
     {
@@ -305,6 +314,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 - (void) handleFullScreenTapFrom: (UITapGestureRecognizer *)recognizer
 {
+    if (_panBarMarker)
+        return;
     if (!_haveStartLocation && !_numBarsInClip)
         return;
     [self stopTapped:nil];
@@ -323,13 +334,14 @@ typedef NS_ENUM(NSInteger, SongTypes)
     return;
 }
 
-- (CGPoint) PointOnTrackLinesAtPCT:(float)pct
-                         andOffset:(float)off
+- (CGPoint) PointOnTrackLinesAtPCT:(double)pct
+                         andOffset:(double)off
                             onLine:(int*)atLine
+                       atPCTOnLine:(double*)pctOnLine;
 {
     CGPoint rtn = {0,0};
     
-    float dist = pct * _totTrackLineWidth;
+    double dist = pct * _totTrackLineWidth;
     int online = 0;
     while (dist > _trackLineWidths[online])
     {
@@ -338,6 +350,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     DPOINT pt = _trackPoints[online*2];
     pt.x += dist;
     pt.y -= off;
+    double pctAlongLine = dist/_trackLineWidths[online];
+    *pctOnLine = pctAlongLine;
     *atLine = online;
     rtn = DPointToCGPoint(pt);
     return rtn;
@@ -346,12 +360,15 @@ typedef NS_ENUM(NSInteger, SongTypes)
                       toPCT:(float)toPCT
 {
     int atLine1, atLine2;
+    float pctAlongLine1, pctAlongLine2;
     CGPoint fromPt = [self PointOnTrackLinesAtPCT:fromPCT
                                          andOffset:_trackLineSpacing
-                                            onLine:&atLine1];
+                                            onLine:&atLine1
+                                      atPCTOnLine:&pctAlongLine1];
     CGPoint toPt = [self PointOnTrackLinesAtPCT:toPCT
                                         andOffset:0
-                                         onLine:&atLine2];
+                                         onLine:&atLine2
+                                    atPCTOnLine:&pctAlongLine1];
     _tempHighlightNumLines = atLine2 - atLine1 + 1;
     CGRect viewFrame = [self imageRectInView:_fullScreenImageDisplay];
     CGRect imageFrame = CGRectMake(0,0,  _fullScreenImageDisplay.image.size.width, _fullScreenImageDisplay.image.size.height);
@@ -371,6 +388,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 - (void) handleTapFrom: (UITapGestureRecognizer *)recognizer
 {
+    if (_panBarMarker)
+        return;
     CGPoint location = [recognizer locationInView:_ImageDisplay];
     switch (_highlightPointNumber)
     {
@@ -409,9 +428,9 @@ typedef NS_ENUM(NSInteger, SongTypes)
 
 - (void) clearBarMarkers
 {
-    for (UILabel *barMarker in _barMarkers)
+    for (BarMarker *barMarker in _barMarkers)
     {
-        [barMarker removeFromSuperview];
+        [barMarker.label removeFromSuperview];
     }
     _barMarkers = NSMutableArray.new;
     if (_panBarMarker)
@@ -424,20 +443,30 @@ typedef NS_ENUM(NSInteger, SongTypes)
     _selectedBarMarker = nil;
     if (!_numTrackLines)
         return;
-    float pct = 0;
+    double pct = 0;
     int atLine;
     float offset = _trackLineSpacing;
-    float pctInc = 1.0/numMarkers;
+    double pctInc = 1.0/numMarkers;
+    float startTime = _clipStartTime;
+    float timeInc = (_clipEndTime - _clipStartTime)/numMarkers;
     for (int i = 0;i<numMarkers+1;i++)
     {
+        double pctAlongLine = 0;
         CGPoint pt = [self PointOnTrackLinesAtPCT:pct
                                         andOffset:offset
-                                           onLine:&atLine];
-        UILabel *barMarker = UILabel.new;
-        barMarker.backgroundColor = [UIColor colorWithRed:1 green:1 blue:0.0 alpha:1];
+                                           onLine:&atLine
+                                      atPCTOnLine:&pctAlongLine];
+        BarMarker *barMarker = BarMarker.new;
+        barMarker.pctAlongClip = pct;
+        barMarker.pctAlongLine = pctAlongLine;
+        barMarker.onLine = atLine;
+        barMarker.fromTime = startTime;
+        startTime += timeInc;
+        barMarker.toTime = startTime;
+        barMarker.label.backgroundColor = [UIColor colorWithRed:1 green:1 blue:0.0 alpha:1];
         CGRect frame = CGRectMake(pt.x,pt.y,5,offset);
-        [barMarker setFrame:frame];
-        [_ImageDisplay addSubview:barMarker];
+        [barMarker.label setFrame:frame];
+        [_ImageDisplay addSubview:barMarker.label];
         [_barMarkers addObject:barMarker];
         pct += pctInc;
     }
@@ -458,12 +487,12 @@ typedef NS_ENUM(NSInteger, SongTypes)
         {
             NSLog (@"Began");
             if (_selectedBarMarker)
-                [_selectedBarMarker setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:0.0 alpha:0.5]];
+                [_selectedBarMarker.label setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:0.0 alpha:0.5]];
             CGFloat minDist = MAXFLOAT;
             lastPoint = curLoc;
-            for (UILabel* marker in _barMarkers)
+            for (BarMarker* marker in _barMarkers)
             {
-                DPOINT barLoc = CGPointToDPOINT(marker.frame.origin);
+                DPOINT barLoc = CGPointToDPOINT(marker.label.frame.origin);
                 float dist = ldistpp (&curLoc,&barLoc);
                 if (dist < minDist)
                 {
@@ -471,20 +500,25 @@ typedef NS_ENUM(NSInteger, SongTypes)
                     _selectedBarMarker = marker;
                 }
             }
-            [_selectedBarMarker setBackgroundColor:UIColor.redColor];
+            [_selectedBarMarker.label setBackgroundColor:UIColor.redColor];
         }
             break;
         case UIGestureRecognizerStateEnded:
-            [_selectedBarMarker setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:0.0 alpha:0.5]];
+            [_selectedBarMarker.label setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:0.0 alpha:0.5]];
             NSLog (@"Ended");
             break;
         case UIGestureRecognizerStateChanged:
         {
             NSLog (@"Changed");
             float xdiff = curLoc.x - lastPoint.x;
-            CGRect frame = _selectedBarMarker.frame;
+            CGRect frame = _selectedBarMarker.label.frame;
             frame.origin.x += xdiff;
-            [_selectedBarMarker setFrame:frame];
+            if (curLoc.y - frame.origin.y > _trackLineSpacing)
+            {
+                frame.origin.y += _trackLineSpacing;
+                _selectedBarMarker.onLine++;
+            }
+            [_selectedBarMarker.label setFrame:frame];
             lastPoint = curLoc;
         }
             break;
@@ -863,29 +897,71 @@ typedef NS_ENUM(NSInteger, SongTypes)
     CGPoint pt={0,0};
     if (value > 122)
         ii = 1;
-    if (_trackLabel && _numTrackLines)
+    if (_trackLabel)
     {
-        int onLine = 0;
-        double pctAlongClip = (value - _beginTime)/(_endTime - _beginTime);
-        double distAlongClip = pctAlongClip * _totTrackLineWidth;
-        double distAlongLines = _trackLineWidths[0];
-
-        for (int i = 0;i<_numTrackLines-1;i++)
+        if (_barMarkers && _barMarkers.count > 0)
         {
-            if (distAlongClip > distAlongLines)
+            float cs = _clipStartTime;
+            float ce = _clipEndTime;
+
+            int index = 0;
+            for (BarMarker * bm in _barMarkers)
             {
-                double d = _trackLineWidths[i];
-                distAlongClip -= d;
-                distAlongLines = _trackLineWidths[i+1];
-                onLine++;
+                if (value >= bm.fromTime && value <= bm.toTime)
+                {
+                    float lineLen = _trackLineWidths[bm.onLine];
+                    float distAlongLine = bm.pctAlongLine * lineLen;
+                    CGPoint barStartPoint = DPointToCGPoint(_trackPoints[bm.onLine * 2]);
+                    barStartPoint.x += distAlongLine;
+                    CGPoint barEndPoint = DPointToCGPoint(_trackPoints[bm.onLine * 2]);
+                    barEndPoint.x += lineLen;
+                    if (index + 1 < _barMarkers.count)
+                    {
+                        BarMarker *bmNext = _barMarkers[index+1];
+                        if (bm.onLine == bmNext.onLine)
+                        {
+                            distAlongLine = bmNext.pctAlongLine * lineLen;
+                            barEndPoint = DPointToCGPoint(_trackPoints[bmNext.onLine * 2]);
+                            barEndPoint.x += distAlongLine;
+                        }
+                    }
+                    else
+                        ii = 1;
+                    float distWithinBar = barEndPoint.x - barStartPoint.x;
+                    float pctInBar = (value - bm.fromTime)/(bm.toTime - bm.fromTime);
+                    pt = barStartPoint;
+                    pt.x += pctInBar * distWithinBar;
+
+                    pt.x += _trackLineBasePoint.x;
+                    pt.y += _trackLineBasePoint.y;
+                }
+                index++;
             }
         }
-        pt = DPointToCGPoint(_trackPoints[onLine * 2]);
-        pt.x += distAlongClip;
-        pt.x += _trackLineBasePoint.x;
-        pt.y += _trackLineBasePoint.y;
-        if (pt.x < 0)
-            ii = 1;
+        else if (_numTrackLines)
+        {
+            int onLine = 0;
+            double pctAlongClip = (value - _beginTime)/(_endTime - _beginTime);
+            double distAlongClip = pctAlongClip * _totTrackLineWidth;
+            double distAlongLines = _trackLineWidths[0];
+            
+            for (int i = 0;i<_numTrackLines-1;i++)
+            {
+                if (distAlongClip > distAlongLines)
+                {
+                    double d = _trackLineWidths[i];
+                    distAlongClip -= d;
+                    distAlongLines = _trackLineWidths[i+1];
+                    onLine++;
+                }
+            }
+            pt = DPointToCGPoint(_trackPoints[onLine * 2]);
+            pt.x += distAlongClip;
+            pt.x += _trackLineBasePoint.x;
+            pt.y += _trackLineBasePoint.y;
+            if (pt.x < 0)
+                ii = 1;
+        }
     }
     if (!_inAddImageMode)
     {
@@ -1437,6 +1513,17 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_audioEngine setOutputVolume:sender.value];
 }
 
+-(void) computeBarPctOnLine:(BarMarker*) marker
+{
+    int onLine = marker.onLine;
+    if (onLine < _numTrackLines)
+    {
+        CGPoint pt = marker.label.frame.origin;
+        double pct = (pt.x - _trackPoints[onLine].x)/_trackLineWidths[onLine];
+        marker.pctAlongLine = pct;
+    }
+    return;
+}
 - (void) saveBarMarkers
 {
     if (!_barMarkers || !_barMarkers.count)
@@ -1444,17 +1531,11 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     BOOL opened = [self open];
     NSString *cmd = [NSString stringWithFormat:@"DELETE FROM SUBCLIPS WHERE CLIPID = %i",_currentClipID];
     [self executeCmd:cmd];
-    float startTime = _clipStartTime;
-    float incTime = (_clipEndTime - _clipStartTime) / _barMarkers.count;
-    for (UILabel* marker in _barMarkers)
+    for (BarMarker* marker in _barMarkers)
     {
-        CGPoint barLoc = marker.frame.origin;
-        int onLine;
-        float pctAlongLine = [self pctAlongLineInClip:barLoc
-                                               onLine:&onLine];
-        NSString *cmd = [NSString stringWithFormat:@"INSERT INTO SUBCLIPS ('ClipID','StartTime','EndTime','Line','PCTAlongLine') VALUES(%i,%f,%f,%i,%f)",_currentClipID,startTime,startTime + incTime,onLine,pctAlongLine];
+        [self computeBarPctOnLine:marker];
+        NSString *cmd = [NSString stringWithFormat:@"INSERT INTO SUBCLIPS ('ClipID','StartTime','EndTime','Line','PCTAlongLine','PCTAlongClip') VALUES(%i,%f,%f,%i,%f,%f)",_currentClipID,marker.fromTime,marker.toTime,marker.onLine,marker.pctAlongLine,marker.pctAlongClip];
         [self executeCmd:cmd];
-        startTime += incTime;
     }
     [self close:opened];
     return;
@@ -1474,11 +1555,13 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         BarMarker *bm = BarMarker.new;
         int i = 0;
         bm.markerID = sqlite3_column_int(statement,  i++);
+        bm.markerNum = n;
         bm.clipID = sqlite3_column_int(statement,  i++);
         bm.fromTime = sqlite3_column_double(statement, i++);
         bm.toTime = sqlite3_column_double(statement, i++);
         bm.onLine = sqlite3_column_int(statement,  i++);
         bm.pctAlongLine = sqlite3_column_double(statement, i++);
+        bm.pctAlongClip = sqlite3_column_double(statement, i++);
         [_barMarkers addObject:bm];
         n++;
     }
@@ -2384,7 +2467,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     //rtn = [self executeCmd:cmd];
     cmd = @"DROP TABLE CLIPS;";
     //rtn = [self executeCmd:cmd];
-    cmd = @"DROP TABLE SUBCLIPS;DROP INDEX idx_subclips_clip";
+    cmd = @"DROP INDEX idx_subclips_clip;DROP TABLE SUBCLIPS";
     //rtn = [self executeCmd:cmd];
     cmd = @"DROP TABLE CLIPHIGHLIGHT;";
     //rtn = [self executeCmd:cmd];
@@ -2403,7 +2486,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     cmd = @"CREATE TABLE IF NOT EXISTS CLIPS ('CLIPID' INTEGER PRIMARY KEY,'PracticeGroupID' INT,'Type' INT,'StartTime' INT,'EndTime' INT, 'Bars' INT);CREATE INDEX IF NOT EXISTS idx_clips_pg ON CLIPS (PracticeGroupID);";
     rtn = [self executeCmd:cmd];
 
-    cmd = @"CREATE TABLE IF NOT EXISTS SUBCLIPS ('SUBCLIPID' INTEGER PRIMARY KEY,'ClipID' INT,'StartTime' FLOAT,'EndTime' FLOAT,'Line' INT,'PCTAlongLine' FLOAT);CREATE INDEX IF NOT EXISTS idx_subclips_clip ON SUBCLIPS (ClipID);";
+    cmd = @"CREATE TABLE IF NOT EXISTS SUBCLIPS ('SUBCLIPID' INTEGER PRIMARY KEY,'ClipID' INT,'StartTime' FLOAT,'EndTime' FLOAT,'Line' INT,'PCTAlongLine' FLOAT, 'PCTAlongClip' FLOAT);CREATE INDEX IF NOT EXISTS idx_subclips_clip ON SUBCLIPS (ClipID);";
     rtn = [self executeCmd:cmd];
 
     cmd = @"CREATE TABLE IF NOT EXISTS IMAGES ('IMAGEID' INTEGER PRIMARY KEY,'PracticeGroupID' INT,'FromTime' INT,'ToTime' INT, 'LeftMargin' INT, 'RightMargin' INT);CREATE INDEX IF NOT EXISTS idx_images_pg ON IMAGES (PracticeGroupID);";
