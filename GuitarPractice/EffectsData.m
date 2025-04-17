@@ -82,11 +82,13 @@
     if (self.type == REVERB)
     {
         self.reverb =  AVAudioUnitReverb.new;
+        [self.reverb loadFactoryPreset:self.effectID];
         self.reverb.wetDryMix = self.wetDryValue;
     }
     else if (self.type == DISTORTION)
     {
         self.distortion = AVAudioUnitDistortion.new;
+        [self.distortion loadFactoryPreset:self.effectID];
         self.distortion.wetDryMix = self.wetDryValue;
         self.distortion.preGain = self.pregainValue;
     }

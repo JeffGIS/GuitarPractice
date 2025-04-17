@@ -174,7 +174,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property int leftMargin, rightMargin;
 @property HANDLE hTranImageToView, hTranViewToImage;
 @property UILabel *leftMarginMarker, *rightMarginMarker;
-@property CGRect savePlaySegmentFrame, saveLoopSegmentFrame;
+@property CGRect savePlaySegmentFrame, saveLoopSegmentFrame, saveSliderTextLabelFrame;
 @property float tempHighlightPCT1, tempHighlightPCT2;
 @property int tempHighlightNumLines;
 @property (nonatomic) int playbackSpeed;
@@ -345,7 +345,11 @@ typedef NS_ENUM(NSInteger, SongTypes)
     int online = 0;
     while (dist > _trackLineWidths[online])
     {
-        dist -=  _trackLineWidths[online++];
+        dist -=  _trackLineWidths[online];
+        if (online >= _numTrackLines - 1)
+            break;
+        else
+            online++;
     }
     DPOINT pt = _trackPoints[online*2];
     pt.x += dist;
@@ -449,7 +453,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
     double pctInc = 1.0/numMarkers;
     float startTime = _clipStartTime;
     float timeInc = (_clipEndTime - _clipStartTime)/numMarkers;
-    for (int i = 0;i<numMarkers+1;i++)
+    for (int i = 0;i<numMarkers;i++)
     {
         double pctAlongLine = 0;
         CGPoint pt = [self PointOnTrackLinesAtPCT:pct
@@ -457,14 +461,16 @@ typedef NS_ENUM(NSInteger, SongTypes)
                                            onLine:&atLine
                                       atPCTOnLine:&pctAlongLine];
         BarMarker *barMarker = BarMarker.new;
+        barMarker.markerNum = i+1;
         barMarker.pctAlongClip = pct;
         barMarker.pctAlongLine = pctAlongLine;
         barMarker.onLine = atLine;
         barMarker.fromTime = startTime;
         startTime += timeInc;
         barMarker.toTime = startTime;
+        [barMarker.label setText:[NSString stringWithFormat:@"%i",i+1]];
         barMarker.label.backgroundColor = [UIColor colorWithRed:1 green:1 blue:0.0 alpha:1];
-        CGRect frame = CGRectMake(pt.x,pt.y,5,offset);
+        CGRect frame = CGRectMake(pt.x,pt.y,9,offset);
         [barMarker.label setFrame:frame];
         [_ImageDisplay addSubview:barMarker.label];
         [_barMarkers addObject:barMarker];
@@ -893,13 +899,14 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 - (void) setSliderValue:(float) value
 {
+    static BOOL useBarMarkers = FALSE;
 //    NSLog (@"%f,%f,%f",value,_slider.minimumValue,_slider.maximumValue);
     CGPoint pt={0,0};
     if (value > 122)
         ii = 1;
     if (_trackLabel)
     {
-        if (_barMarkers && _barMarkers.count > 0)
+        if (useBarMarkers && _barMarkers && _barMarkers.count > 0)
         {
             float cs = _clipStartTime;
             float ce = _clipEndTime;
@@ -1016,12 +1023,12 @@ typedef NS_ENUM(NSInteger, SongTypes)
         }*/
             
     }
-    [self->_slider setValue:value];
+    [self.slider setValue:value];
     NSString *sliderText = [NSString stringWithFormat:@"%.1f",value];
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
-        [self->_sliderTextLabel setText:sliderText];
-        if (self->_trackLabel && self->_numTrackLines)
-            self->_trackLabel.center = pt;
+        [self.sliderTextLabel setText:sliderText];
+        if (self.trackLabel && self.numTrackLines)
+            self.trackLabel.center = pt;
     }];
 }
 
@@ -1030,10 +1037,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
     NSString * sliderText = [NSString stringWithFormat:@"%.1f to %.1f",_beginTime,_endTime];
     [_sliderTextLabel setText:sliderText];
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
-        [self->_sliderTextLabel setText:sliderText];
+        [self.sliderTextLabel setText:sliderText];
     }];
-
-
 }
 -(NSArray *) getAllCollectionsUnder:(long) parentCollectionID
 {
@@ -1518,8 +1523,12 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     int onLine = marker.onLine;
     if (onLine < _numTrackLines)
     {
+        DPOINT tp = _trackPoints[onLine*2];
+        float tw = _trackLineWidths[onLine];
         CGPoint pt = marker.label.frame.origin;
-        double pct = (pt.x - _trackPoints[onLine].x)/_trackLineWidths[onLine];
+        double pct = (pt.x - tp.x)/_trackLineWidths[onLine];
+        pct = max (0,pct);
+        pct = min (1,pct);
         marker.pctAlongLine = pct;
     }
     return;
@@ -1549,7 +1558,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     sqlite3_stmt *statement = NULL;
     
     SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
-    int n=0;
+    int n=1;
     while (sqlite3_step(statement) == SQLITE_ROW)
     {
         BarMarker *bm = BarMarker.new;
@@ -2407,6 +2416,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     BOOL createTables = FALSE;
     NSError *error = nil;
 
+    if (delete)
+        createTables = TRUE;
     if (!_isOpen)
     {
         NSString *documentsDirectory = UserDefaults.defaults.localFilePath;
@@ -2705,7 +2716,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         subTitle = [NSString stringWithFormat:@"%i percent",IDNINT(_playbackSpeed*10)];
     config.subtitle = subTitle;
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
-        self->_playbackSpeedButton.configuration = config;
+        self.playbackSpeedButton.configuration = config;
     }];
     [self setPlaybackSpeed:_playbackSpeed];
 }
@@ -2741,7 +2752,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     subTitle = [NSString stringWithFormat:@"%.1f",_imageEndAt];
     config.subtitle = subTitle;
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
-        self->_imageEndAtButton.configuration = config;
+        self.imageEndAtButton.configuration = config;
     }];
     if (_imageEndAt > 0 && _imageStartAt < _imageEndAt)
         [_saveImageButton setEnabled:YES];
@@ -2758,7 +2769,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     subTitle = [NSString stringWithFormat:@"%.1f",_imageStartAt];
     config.subtitle = subTitle;
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
-        self->_imageStartAtButton.configuration = config;
+        self.imageStartAtButton.configuration = config;
     }];
     
 }
@@ -2987,12 +2998,25 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
             _tempClipStatus++;
             _beginTime = _tempClipStart;
             _endTime = _tempClipEnd;
+            _tempHighlightPCT1 = (_tempClipStart - _clipStartTime)/(_clipEndTime - _clipStartTime);
+            _tempHighlightPCT2 = (_tempClipEnd - _clipStartTime)/(_clipEndTime - _clipStartTime);
+            _clipStartTime = _beginTime;
+            _clipEndTime = _endTime;
+            [self createTempHighlight:_tempHighlightPCT1
+                                toPCT:_tempHighlightPCT2];
         break;
     case 2://reset
             [self setTempClipSubtitle:@"Mark Start"];
             _tempClipStatus = 0;
             _beginTime = _saveClipStart;
             _endTime = _saveClipEnd;
+            _clipStartTime = _beginTime;
+            _clipEndTime = _endTime;
+
+            _haveTempHighlight = NO;
+            [self displayHighlightForClip:_currentClipID
+                                   inView:_fullScreenImageDisplay];
+
         break;
     }
 }
@@ -3017,7 +3041,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     config.subtitle = subTitle;
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
-        self->_tempClipButton.configuration = config;
+        self.tempClipButton.configuration = config;
     }];
     
 }
@@ -3291,6 +3315,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_currentCollectionLabel setHidden:YES];
     
     [_fullScreenReturnButton setHidden:NO];
+    _saveSliderTextLabelFrame = _sliderTextLabel.frame;
+    frame = _fullScreenButton.frame;
+    frame.origin.y += frame.size.height + 2;
+    frame.size.height = _sliderTextLabel.frame.size.height;
+    [_sliderTextLabel setFrame:frame];
+    [_sliderTextLabel setHidden:NO];
     [_monitorButton setHidden:YES];
     [_monitorVolumeSlider setHidden:YES];
     [_effectsButton setHidden:YES];
@@ -3315,7 +3345,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_recordLabel setHidden:YES];
     [_recordSwitch setHidden:YES];
     [_loopSegmentButton setHidden:NO];
-    [self displayHighlightForClip:_currentClipID inView:_fullScreenImageDisplay];
+    [self displayHighlightForClip:_currentClipID
+                           inView:_fullScreenImageDisplay];
 }
 - (void) setPlayAndRecordButtonLocation
 {
@@ -3465,7 +3496,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _trackPoints[np++] = CGPointToDPOINT(imagePoint2);
     }
     for (int i=0;i<np;i++)
-        _trackPoints[i] = TranPoint (&_trackPoints[i],hTranImageToView);
+    {
+        DPOINT tp = _trackPoints[i];
+        _trackPoints[i] = TranPoint (&tp,hTranImageToView);
+        tp = _trackPoints[i];
+        ii = 1;
+    }
 
     CGPoint vpoint={0,0};
     CGPoint ipoint={0,0};
@@ -3603,6 +3639,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_loopSegmentButton setFrame:_saveLoopSegmentFrame];
     [_playSegmentButtonSelected setFrame:_savePlaySegmentFrame];
     [_loopSegmentButtonSelected setFrame:_saveLoopSegmentFrame];
+    [_sliderTextLabel setFrame:_saveSliderTextLabelFrame];
     [self setPlayAndRecordButtonLocation];
 
     _haveTempHighlight = NO;
