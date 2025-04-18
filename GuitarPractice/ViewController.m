@@ -2413,7 +2413,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     BOOL rtn = FALSE;
     static BOOL delete = FALSE;
-    BOOL createTables = FALSE;
+    BOOL createTables = TRUE;
     NSError *error = nil;
 
     if (delete)
@@ -2483,7 +2483,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     cmd = @"DROP TABLE CLIPHIGHLIGHT;";
     //rtn = [self executeCmd:cmd];
     cmd = @"DROP TABLE EFFECTS;";
-    //rtn = [self executeCmd:cmd];
+    rtn = [self executeCmd:cmd];
 
     cmd = @"CREATE TABLE IF NOT EXISTS SETTINGS ('Name' CHAR(256), 'IntValue' INT, 'FloatValue' FLOAT,'TextValue' CHAR(256));";
     rtn = [self executeCmd:cmd];
@@ -2506,7 +2506,14 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     cmd = @"CREATE TABLE IF NOT EXISTS CLIPHIGHLIGHT ('ClipID' INT,'ImageID' INT,'NumLines' INT,'StartX' FLOAT,'StartY' FLOAT,'EndX' FLOAT,'EndY' FLOAT,'BoundsWidth' FLOAT ,'BoundsHeight' FLOAT,PRIMARY KEY (ClipID))";
     rtn = [self executeCmd:cmd];
 
-    cmd = @"CREATE TABLE IF NOT EXISTS EFFECTS ('EFFECTSID' INTEGER PRIMARY KEY,'PracticeGroupID' INT, 'FromTime' INT, 'ToTime' INT, 'SequenceNum' INT,'EffectType' INT,'WetDryMix' INT,'PreSet' INT);CREATE INDEX IF NOT EXISTS idx_effects ON EFFECTS (PracticeGroupID);";
+    cmd = @"CREATE TABLE IF NOT EXISTS EFFECTS ('EFFECTSID' INTEGER PRIMARY KEY,'PracticeGroupID' INT, 'ClipID' INT,'EffectsName' CHAR(128), 'SequenceNum' INT,'EffectType' INT, 'EffectID' INT,'WetDryMix' INT,'PreSet' INT);CREATE INDEX IF NOT EXISTS idx_effects ON EFFECTS (PracticeGroupID);";
+    //PracticeGroup 0 = overall default effects, -1 = named effects, -2 = default for instrument where ClipID = instrumentID
+    rtn = [self executeCmd:cmd];
+
+    cmd = @"CREATE TABLE IF NOT EXISTS INSTRUMENTS ('INSTRUMENTID' INTEGER PRIMARY KEY,'Name' CHAR(128), 'Type' INT, 'Tuning' CHAR(12));";
+    rtn = [self executeCmd:cmd];
+    
+    cmd = @"CREATE TABLE IF NOT EXISTS OTHERRESOURCES ('RESOURCEID' INTEGER PRIMARY KEY,'PracticeGroupID' INT, 'Name' CHAR(128), 'Type' INT, 'Path' CHAR(256));CREATE INDEX IF NOT EXISTS idx_resources_pg ON OTHERRESOURCES (PracticeGroupID);";
     rtn = [self executeCmd:cmd];
 
     return rtn;
