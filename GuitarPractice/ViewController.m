@@ -314,7 +314,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 }
 - (void) handleFullScreenTapFrom: (UITapGestureRecognizer *)recognizer
 {
-    if (_panBarMarker)
+    if (_panBarMarker || _tempClipStatus)
         return;
     if (!_haveStartLocation && !_numBarsInClip)
         return;
@@ -2008,7 +2008,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_appSoundPlayer setCurrentTime:_beginTime];
         [self playSegmentButton:YES];
         [self loopSegmentButton:NO];
-        self.endTime = _clipEndTime;
+        if (!_tempClipStatus)
+            self.endTime = _clipEndTime;
         [self continueTapped:nil];
     }
 }
@@ -2700,6 +2701,59 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self displayPlaybackSpeed];
 }
 
+- (IBAction)increaseTempTapped:(id)sender
+{
+    NSString *currentTitle = [_tempClipEditButton titleForState:UIControlStateNormal];
+    if ([currentTitle isEqual:@"From"])
+    {
+        _tempClipStart += 0.1;
+    }
+    else if ([currentTitle isEqual:@"To"])
+    {
+        _tempClipEnd += 0.1;
+    }
+    _beginTime = _tempClipStart;
+    _endTime = _tempClipEnd;
+}
+
+- (IBAction)decreaseTempTapped:(id)sender
+{
+    NSString *currentTitle = [_tempClipEditButton titleForState:UIControlStateNormal];
+    if ([currentTitle isEqual:@"From"])
+    {
+        _tempClipStart -= 0.1;
+    }
+    else if ([currentTitle isEqual:@"To"])
+    {
+        _tempClipEnd -= 0.1;
+    }
+    _beginTime = _tempClipStart;
+    _endTime = _tempClipEnd;
+}
+
+- (IBAction)tempClipEditButtonTapped:(id)sender
+{
+    NSString *currentTitle = [_tempClipEditButton titleForState:UIControlStateNormal];
+    if ([currentTitle isEqual:@"Edit"])
+    {
+        [_tempClipEditButton setTitle:@"From" forState:UIControlStateNormal];
+        [_decreaseTempButton setHidden:NO];
+        [_increaseTempButton setHidden:NO];
+    }
+    else if ([currentTitle isEqual:@"From"])
+        [_tempClipEditButton setTitle:@"To" forState:UIControlStateNormal];
+    else if ([currentTitle isEqual:@"To"])
+    {
+        [_tempClipEditButton setTitle:@"Save" forState:UIControlStateNormal];
+        [_decreaseTempButton setHidden:YES];
+        [_increaseTempButton setHidden:YES];
+    }
+    else if ([currentTitle isEqual:@"Save"])
+    {
+        [_tempClipEditButton setHidden:YES];
+    }
+}
+
 - (IBAction)playbackSpeedIncrease:(id)sender
 {
     if (_playbackSpeed < 20)
@@ -3009,10 +3063,15 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
             _tempHighlightPCT2 = (_tempClipEnd - _clipStartTime)/(_clipEndTime - _clipStartTime);
             _clipStartTime = _beginTime;
             _clipEndTime = _endTime;
+            [_tempClipEditButton setTitle:@"Edit" forState:UIControlStateNormal];
+            [_tempClipEditButton setHidden:NO];
             [self createTempHighlight:_tempHighlightPCT1
                                 toPCT:_tempHighlightPCT2];
         break;
     case 2://reset
+            [_tempClipEditButton setHidden:YES];
+            [_decreaseTempButton setHidden:YES];
+            [_increaseTempButton setHidden:YES];
             [self setTempClipSubtitle:@"Mark Start"];
             _tempClipStatus = 0;
             _beginTime = _saveClipStart;

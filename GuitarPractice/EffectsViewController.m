@@ -243,6 +243,26 @@
     }
 
 }
+- (IBAction)saveButtonTapped:(id)sender
+{
+    NSMutableArray *optionList = NSMutableArray.array;
+
+    [optionList addObject:@"Save to Current Practice Group"];
+    [optionList addObject:@"Save as overall default"];
+    [optionList addObject:@"Save as default for this instrument"];
+    [optionList addObject:@"Save to current clip"];
+    [optionList addObject:@"Save as Named Effect"];
+
+    NVPopoverTableView *nvptv = [NVPopoverTableView showPopoverTableViewInView:self.view
+                                                                      delegate:self
+                                                                         title:@"Save Options"
+                                                                     textArray:optionList
+                                                                 includeCancel:YES];
+    nvptv.allowsSubtitle = NO;
+
+
+}
+
 - (IBAction)returnButtonTapped:(id)sender
 {
     [_delegate EffectsViewController:self didReturn:DID_COMPLETE];

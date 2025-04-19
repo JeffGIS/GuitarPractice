@@ -40,7 +40,10 @@ typedef NS_ENUM(NSInteger, EffectsReturnStatus)
 @property (weak, nonatomic) IBOutlet UISlider *volumeSlider;
 - (IBAction)clearButtonTapped:(id)sender;
 - (IBAction)returnButtonTapped:(id)sender;
+- (IBAction)saveButtonTapped:(id)sender;
 @property NSMutableArray *effectsArray;
+@property (weak, nonatomic) IBOutlet UIButton *returnButton;
+@property (weak, nonatomic) IBOutlet UIButton *saveButton;
 @property AudioEngine * audioEngine;
 @end
 
