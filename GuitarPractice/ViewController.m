@@ -128,6 +128,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property NSTimer *leadInTimer;
 @property int maxLeadInTicks;
 @property NSTimer *recordTimer;
+@property NSTimer *buttonTimer;
 @property float recordTime;
 @property float maxRecordTime;
 @property sqlite3nv *database;
@@ -2701,34 +2702,74 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self displayPlaybackSpeed];
 }
 
+- (IBAction)increaseTempDown:(id)sender
+{
+    NSLog(@"Increase temp down");
+    _buttonTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(increaseTempTapped:) userInfo:nil repeats:YES];
+
+}
+
+- (IBAction)decreaseTempDown:(id)sender
+{
+    NSLog(@"Decrease temp down");
+    _buttonTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(decreaseTempTapped:) userInfo:nil repeats:YES];
+
+}
+
 - (IBAction)increaseTempTapped:(id)sender
 {
+    if (_buttonTimer && sender != _buttonTimer)
+    {
+        NSLog (@"Decrease temp up");
+        [_buttonTimer invalidate];
+        _buttonTimer = 0;
+    }
     NSString *currentTitle = [_tempClipEditButton titleForState:UIControlStateNormal];
+    float value=0;
     if ([currentTitle isEqual:@"From"])
     {
         _tempClipStart += 0.1;
+        value = _tempClipStart;
     }
     else if ([currentTitle isEqual:@"To"])
     {
         _tempClipEnd += 0.1;
+        value = _tempClipEnd;
     }
     _beginTime = _tempClipStart;
     _endTime = _tempClipEnd;
+    NSString *sliderText = [NSString stringWithFormat:@"%.1f",value];
+    [NSOperationQueue.mainQueue addOperationWithBlock:^{
+        [self.sliderTextLabel setText:sliderText];
+    }];
 }
 
 - (IBAction)decreaseTempTapped:(id)sender
 {
+    if (_buttonTimer && sender != _buttonTimer)
+    {
+        NSLog (@"Decrease temp up");
+        [_buttonTimer invalidate];
+        _buttonTimer = 0;
+    }
     NSString *currentTitle = [_tempClipEditButton titleForState:UIControlStateNormal];
+    float value=0;
     if ([currentTitle isEqual:@"From"])
     {
         _tempClipStart -= 0.1;
+        value = _tempClipStart;
     }
     else if ([currentTitle isEqual:@"To"])
     {
         _tempClipEnd -= 0.1;
+        value = _tempClipEnd;
     }
     _beginTime = _tempClipStart;
     _endTime = _tempClipEnd;
+    NSString *sliderText = [NSString stringWithFormat:@"%.1f",value];
+    [NSOperationQueue.mainQueue addOperationWithBlock:^{
+        [self.sliderTextLabel setText:sliderText];
+    }];
 }
 
 - (IBAction)tempClipEditButtonTapped:(id)sender

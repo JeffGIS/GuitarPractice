@@ -807,6 +807,7 @@
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="filled" image="minus.rectangle" catalog="system" title=" " cornerStyle="capsule"/>
                                 <connections>
+                                    <action selector="decreaseTempDown:" destination="BYZ-38-t0r" eventType="touchDown" id="8iq-2S-pqR"/>
                                     <action selector="decreaseTempTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="6eb-gC-L8b"/>
                                 </connections>
                             </button>
@@ -816,6 +817,7 @@
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="filled" image="plus.rectangle" catalog="system" title=" " cornerStyle="capsule"/>
                                 <connections>
+                                    <action selector="increaseTempDown:" destination="BYZ-38-t0r" eventType="touchDown" id="HMY-iS-ykX"/>
                                     <action selector="increaseTempTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="lmn-Yx-1j8"/>
                                 </connections>
                             </button>

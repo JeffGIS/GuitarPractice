@@ -151,6 +151,8 @@
 - (IBAction)tempClipEditButtonTapped:(id)sender;
 - (IBAction)decreaseTempTapped:(id)sender;
 - (IBAction)increaseTempTapped:(id)sender;
+- (IBAction)decreaseTempDown:(id)sender;
+- (IBAction)increaseTempDown:(id)sender;
 
 - (IBAction)playbackSpeedDecrease:(id)sender;
 
