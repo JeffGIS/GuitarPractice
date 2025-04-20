@@ -43,7 +43,6 @@
 @property (weak, nonatomic) IBOutlet UIButton *saveButton;
 @property (weak, nonatomic) IBOutlet UIButton *pauseButton;
 @property (weak, nonatomic) IBOutlet UIButton *addImageButton;
-@property (weak, nonatomic) IBOutlet UIButton *selectYouTubeVideoButton;
 @property (weak, nonatomic) IBOutlet UIButton *saveImageButton;
 @property (weak, nonatomic) IBOutlet UIButton *cancelImageButton;
 @property (weak, nonatomic) IBOutlet UILabel *startTimeTitle;

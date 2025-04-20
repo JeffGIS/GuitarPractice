@@ -17,6 +17,16 @@ typedef NS_ENUM(NSInteger, SongTypes)
     SONG,
     YOUTUBEVIDEO,
 };
+typedef NS_ENUM(NSInteger, ControlTypes)
+{
+    CTBUTTON,
+    CTLABEL,
+    CTVIEW,
+    CTTEXTFIELD,
+    CTSLIDER,
+    CTSWITCH,
+    CTSTEPPER,
+};
 @interface ViewAndStatus : NSObject
 @property UIView *view;
 @property BOOL status;
@@ -134,7 +144,8 @@ typedef NS_ENUM(NSInteger, SongTypes)
 @property sqlite3nv *database;
 @property (atomic) BOOL isOpen;
 @property BOOL inLoop;
-@property NSMutableArray *allViewsArray;
+@property NSMutableArray *allControlArraysArray;
+@property NSMutableArray *allViewsArray, *allButtonsArray, *allLabelsArray, *allTextFieldsArray, *allSteppersArray, *allSlidersArray, *allSwitchArray;
 @property NSMutableArray *allViewsAndStatusArray;
 @property UITapGestureRecognizer *tapGestureRecognizer;
 @property UITapGestureRecognizer *tapGestureRecognizerFullScreen;
@@ -289,6 +300,54 @@ typedef NS_ENUM(NSInteger, SongTypes)
     int top = self.view.safeAreaInsets.top;
     CGRect b = self.view.bounds;
     UIEdgeInsets ei = self.view.safeAreaInsets;
+    BOOL saveControls = NO;
+    if (saveControls)
+    {
+        NSError *error=nil;
+        NSString *documentsDirectory = UserDefaults.defaults.localFilePath;
+        NSString *filePath = [documentsDirectory stringByAppendingPathComponent:@"ControlsDatabase.slt"];
+        [NSFileManager.defaultManager removeItemAtPath:filePath
+                                                 error:&error];
+        _isOpen = !SQLOK(__FILE__,__LINE__,SQLite_Open(filePath.UTF8String, &_database), _database);
+        NSString *cmd = @"CREATE TABLE IF NOT EXISTS CONTROLS ('ControlID' INTEGER PRIMARY KEY,'ControlNum' INT,'Type' INT,'Duration' INT, 'URL' CHAR(1024), 'Instrument' CHAR(256),'Tuning' CHAR(256));";
+        BOOL rtn = [self executeCmd:cmd];
+        SQLOK(__FILE__,__LINE__,SQLite_Close(&_database),_database);
+
+      //  allViewsArray, *allButtonsArray, *allLabelsArray, *allTextFieldsArray, *allSteppersArray, *allSlidersArray, *allSwitchArray
+        ControlTypes type=CTBUTTON;
+        for (UIButton *button in _allButtonsArray)
+        {
+            
+        }
+        type=CTLABEL;
+        for (UILabel *label in _allLabelsArray)
+        {
+            
+        }
+        type=CTTEXTFIELD;
+        for (UITextField *tf in _allTextFieldsArray)
+        {
+            
+        }
+        type=CTSTEPPER;
+        for (UIStepper *stepper in _allSteppersArray)
+        {
+            
+        }
+        type=CTSLIDER;
+        for (UISlider *slider in _allSlidersArray)
+        {
+            
+        }
+        type=CTSWITCH;
+        for (UISwitch *sw in _allSwitchArray)
+        {
+            
+        }
+        uploadToCloud(filePath, NO);
+        
+    }
+
     return;
 }
 
@@ -540,67 +599,104 @@ typedef NS_ENUM(NSInteger, SongTypes)
 {
     _allViewsArray = NSMutableArray.new;
     [_allViewsArray addObject:self.playerView];
-    //[_allViewsArray addObject:_selectCollectionButton];
-    //[_allViewsArray addObject:_songTitleLabel];
-    //[_allViewsArray addObject:_numClipsLabel];
-    //[_allViewsArray addObject:_currentCollectionLabel];
     [_allViewsArray addObject:_ImageDisplay];
+    [_allViewsArray addObject:_imageFrame];
     [_allViewsArray addObject:_fullScreenImageDisplay];
-    [_allViewsArray addObject:_fullScreenButton];
-    [_allViewsArray addObject:_fullScreenReturnButton];
-    [_allViewsArray addObject:_playButton];
-    [_allViewsArray addObject:_beginButton];
-    [_allViewsArray addObject:_endButton];
-    [_allViewsArray addObject:_playSegmentButton];
-    [_allViewsArray addObject:_loopSegmentButton];
-    [_allViewsArray addObject:_nextClipButton];
-    [_allViewsArray addObject:_priorClipButton];
-    [_allViewsArray addObject:_saveButton];
-    [_allViewsArray addObject:_pauseButton];
-    [_allViewsArray addObject:_addImageButton];
-    [_allViewsArray addObject:_saveImageButton];
-    [_allViewsArray addObject:_cancelImageButton];
-    [_allViewsArray addObject:_startTimeTitle];
-    [_allViewsArray addObject:_startTimeMinutesTitle];
-    [_allViewsArray addObject:_startTimeSecondsTitle];
-    [_allViewsArray addObject:_startTimeMinutesInput];
-    [_allViewsArray addObject:_startTimeSecondsInput];
-    [_allViewsArray addObject:_startTimeMinutesStepper];
-    [_allViewsArray addObject:_startTimeSecondsStepper];
-    [_allViewsArray addObject:_startTimeSaveButton];
-    [_allViewsArray addObject:_startTimeCancelButton];
-    [_allViewsArray addObject:_linkName];
-    [_allViewsArray addObject:_linkNameLabel];
     [_allViewsArray addObject:_playerView];
-    [_allViewsArray addObject:_linkURLField];
-    [_allViewsArray addObject:_linkURLLabel];
-    [_allViewsArray addObject:_pasteURLButton];
-    [_allViewsArray addObject:_gotoYouTubeButton];
-    [_allViewsArray addObject:_sliderTextLabel];
-    [_allViewsArray addObject:_continueButton];
-    [_allViewsArray addObject:_stepAheadButton];
-    [_allViewsArray addObject:_stepBackButton];
-    [_allViewsArray addObject:_clipButton];
-    [_allViewsArray addObject:_tapToEditLabel];
-    [_allViewsArray addObject:_cancelEditButton];
-    [_allViewsArray addObject:_changeBeginButton];
-    [_allViewsArray addObject:_changeEndButton];
-    [_allViewsArray addObject:_deleteClipButton];
-    [_allViewsArray addObject:_slider];
-    [_allViewsArray addObject:_imageHighlightInstructions];
-    [_allViewsArray addObject:_highlightLinesLabel];
-    [_allViewsArray addObject:_highlightBarsLabel];
-    [_allViewsArray addObject:_highlightLinesStepper];
-    [_allViewsArray addObject:_highlightBarsStepper];
-    [_allViewsArray addObject:_delaySwitch];
-    [_allViewsArray addObject:_recordSwitch];
-    [_allViewsArray addObject:_delayLabel];
-    [_allViewsArray addObject:_recordLabel];
-    [_allViewsArray addObject:_tunerButton];
-    [_allViewsArray addObject:_playbackSpeedButton];
-    [_allViewsArray addObject:_playbackSpeedDecreaseButton];
-    [_allViewsArray addObject:_playbackSpeedIncreaseButton];
-    [_allViewsArray addObject:_tempClipButton];
+
+    _allButtonsArray = NSMutableArray.new;
+    [_allButtonsArray addObject:_playSegmentButtonSelected];
+    [_allButtonsArray addObject:_loopSegmentButtonSelected];
+    [_allButtonsArray addObject:_selectCollectionButton];
+    [_allButtonsArray addObject:_fullScreenButton];
+    [_allButtonsArray addObject:_fullScreenReturnButton];
+    [_allButtonsArray addObject:_playButton];
+    [_allButtonsArray addObject:_beginButton];
+    [_allButtonsArray addObject:_endButton];
+    [_allButtonsArray addObject:_playSegmentButton];
+    [_allButtonsArray addObject:_loopSegmentButton];
+    [_allButtonsArray addObject:_nextClipButton];
+    [_allButtonsArray addObject:_priorClipButton];
+    [_allButtonsArray addObject:_saveButton];
+    [_allButtonsArray addObject:_pauseButton];
+    [_allButtonsArray addObject:_addImageButton];
+    [_allButtonsArray addObject:_saveImageButton];
+    [_allButtonsArray addObject:_cancelImageButton];
+    [_allButtonsArray addObject:_startTimeSaveButton];
+    [_allButtonsArray addObject:_startTimeCancelButton];
+    [_allButtonsArray addObject:_pasteURLButton];
+    [_allButtonsArray addObject:_gotoYouTubeButton];
+    [_allButtonsArray addObject:_continueButton];
+    [_allButtonsArray addObject:_stepAheadButton];
+    [_allButtonsArray addObject:_stepBackButton];
+    [_allButtonsArray addObject:_clipButton];
+    [_allButtonsArray addObject:_cancelEditButton];
+    [_allButtonsArray addObject:_changeBeginButton];
+    [_allButtonsArray addObject:_changeEndButton];
+    [_allButtonsArray addObject:_deleteClipButton];
+    [_allButtonsArray addObject:_tunerButton];
+    [_allButtonsArray addObject:_playbackSpeedButton];
+    [_allButtonsArray addObject:_playbackSpeedDecreaseButton];
+    [_allButtonsArray addObject:_playbackSpeedIncreaseButton];
+    [_allButtonsArray addObject:_tempClipButton];
+    [_allButtonsArray addObject:_monitorButton];
+    [_allButtonsArray addObject:_effectsButton];
+    [_allButtonsArray addObject:_imageStartAtButton];
+    [_allButtonsArray addObject:_imageEndAtButton];
+    [_allButtonsArray addObject:_marginDecreaseButton];
+    [_allButtonsArray addObject:_marginIncreaseButton];
+    [_allButtonsArray addObject:_marginSelectionButton];
+    [_allButtonsArray addObject:_nextSongButton];
+    [_allButtonsArray addObject:_selectSongButton];
+    [_allButtonsArray addObject:_tempClipEditButton];
+    [_allButtonsArray addObject:_decreaseTempButton];
+    [_allButtonsArray addObject:_increaseTempButton];
+
+    _allLabelsArray = NSMutableArray.new;
+    [_allLabelsArray addObject:_songTitleLabel];
+    [_allLabelsArray addObject:_numClipsLabel];
+    [_allLabelsArray addObject:_currentCollectionLabel];
+    [_allLabelsArray addObject:_startTimeTitle];
+    [_allLabelsArray addObject:_startTimeMinutesTitle];
+    [_allLabelsArray addObject:_startTimeSecondsTitle];
+    [_allLabelsArray addObject:_linkNameLabel];
+    [_allLabelsArray addObject:_linkURLLabel];
+    [_allLabelsArray addObject:_sliderTextLabel];
+    [_allLabelsArray addObject:_tapToEditLabel];
+    [_allLabelsArray addObject:_imageHighlightInstructions];
+    [_allLabelsArray addObject:_highlightLinesLabel];
+    [_allLabelsArray addObject:_highlightBarsLabel];
+    [_allLabelsArray addObject:_delayLabel];
+    [_allLabelsArray addObject:_recordLabel];
+
+    _allTextFieldsArray = NSMutableArray.new;
+    [_allTextFieldsArray addObject:_startTimeMinutesInput];
+    [_allTextFieldsArray addObject:_startTimeSecondsInput];
+    [_allTextFieldsArray addObject:_linkName];
+    [_allTextFieldsArray addObject:_linkURLField];
+
+    _allSteppersArray = NSMutableArray.new;
+    [_allSteppersArray addObject:_startTimeMinutesStepper];
+    [_allSteppersArray addObject:_startTimeSecondsStepper];
+    [_allSteppersArray addObject:_highlightLinesStepper];
+    [_allSteppersArray addObject:_highlightBarsStepper];
+
+    _allSlidersArray = NSMutableArray.new;
+    [_allSlidersArray addObject:_slider];
+    [_allSlidersArray addObject:_monitorVolumeSlider];
+    
+    _allSwitchArray = NSMutableArray.new;
+    [_allSwitchArray addObject:_delaySwitch];
+    [_allSwitchArray addObject:_recordSwitch];
+
+    _allControlArraysArray = NSMutableArray.new;
+    [_allControlArraysArray addObject:_allViewsArray];
+    [_allControlArraysArray addObject:_allButtonsArray];
+    [_allControlArraysArray addObject:_allLabelsArray];
+    [_allControlArraysArray addObject:_allTextFieldsArray];
+    [_allControlArraysArray addObject:_allSteppersArray];
+    [_allControlArraysArray addObject:_allSlidersArray];
+    [_allControlArraysArray addObject:_allSwitchArray];
 
 }
 -(void) hideAllViews:(BOOL)hide
@@ -608,13 +704,16 @@ typedef NS_ENUM(NSInteger, SongTypes)
     if (hide)
     {
         _allViewsAndStatusArray = NSMutableArray.new;
-        for (UIView *view in _allViewsArray)
+        for (NSMutableArray *array in _allControlArraysArray)
         {
-            ViewAndStatus *vands = ViewAndStatus.new;
-            vands.view = view;
-            vands.status = view.isHidden;
-            [_allViewsAndStatusArray addObject:vands];
-            [view setHidden:hide];
+            for (UIView *view in array)
+            {
+                ViewAndStatus *vands = ViewAndStatus.new;
+                vands.view = view;
+                vands.status = view.isHidden;
+                [_allViewsAndStatusArray addObject:vands];
+                [view setHidden:hide];
+            }
         }
     }
     else
@@ -1753,7 +1852,6 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _currentImageID = -1;
     _currentClipID = -1;
     [self removeHighlightFromView:_ImageDisplay];
-    _selectYouTubeVideoButton.enabled=YES;
     [self retrieveSong:_currentPracticeGroupID setTimes:YES];
     [_clipButton setTitle:@"" forState:UIControlStateNormal];
     [_clipButton setHidden:YES];
