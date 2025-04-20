@@ -2900,7 +2900,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         effectsVC.delegate = self;
         effectsVC.effectsArray = _effectsArray;
         effectsVC.audioEngine = _audioEngine;
-        [self presentViewController:effectsVC animated:YES completion:nil];
+        [self presentViewController:effectsVC animated:NO completion:nil];
     }
     return;
 }
@@ -4239,7 +4239,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
 
 - (void) EffectsViewController:(EffectsViewController *)controller didReturn:(EffectsReturnStatus)status
 {
-    [controller dismissViewControllerAnimated:YES completion:nil];
+    [controller dismissViewControllerAnimated:NO completion:nil];
     switch (status)
     {
         case DID_COMPLETE:
