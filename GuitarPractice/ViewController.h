@@ -20,9 +20,6 @@
 
 @interface ViewController : UIViewController<NVAlertViewDelegate,MPMediaPickerControllerDelegate,AVAudioPlayerDelegate,AVAudioRecorderDelegate,UIImagePickerControllerDelegate,YTPlayerViewDelegate,UIGestureRecognizerDelegate,EffectsViewControllerDelegate,RecordSongViewControllerDelegate>
 @property (weak, nonatomic) IBOutlet UIButton *playbackSpeedButton;
-@property (weak, nonatomic) IBOutlet UIButton *playSegmentButtonSelected;
-
-@property (weak, nonatomic) IBOutlet UIButton *loopSegmentButtonSelected;
 @property (weak, nonatomic) IBOutlet UISlider *monitorVolumeSlider;
 @property (weak, nonatomic) IBOutlet UIButton *selectCollectionButton;
 @property NSMutableArray *effectsArray;

@@ -200,9 +200,8 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property NSMutableArray *barMarkers;
 @property UIPanGestureRecognizer *panBarMarker;
 @property BarMarker *selectedBarMarker;
-@property UIButton *loopSegmentButtonSave;
-@property UIButton *playSegmentButtonSave;
 @property SystemSoundID soundID;
+@property float widthFactor;
 //@property(nonatomic,strong) AVAudioEngine *AVaudioEngine;
 @property AudioEngine * audioEngine;
 
@@ -291,6 +290,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 }
 - (void) adjustControls
 {
+
     int top = self.view.safeAreaInsets.top;
     CGRect b = self.view.bounds;
     UIEdgeInsets ei = self.view.safeAreaInsets;
@@ -304,6 +304,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
     ToRect.bottom = b.origin.y + b.size.height - ei.bottom;
     ToRect.right = b.origin.x + b.size.width - ei.right;
     HANDLE hTranScreen = STRANRect(&FromRect, &ToRect);
+    _widthFactor = (float)(ToRect.right - ToRect.left) / (float)(FromRect.right - FromRect.left);
     float heightFactor = (float)(ToRect.bottom - ToRect.top) / (float)(FromRect.bottom - FromRect.top);
 /*    BOOL saveControls = NO;
     if (saveControls)
@@ -460,6 +461,9 @@ type=CTLABEL;
     for (UIButton *button in _allFilledButtonsArray)
      {
          UIFont *font = _filledButtonTitleFontArray[i];
+         float size = font.pointSize;
+         UIFont *currentFont = button.titleLabel.font;
+         font = [currentFont fontWithSize:size];
          [button.titleLabel setFont:font.copy];
          font = _filledButtonSubTitleFontArray[i];
          [button.subtitleLabel setFont:font.copy];
@@ -722,14 +726,12 @@ type=CTLABEL;
     [_allViewsArray addObject:_playerView];
 
     _allFilledButtonsArray = NSMutableArray.new;
-    [_allFilledButtonsArray addObject:_playSegmentButtonSelected];
-    [_allFilledButtonsArray addObject:_loopSegmentButtonSelected];
-    [_allFilledButtonsArray addObject:_playSegmentButton];
-    [_allFilledButtonsArray addObject:_loopSegmentButton];
     [_allFilledButtonsArray addObject:_fullScreenButton];
     [_allFilledButtonsArray addObject:_fullScreenReturnButton];
 
     _allButtonsArray = NSMutableArray.new;
+    [_allButtonsArray addObject:_playSegmentButton];
+    [_allButtonsArray addObject:_loopSegmentButton];
     [_allButtonsArray addObject:_selectCollectionButton];
     [_allButtonsArray addObject:_playButton];
     [_allButtonsArray addObject:_beginButton];
@@ -1874,10 +1876,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_priorClipButton setHidden:YES];
     [_nextClipButton setHidden:YES];
     [_playSegmentButton setHidden:YES];
-    [_playSegmentButtonSelected setHidden:YES];
     [_loopSegmentButton setHidden:YES];
-    [_loopSegmentButtonSelected setHidden:YES];
-    if (_currentSongType == SONG)
+     if (_currentSongType == SONG)
     {
         [_appSoundPlayer pause];
         [_appSoundPlayer setCurrentTime:0];
@@ -2007,15 +2007,10 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
 - (void) loopSegmentButton:(BOOL) setSelected
 {
     [_loopSegmentButton setSelected:setSelected];
-    [_loopSegmentButton setHidden:setSelected];
-    [_loopSegmentButtonSelected setHidden:!setSelected];
 }
 - (void) playSegmentButton:(BOOL) setSelected
 {
     [_playSegmentButton setSelected:setSelected];
-    [_playSegmentButton setHidden:setSelected];
-    [_playSegmentButtonSelected setHidden:!setSelected];
-    [self resetFilledFonts];
 }
 - (void) saveSongURL:(NSString *)url
             forTitle:(NSString *)title
@@ -2433,8 +2428,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         {
             [self.playerView pauseVideo];
         }
-        [_loopSegmentButton setHidden:NO];
-        [_loopSegmentButtonSelected setHidden:YES];
+        [_loopSegmentButton setSelected:NO];
         [_playSegmentButton setSelected:NO];
         [_delayLabel setHidden:YES];
         [_delaySwitch setHidden:YES];
@@ -3656,18 +3650,16 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_tempClipButton setHidden:NO];
     frame = _playSegmentButton.frame;
     _savePlaySegmentFrame = frame;
-    frame.origin.x = 2;
+    frame.origin.x = frame.size.width/2;
     frame.origin.y = 20;
     [_playSegmentButton setFrame:frame];
-    [_playSegmentButtonSelected setFrame:frame];
 
     [_playSegmentButton setHidden:NO];
     frame = _loopSegmentButton.frame;
     _saveLoopSegmentFrame = frame;
-    frame.origin.x = _playSegmentButton.frame.origin.x + _savePlaySegmentFrame.size.width + 10;
+    frame.origin.x = _playSegmentButton.frame.origin.x + _savePlaySegmentFrame.size.width + 100 * _widthFactor;
     frame.origin.y = 20;
     [_loopSegmentButton setFrame:frame];
-    [_loopSegmentButtonSelected setFrame:frame];
     [_recordLabel setHidden:YES];
     [_recordSwitch setHidden:YES];
     [_loopSegmentButton setHidden:NO];
@@ -3677,7 +3669,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (void) setPlayAndRecordButtonLocation
 {
     CGRect frame = _playSegmentButton.frame;
-    frame.origin.x += 30;
+    frame.origin.x += frame.size.width / 2 - _delayLabel.frame.size.width/2;
     frame.origin.y += frame.size.height + 6;
     frame.size.height = _delayLabel.frame.size.height;
     frame.size.width = _delayLabel.frame.size.width;
@@ -3686,7 +3678,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_delaySwitch setFrame:frame];
     
     frame = _loopSegmentButton.frame;
-    frame.origin.x += 25;
+    frame.origin.x += frame.size.width / 2 - _recordLabel.frame.size.width/2;
     frame.origin.y += frame.size.height + 6;
     frame.size.height = _recordLabel.frame.size.height;
     frame.size.width = _recordLabel.frame.size.width;
@@ -3963,8 +3955,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_effectsButton setHidden:NO];
     [_playSegmentButton setFrame:_savePlaySegmentFrame];
     [_loopSegmentButton setFrame:_saveLoopSegmentFrame];
-    [_playSegmentButtonSelected setFrame:_savePlaySegmentFrame];
-    [_loopSegmentButtonSelected setFrame:_saveLoopSegmentFrame];
     [_sliderTextLabel setFrame:_saveSliderTextLabelFrame];
     [self setPlayAndRecordButtonLocation];
 
