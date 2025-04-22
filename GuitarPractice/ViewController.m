@@ -20,6 +20,7 @@ typedef NS_ENUM(NSInteger, SongTypes)
 typedef NS_ENUM(NSInteger, ControlTypes)
 {
     CTBUTTON,
+    CTFILLEDBUTTON,
     CTLABEL,
     CTVIEW,
     CTTEXTFIELD,
@@ -145,8 +146,9 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property (atomic) BOOL isOpen;
 @property BOOL inLoop;
 @property NSMutableArray *allControlArraysArray;
-@property NSMutableArray *allViewsArray, *allButtonsArray, *allLabelsArray, *allTextFieldsArray, *allSteppersArray, *allSlidersArray, *allSwitchArray;
+@property NSMutableArray *allViewsArray, *allButtonsArray, *allFilledButtonsArray, *allLabelsArray, *allTextFieldsArray, *allSteppersArray, *allSlidersArray, *allSwitchArray;
 @property NSMutableArray *allViewsAndStatusArray;
+@property NSMutableArray <UIFont*>*filledButtonTitleFontArray,*filledButtonSubTitleFontArray;
 @property UITapGestureRecognizer *tapGestureRecognizer;
 @property UITapGestureRecognizer *tapGestureRecognizerFullScreen;
 @property UILongPressGestureRecognizer *longPressRecognizerFullScreen;
@@ -198,7 +200,8 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property NSMutableArray *barMarkers;
 @property UIPanGestureRecognizer *panBarMarker;
 @property BarMarker *selectedBarMarker;
-
+@property UIButton *loopSegmentButtonSave;
+@property UIButton *playSegmentButtonSave;
 @property SystemSoundID soundID;
 //@property(nonatomic,strong) AVAudioEngine *AVaudioEngine;
 @property AudioEngine * audioEngine;
@@ -238,24 +241,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
     _playbackFile = [NSTemporaryDirectory() stringByAppendingString:@"mixerOutput.caf"];
     self.playerView.delegate = self;
     [self createAllViewsArray];
-    CGRect imageRect = _ImageDisplay.frame;
-    CGRect selfRect = self.view.frame;
-    [self.playerView setFrame:imageRect];
-    int newWidth = selfRect.size.width - imageRect.origin.x;
-    int newHeight = selfRect.size.height - imageRect.origin.y;
-    imageRect.size.width = newWidth;
-    imageRect.size.height = newHeight;
-    imageRect.size.width -= 2;
-    imageRect.size.height -= 2;
-    _imageFrame.frame = imageRect;
-    imageRect.origin.x += 2;
-    imageRect.origin.y += 2;
-    imageRect.size.width -= 4;
-    imageRect.size.height -= 4;
     _hTranImageToView = _hTranViewToImage = 0;
-    [_ImageDisplay setFrame:imageRect];
-    [_ImageDisplay removeFromSuperview];
-    [self.view addSubview:_ImageDisplay];
     //_ImageDisplay.backgroundColor = [UIColor grayColor];
     _tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapFrom:)];
     [_ImageDisplay addGestureRecognizer:_tapGestureRecognizer];
@@ -296,11 +282,30 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 }
 - (void) viewDidAppear:(BOOL)animated
 {
+    static BOOL first = TRUE;
     [super viewDidAppear:animated];
+    if (first)
+        [self adjustControls];
+    first = FALSE;
+    return;
+}
+- (void) adjustControls
+{
     int top = self.view.safeAreaInsets.top;
     CGRect b = self.view.bounds;
     UIEdgeInsets ei = self.view.safeAreaInsets;
-    BOOL saveControls = NO;
+    RECT FromRect, ToRect;
+    FromRect.left = 0;
+    FromRect.top = 20;
+    FromRect.right = 1366;
+    FromRect.bottom = 1024;
+    ToRect.left = b.origin.x + ei.left;
+    ToRect.top = b.origin.y + ei.top;
+    ToRect.bottom = b.origin.y + b.size.height - ei.bottom;
+    ToRect.right = b.origin.x + b.size.width - ei.right;
+    HANDLE hTranScreen = STRANRect(&FromRect, &ToRect);
+    float heightFactor = (float)(ToRect.bottom - ToRect.top) / (float)(FromRect.bottom - FromRect.top);
+/*    BOOL saveControls = NO;
     if (saveControls)
     {
         NSError *error=nil;
@@ -309,48 +314,160 @@ typedef NS_ENUM(NSInteger, ControlTypes)
         [NSFileManager.defaultManager removeItemAtPath:filePath
                                                  error:&error];
         _isOpen = !SQLOK(__FILE__,__LINE__,SQLite_Open(filePath.UTF8String, &_database), _database);
-        NSString *cmd = @"CREATE TABLE IF NOT EXISTS CONTROLS ('ControlID' INTEGER PRIMARY KEY,'ControlNum' INT,'Type' INT,'Duration' INT, 'URL' CHAR(1024), 'Instrument' CHAR(256),'Tuning' CHAR(256));";
+        NSString *cmd = @"CREATE TABLE IF NOT EXISTS CONTROLS ('ControlID' INTEGER PRIMARY KEY,'ControlNum' INT,'Type' INT,'OriginX' FLOAT, 'OriginY' FLOAT, 'Width' FLOAT,'HEIGHT' FLOAT, 'TEXTSIZE' FLOAT);";
         BOOL rtn = [self executeCmd:cmd];
         SQLOK(__FILE__,__LINE__,SQLite_Close(&_database),_database);
-
+*/
       //  allViewsArray, *allButtonsArray, *allLabelsArray, *allTextFieldsArray, *allSteppersArray, *allSlidersArray, *allSwitchArray
         ControlTypes type=CTBUTTON;
-        for (UIButton *button in _allButtonsArray)
-        {
-            
-        }
-        type=CTLABEL;
-        for (UILabel *label in _allLabelsArray)
-        {
-            
-        }
+    CGRect frame;
+    RECT fromRect, toRect;
+    float textHeight;
+    type=CTVIEW;
+for (UIView *view in _allViewsArray)
+{
+    frame = view.frame;
+    fromRect = CGRectToRect(frame);
+    toRect = TranRect(&fromRect, hTranScreen);
+    frame = RECTtoCGRect(toRect);
+    [view setFrame:frame];
+
+}
+    type = CTFILLEDBUTTON;
+    _filledButtonTitleFontArray = NSMutableArray.new;
+    _filledButtonSubTitleFontArray = NSMutableArray.new;
+    for (UIButton *button in _allFilledButtonsArray)
+     {
+         frame = button.frame;
+         fromRect = CGRectToRect(frame);
+         toRect = TranRect(&fromRect, hTranScreen);
+         frame = RECTtoCGRect(toRect);
+         [button setFrame:frame];
+         
+         UIFont *font = button.titleLabel.font.copy;
+         float fontSize = font.pointSize;
+         fontSize *= heightFactor;
+         font = [font fontWithSize:fontSize];
+         [_filledButtonTitleFontArray addObject:font];
+         [button.titleLabel setFont:font.copy];
+         font = button.subtitleLabel.font.copy;
+         fontSize = font.pointSize;
+         fontSize *= heightFactor;
+         font = [font fontWithSize:fontSize];
+         [_filledButtonSubTitleFontArray addObject:font];
+         [button.subtitleLabel setFont:font.copy];
+        
+     }
+    type = CTBUTTON;
+    for (UIButton *button in _allButtonsArray)
+     {
+         frame = button.frame;
+         fromRect = CGRectToRect(frame);
+         toRect = TranRect(&fromRect, hTranScreen);
+         frame = RECTtoCGRect(toRect);
+         [button setFrame:frame];
+         UIFont *font = button.titleLabel.font;
+         float fontSize = font.pointSize;
+         fontSize *= heightFactor;
+         font = [font fontWithSize:fontSize];
+         [button.titleLabel setFont:font];
+         [button.subtitleLabel setAdjustsFontSizeToFitWidth:YES];
+         [button.titleLabel setAdjustsFontSizeToFitWidth:YES];
+     }
+type=CTLABEL;
+    for (UILabel *label in _allLabelsArray)
+    {
+        frame = label.frame;
+        fromRect = CGRectToRect(frame);
+        toRect = TranRect(&fromRect, hTranScreen);
+        frame = RECTtoCGRect(toRect);
+        label.adjustsFontSizeToFitWidth = YES;
+        [label setFrame:frame];
+
+    }
         type=CTTEXTFIELD;
         for (UITextField *tf in _allTextFieldsArray)
         {
-            
+            frame = tf.frame;
+            fromRect = CGRectToRect(frame);
+            toRect = TranRect(&fromRect, hTranScreen);
+            frame = RECTtoCGRect(toRect);
+            [tf setFrame:frame];
+
         }
         type=CTSTEPPER;
         for (UIStepper *stepper in _allSteppersArray)
         {
-            
+            frame = stepper.frame;
+            fromRect = CGRectToRect(frame);
+            toRect = TranRect(&fromRect, hTranScreen);
+            frame = RECTtoCGRect(toRect);
+            [stepper setFrame:frame];
+
         }
         type=CTSLIDER;
         for (UISlider *slider in _allSlidersArray)
         {
-            
+            frame = slider.frame;
+            fromRect = CGRectToRect(frame);
+            toRect = TranRect(&fromRect, hTranScreen);
+            frame = RECTtoCGRect(toRect);
+            [slider setFrame:frame];
+
         }
         type=CTSWITCH;
         for (UISwitch *sw in _allSwitchArray)
         {
-            
-        }
-        uploadToCloud(filePath, NO);
-        
-    }
+            frame = sw.frame;
+            fromRect = CGRectToRect(frame);
+            toRect = TranRect(&fromRect, hTranScreen);
+            frame = RECTtoCGRect(toRect);
+            [sw setFrame:frame];
 
-    return;
+        }
+//        uploadToCloud(filePath, NO);
+        
+//    }
+    
+    CGRect imageRect = _ImageDisplay.frame;
+    CGRect selfRect = self.view.frame;
+    [self.playerView setFrame:imageRect];
+    int newWidth = selfRect.size.width - imageRect.origin.x;
+    int newHeight = selfRect.size.height - imageRect.origin.y;
+    imageRect.size.width = newWidth;
+    imageRect.size.height = newHeight;
+    imageRect.size.width -= 2;
+    imageRect.size.height -= 2;
+    [_imageFrame setFrame:imageRect];
+    imageRect.origin.x += 2;
+    imageRect.origin.y += 2;
+    imageRect.size.width -= 4;
+    imageRect.size.height -= 4;
+    [_ImageDisplay setFrame:imageRect];
+    [_ImageDisplay removeFromSuperview];
+    [self.view addSubview:_ImageDisplay];
+    frame = _monitorButton.frame;
+    frame = _effectsButton.frame;
+    frame = _tunerButton.frame;
+    CloseTRANS2(&hTranScreen);
+
 }
 
+- (void) resetFilledFonts
+{
+    return;
+    int i = 0;
+    for (UIButton *button in _allFilledButtonsArray)
+     {
+         UIFont *font = _filledButtonTitleFontArray[i];
+         [button.titleLabel setFont:font.copy];
+         font = _filledButtonSubTitleFontArray[i];
+         [button.subtitleLabel setFont:font.copy];
+         [button.titleLabel setAdjustsFontSizeToFitWidth:YES];
+         [button.subtitleLabel setAdjustsFontSizeToFitWidth:YES];
+         i++;
+     }
+}
 - (void) setEndTime:(float)endTime
 {
     _endTime = endTime;
@@ -604,17 +721,19 @@ typedef NS_ENUM(NSInteger, ControlTypes)
     [_allViewsArray addObject:_fullScreenImageDisplay];
     [_allViewsArray addObject:_playerView];
 
+    _allFilledButtonsArray = NSMutableArray.new;
+    [_allFilledButtonsArray addObject:_playSegmentButtonSelected];
+    [_allFilledButtonsArray addObject:_loopSegmentButtonSelected];
+    [_allFilledButtonsArray addObject:_playSegmentButton];
+    [_allFilledButtonsArray addObject:_loopSegmentButton];
+    [_allFilledButtonsArray addObject:_fullScreenButton];
+    [_allFilledButtonsArray addObject:_fullScreenReturnButton];
+
     _allButtonsArray = NSMutableArray.new;
-    [_allButtonsArray addObject:_playSegmentButtonSelected];
-    [_allButtonsArray addObject:_loopSegmentButtonSelected];
     [_allButtonsArray addObject:_selectCollectionButton];
-    [_allButtonsArray addObject:_fullScreenButton];
-    [_allButtonsArray addObject:_fullScreenReturnButton];
     [_allButtonsArray addObject:_playButton];
     [_allButtonsArray addObject:_beginButton];
     [_allButtonsArray addObject:_endButton];
-    [_allButtonsArray addObject:_playSegmentButton];
-    [_allButtonsArray addObject:_loopSegmentButton];
     [_allButtonsArray addObject:_nextClipButton];
     [_allButtonsArray addObject:_priorClipButton];
     [_allButtonsArray addObject:_saveButton];
@@ -691,6 +810,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 
     _allControlArraysArray = NSMutableArray.new;
     [_allControlArraysArray addObject:_allViewsArray];
+    [_allControlArraysArray addObject:_allFilledButtonsArray];
     [_allControlArraysArray addObject:_allButtonsArray];
     [_allControlArraysArray addObject:_allLabelsArray];
     [_allControlArraysArray addObject:_allTextFieldsArray];
@@ -1895,6 +2015,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_playSegmentButton setSelected:setSelected];
     [_playSegmentButton setHidden:setSelected];
     [_playSegmentButtonSelected setHidden:!setSelected];
+    [self resetFilledFonts];
 }
 - (void) saveSongURL:(NSString *)url
             forTitle:(NSString *)title
