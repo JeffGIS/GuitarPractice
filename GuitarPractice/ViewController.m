@@ -1768,6 +1768,24 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     BOOL opened = [self open];
     NSString *cmd = [NSString stringWithFormat:@"DELETE FROM SUBCLIPS WHERE CLIPID = %i",_currentClipID];
     [self executeCmd:cmd];
+    //reset image margins
+    int minx = INT_MAX;
+    int maxx = INT_MIN;
+    for (BarMarker* marker in _barMarkers)
+    {
+        CGPoint pt = marker.label.frame.origin;
+        pt = TranCGPoint(pt,_hTranViewToImage);
+        minx = min (minx,pt.x);
+        maxx = max (maxx,pt.x);
+    }
+    _leftMargin = minx;
+    _rightMargin = maxx;
+    cmd = [NSString stringWithFormat:@"UPDATE IMAGES SET LEFTMARGIN=%i,RIGHTMARGIN=%i WHERE IMAGEID=%li",_leftMargin,_rightMargin,_currentImageID];
+    [self executeCmd:cmd];
+
+    //recompute clip highlight
+    [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
+
     for (BarMarker* marker in _barMarkers)
     {
         [self computeBarPctOnLine:marker];
@@ -1869,6 +1887,13 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_beginButton setHidden:YES];
     [_endButton setHidden:YES];
     [self displayImageHighlightButtons:YES];
+    [_highlightBarsStepper setValue:_numBarsInClip];
+    [_highlightLinesStepper setValue:_numHighlightLines];
+    NSString *label = [NSString stringWithFormat:@"Lines: %i",_numHighlightLines];
+    [_highlightLinesLabel setText:label];
+    label = [NSString stringWithFormat:@"Bars: %i",_numBarsInClip];
+    [_highlightBarsLabel setText:label];
+
     [_changeEndButton setHidden:NO];
     [_changeBeginButton setHidden:NO];
     [_changeBeginButton setSelected:NO];
@@ -3817,6 +3842,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     CGPoint viewPoint1 = TranCGPoint(imagePoint1, hTranImageToView);
     CGPoint viewPoint2 = TranCGPoint(imagePoint2, hTranImageToView);
     _numTrackLines = numLines;
+    _numHighlightLines = numLines;
     _trackPoints = malloc (sizeof(DPOINT)*_numTrackLines*2 + 4);
     _trackLineWidths = malloc (sizeof(double)*_numTrackLines + 4);
     int lineHeight = (imagePoint2.y - imagePoint1.y)/numLines;
