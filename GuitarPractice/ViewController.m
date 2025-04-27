@@ -343,8 +343,6 @@ for (UIView *view in _allViewsArray)
          fromRect = CGRectToRect(frame);
          toRect = TranRect(&fromRect, hTranScreen);
          frame = RECTtoCGRect(toRect);
-         [button setFrame:frame];
-         
          UIFont *font = button.titleLabel.font.copy;
          float fontSize = font.pointSize;
          fontSize *= heightFactor;
@@ -357,7 +355,12 @@ for (UIView *view in _allViewsArray)
          font = [font fontWithSize:fontSize];
          [_filledButtonSubTitleFontArray addObject:font];
          [button.subtitleLabel setFont:font.copy];
-        
+         [button.subtitleLabel setAdjustsFontSizeToFitWidth:YES];
+         [button.titleLabel setAdjustsFontSizeToFitWidth:YES];
+         //[button setContentScaleFactor:0.2];
+         button.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleRightMargin|UIViewAutoresizingFlexibleTopMargin|UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleBottomMargin;
+         [button setFrame:frame];
+
      }
     type = CTBUTTON;
     for (UIButton *button in _allButtonsArray)
@@ -366,7 +369,6 @@ for (UIView *view in _allViewsArray)
          fromRect = CGRectToRect(frame);
          toRect = TranRect(&fromRect, hTranScreen);
          frame = RECTtoCGRect(toRect);
-         [button setFrame:frame];
          UIFont *font = button.titleLabel.font;
          float fontSize = font.pointSize;
          fontSize *= heightFactor;
@@ -374,6 +376,9 @@ for (UIView *view in _allViewsArray)
          [button.titleLabel setFont:font];
          [button.subtitleLabel setAdjustsFontSizeToFitWidth:YES];
          [button.titleLabel setAdjustsFontSizeToFitWidth:YES];
+         button.autoresizingMask = UIViewAutoresizingNone;
+         button.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleRightMargin|UIViewAutoresizingFlexibleTopMargin|UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleBottomMargin;
+         [button setFrame:frame];
      }
 type=CTLABEL;
     for (UILabel *label in _allLabelsArray)
@@ -628,6 +633,7 @@ type=CTLABEL;
     _selectedBarMarker = nil;
     if (!_numTrackLines)
         return;
+    numMarkers += _numTrackLines;
     double pct = 0;
     int atLine;
     float offset = _trackLineSpacing;
@@ -650,6 +656,8 @@ type=CTLABEL;
         startTime += timeInc;
         barMarker.toTime = startTime;
         [barMarker.label setText:[NSString stringWithFormat:@"%i",i+1]];
+        barMarker.label.numberOfLines = 2;
+        barMarker.label.lineBreakMode = UILineBreakModeCharacterWrap;
         barMarker.label.backgroundColor = [UIColor colorWithRed:1 green:1 blue:0.0 alpha:1];
         CGRect frame = CGRectMake(pt.x,pt.y,9,offset);
         [barMarker.label setFrame:frame];
@@ -726,10 +734,11 @@ type=CTLABEL;
     [_allViewsArray addObject:_playerView];
 
     _allFilledButtonsArray = NSMutableArray.new;
-    [_allFilledButtonsArray addObject:_fullScreenButton];
-    [_allFilledButtonsArray addObject:_fullScreenReturnButton];
+    [_allFilledButtonsArray addObject:_playbackSpeedButton];
 
     _allButtonsArray = NSMutableArray.new;
+    [_allButtonsArray addObject:_fullScreenButton];
+    [_allButtonsArray addObject:_fullScreenReturnButton];
     [_allButtonsArray addObject:_playSegmentButton];
     [_allButtonsArray addObject:_loopSegmentButton];
     [_allButtonsArray addObject:_selectCollectionButton];
@@ -756,7 +765,6 @@ type=CTLABEL;
     [_allButtonsArray addObject:_changeEndButton];
     [_allButtonsArray addObject:_deleteClipButton];
     [_allButtonsArray addObject:_tunerButton];
-    [_allButtonsArray addObject:_playbackSpeedButton];
     [_allButtonsArray addObject:_playbackSpeedDecreaseButton];
     [_allButtonsArray addObject:_playbackSpeedIncreaseButton];
     [_allButtonsArray addObject:_tempClipButton];
@@ -1121,7 +1129,7 @@ type=CTLABEL;
 }
 - (void) setSliderValue:(float) value
 {
-    static BOOL useBarMarkers = FALSE;
+    static BOOL useBarMarkers = TRUE;
 //    NSLog (@"%f,%f,%f",value,_slider.minimumValue,_slider.maximumValue);
     CGPoint pt={0,0};
     if (value > 122)
@@ -1213,8 +1221,6 @@ type=CTLABEL;
             {
                 [_fullScreenImageDisplay setImage:_image];
                 [_fullScreenImageDisplay setHidden:NO];
-                [_fullScreenButton setHidden:YES];
-                [_fullScreenReturnButton setHidden:NO];
                 [_highlightLinesLabel setHidden:YES];
                 [_highlightLinesStepper setHidden:YES];
                 [_imageHighlightInstructions setHidden:YES];
@@ -1224,7 +1230,7 @@ type=CTLABEL;
             {
                 [_ImageDisplay setImage:_image];
                 [_ImageDisplay setHidden:NO];
-                [_fullScreenButton setHidden:NO];
+                [_fullScreenReturnButton setHidden:YES];
                 [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
             }
         }
@@ -3020,6 +3026,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (_playbackSpeed == 10)
         return;
     _playbackSpeed = 10;
+    [self resetFilledFonts];
     [self displayPlaybackSpeed];
 }
 
@@ -3365,13 +3372,39 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }];
     
 }
+
+- (IBAction)marginDecreaseButtonDown:(id)sender
+{
+    NSLog(@"Increase temp down");
+    _buttonTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(marginDecreaseButtonTapped:) userInfo:nil repeats:YES];
+
+}
+- (IBAction)marginIncreaseButtonDown:(id)sender
+{
+    NSLog(@"Increase temp down");
+    _buttonTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(marginIncreaseButtonTapped:) userInfo:nil repeats:YES];
+}
+
+
 - (IBAction)marginIncreaseButtonTapped:(id)sender
 {
+    if (_buttonTimer && sender != _buttonTimer)
+    {
+        NSLog (@"Decrease temp up");
+        [_buttonTimer invalidate];
+        _buttonTimer = 0;
+    }
     NSLog (@"Release");
     [self adjustMargin:1];
 }
 - (IBAction)marginDecreaseButtonTapped:(id)sender
 {
+    if (_buttonTimer && sender != _buttonTimer)
+    {
+        NSLog (@"Decrease temp up");
+        [_buttonTimer invalidate];
+        _buttonTimer = 0;
+    }
     [self adjustMargin:-1];
 }
 - (void)adjustMargin:(int) amount

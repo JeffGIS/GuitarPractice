@@ -101,6 +101,8 @@
 - (IBAction)marginSelectionTapped:(id)sender;
 - (IBAction)marginIncreaseButtonTapped:(id)sender;
 - (IBAction)marginDecreaseButtonTapped:(id)sender;
+- (IBAction)marginDecreaseButtonDown:(id)sender;
+- (IBAction)marginIncreaseButtonDown:(id)sender;
 - (IBAction)highlightBarsChanged:(id)sender;
 - (IBAction)effectsTapped:(id)sender;
 - (IBAction)selectSongTapped:(id)sender;
