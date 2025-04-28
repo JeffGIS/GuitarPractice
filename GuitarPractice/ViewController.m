@@ -633,13 +633,13 @@ type=CTLABEL;
     _selectedBarMarker = nil;
     if (!_numTrackLines)
         return;
-    numMarkers += _numTrackLines;
     double pct = 0;
     int atLine;
     float offset = _trackLineSpacing;
     double pctInc = 1.0/numMarkers;
     float startTime = _clipStartTime;
     float timeInc = (_clipEndTime - _clipStartTime)/numMarkers;
+
     for (int i = 0;i<numMarkers;i++)
     {
         double pctAlongLine = 0;
@@ -708,10 +708,15 @@ type=CTLABEL;
             float xdiff = curLoc.x - lastPoint.x;
             CGRect frame = _selectedBarMarker.label.frame;
             frame.origin.x += xdiff;
-            if (curLoc.y - frame.origin.y > _trackLineSpacing)
+            if ((curLoc.y - frame.origin.y > _trackLineSpacing) && _selectedBarMarker.onLine < _numTrackLines)
             {
                 frame.origin.y += _trackLineSpacing;
                 _selectedBarMarker.onLine++;
+            }
+            else if ((frame.origin.y - curLoc.y  > _trackLineSpacing) && _selectedBarMarker.onLine > 1)
+            {
+                frame.origin.y -= _trackLineSpacing;
+                _selectedBarMarker.onLine--;
             }
             [_selectedBarMarker.label setFrame:frame];
             lastPoint = curLoc;
@@ -1769,7 +1774,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     NSString *cmd = [NSString stringWithFormat:@"DELETE FROM SUBCLIPS WHERE CLIPID = %i",_currentClipID];
     [self executeCmd:cmd];
     //reset image margins
-    int minx = INT_MAX;
+/*    int minx = INT_MAX;
     int maxx = INT_MIN;
     for (BarMarker* marker in _barMarkers)
     {
@@ -1782,7 +1787,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _rightMargin = maxx;
     cmd = [NSString stringWithFormat:@"UPDATE IMAGES SET LEFTMARGIN=%i,RIGHTMARGIN=%i WHERE IMAGEID=%li",_leftMargin,_rightMargin,_currentImageID];
     [self executeCmd:cmd];
-
+*/
     //recompute clip highlight
     [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
 
@@ -2659,7 +2664,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     BOOL rtn = FALSE;
     static BOOL delete = FALSE;
-    BOOL createTables = TRUE;
+    BOOL createTables = FALSE;
     NSError *error = nil;
 
     if (delete)
@@ -3799,7 +3804,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 -(void) removeHighlightFromView:(UIView *)view
 {
-    for (CALayer *layer in view.layer.sublayers)
+    NSArray *sublayers = view.layer.sublayers.copy;
+    for (CALayer *layer in sublayers)
     {
         [layer removeFromSuperlayer];
     }
