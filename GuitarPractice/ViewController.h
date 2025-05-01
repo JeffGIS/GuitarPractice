@@ -153,6 +153,12 @@
 - (IBAction)increaseTempDown:(id)sender;
 
 - (IBAction)playbackSpeedDecrease:(id)sender;
+@property (weak, nonatomic) IBOutlet UIButton *barTimeDecreaseButton;
+@property (weak, nonatomic) IBOutlet UIButton *barTimeIncreaseButton;
+@property (weak, nonatomic) IBOutlet UIButton *barTimeTestButton;
+- (IBAction)barTimeIncreaseTapped:(id)sender;
+- (IBAction)barTimeDecreaseTapped:(id)sender;
+- (IBAction)barTimeTestTapped:(id)sender;
 
 - (void) toggleMonitor;
 

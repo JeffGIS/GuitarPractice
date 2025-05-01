@@ -587,7 +587,7 @@
                                     <action selector="highlightLinesChanged:" destination="BYZ-38-t0r" eventType="valueChanged" id="cRb-to-69s"/>
                                 </connections>
                             </stepper>
-                            <stepper hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" maximumValue="100" translatesAutoresizingMaskIntoConstraints="NO" id="ATx-0P-10t">
+                            <stepper hidden="YES" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="2" minimumValue="2" maximumValue="100" translatesAutoresizingMaskIntoConstraints="NO" id="ATx-0P-10t">
                                 <rect key="frame" x="180" y="670" width="94" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <connections>
@@ -750,6 +750,54 @@
                                     <action selector="playbackSpeedIncrease:" destination="BYZ-38-t0r" eventType="touchDownRepeat" id="OCh-ig-QJG"/>
                                 </connections>
                             </button>
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="w7i-6x-avM">
+                                <rect key="frame" x="818" y="20" width="92" height="42"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="filled" title=" " cornerStyle="capsule">
+                                    <imageReference key="image" image="minus.rectangle" catalog="system" symbolScale="large" variableValue="1"/>
+                                    <backgroundConfiguration key="background">
+                                        <color key="backgroundColor" systemColor="systemMintColor"/>
+                                        <color key="strokeColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </backgroundConfiguration>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="barTimeDecreaseTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="zu8-d8-npz"/>
+                                </connections>
+                            </button>
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="p2q-bx-x4c">
+                                <rect key="frame" x="880" y="20" width="129" height="42"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                <state key="normal" title="Add Highlight">
+                                    <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                </state>
+                                <buttonConfiguration key="configuration" style="filled" title="Test" cornerStyle="small" titleAlignment="center">
+                                    <fontDescription key="titleFontDescription" style="UICTFontTextStyleHeadline"/>
+                                    <color key="baseForegroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    <color key="baseBackgroundColor" systemColor="systemMintColor"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="barTimeTestTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Guh-iq-Lkk"/>
+                                </connections>
+                            </button>
+                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="frg-xf-7Tl">
+                                <rect key="frame" x="980" y="20" width="92" height="42"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="filled" title=" " cornerStyle="capsule">
+                                    <imageReference key="image" image="plus.rectangle" catalog="system" symbolScale="large" variableValue="1"/>
+                                    <backgroundConfiguration key="background">
+                                        <color key="backgroundColor" systemColor="systemMintColor"/>
+                                        <color key="strokeColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </backgroundConfiguration>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="barTimeIncreaseTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="a7m-BG-OYP"/>
+                                </connections>
+                            </button>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="JLK-M3-gSR">
                                 <rect key="frame" x="805" y="65" width="120" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
@@ -787,6 +835,9 @@
                     <connections>
                         <outlet property="ImageDisplay" destination="ooX-6g-nCp" id="kL9-iQ-ale"/>
                         <outlet property="addImageButton" destination="3lz-1F-37j" id="Op3-7G-fbO"/>
+                        <outlet property="barTimeDecreaseButton" destination="w7i-6x-avM" id="seb-cV-Oz6"/>
+                        <outlet property="barTimeIncreaseButton" destination="frg-xf-7Tl" id="ymh-oV-jTc"/>
+                        <outlet property="barTimeTestButton" destination="p2q-bx-x4c" id="Cuk-rP-0cR"/>
                         <outlet property="beginButton" destination="eBg-43-ajH" id="gVf-Ol-HBV"/>
                         <outlet property="cancelEditButton" destination="MVe-Q1-lox" id="KHH-tn-e6v"/>
                         <outlet property="cancelImageButton" destination="SNN-vy-lcg" id="5gy-bG-mmI"/>

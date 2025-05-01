@@ -67,11 +67,13 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property long markerID;
 @property int markerNum;
 @property long clipID;
-@property float fromTime;
-@property float toTime;
-@property int  onLine;
+@property double fromTime;
+@property double toTime;
+@property int  beginLine;
+@property int  endLine;
 @property double pctAlongClip;
-@property double pctAlongLine;
+@property double pctAlongBeginLine;
+@property double pctAlongEndLine;
 @property UILabel *label;
 @end
 @implementation BarMarker
@@ -80,9 +82,11 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @synthesize clipID;
 @synthesize fromTime;
 @synthesize toTime;
-@synthesize onLine;
+@synthesize beginLine;
+@synthesize endLine;
 @synthesize pctAlongClip;
-@synthesize pctAlongLine;
+@synthesize pctAlongBeginLine;
+@synthesize pctAlongEndLine;
 @synthesize label;
 
 - (id)init
@@ -106,8 +110,8 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property (nonatomic) MPMusicPlayerController    *musicPlayer;
 @property MPMediaPickerController *picker;
 @property int currentTime;
-@property float beginTime;
-@property (nonatomic)float endTime;
+@property (nonatomic)double beginTime;
+@property (nonatomic)double endTime;
 @property float timerInterval;
 @property int currentSongStartTime;
 @property NSMutableArray<NSNumber*> *clipIDs;
@@ -118,7 +122,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property NSString *recordingsDirectory;
 @property NSString *imagesDirectory;
 @property UIImage *image;
-@property long currentImageID;
+@property (nonatomic)long currentImageID;
 @property UIImage *currentImage;
 @property NSString * currentSongTitle;
 @property int numFilesForCurrentLink;
@@ -157,6 +161,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property CGPoint highlightPoint1, highlightPoint2;
 @property CGRect highlightRect;
 @property int numHighlightLines;
+@property BOOL inTimeTest;
 @property float clipEndTime,clipStartTime;
 @property int numBarsInClip;
 @property BOOL inFullScreen;
@@ -204,6 +209,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property float widthFactor;
 //@property(nonatomic,strong) AVAudioEngine *AVaudioEngine;
 @property AudioEngine * audioEngine;
+@property int keepGoing;
 
 @end
 
@@ -252,7 +258,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
     [_fullScreenImageDisplay addGestureRecognizer:_longPressRecognizerFullScreen];
 
     _tapGestureRecognizer.delegate = self;
-    _currentImageID = -1;
+    self.currentImageID = -1;
     _numHighlightLines = 1;
     _inFullScreen = NO;
     _maxLeadInTicks = 2;
@@ -477,14 +483,25 @@ type=CTLABEL;
          i++;
      }
 }
-- (void) setEndTime:(float)endTime
+- (void) setBeginTime:(double)beginTime
+{
+    _beginTime = beginTime;
+    return;
+}
+- (void) setEndTime:(double)endTime
 {
     _endTime = endTime;
     return;
 }
+
+- (void) setCurrentImageID:(long)currentImageID
+{
+    _currentImageID = currentImageID;
+    return;
+}
 - (void) handleLongPress:(UILongPressGestureRecognizer *)recognizer
 {
-    if (_panBarMarker)
+    if (_panBarMarker || _tempClipStatus > 0)
         return;
     [self stopTapped:nil];
     if (recognizer.state == 3)
@@ -500,7 +517,7 @@ type=CTLABEL;
 }
 - (void) handleFullScreenTapFrom: (UITapGestureRecognizer *)recognizer
 {
-    if (_panBarMarker || _tempClipStatus)
+    if (_panBarMarker || _tempClipStatus > 0)
         return;
     if (!_haveStartLocation && !_numBarsInClip)
         return;
@@ -513,7 +530,8 @@ type=CTLABEL;
     _endTime = [self barEndTime:location
                      pctAtEnd:&_tempHighlightPCT2];
     _haveStartLocation = NO;
-    
+    _tempClipStatus = -1;
+    return;
     [self createTempHighlight:_tempHighlightPCT1
                         toPCT:_tempHighlightPCT2];
 
@@ -633,10 +651,18 @@ type=CTLABEL;
     _selectedBarMarker = nil;
     if (!_numTrackLines)
         return;
+    [_barTimeTestButton setHidden:NO];
+    [_barTimeDecreaseButton setHidden:NO];
+    [_barTimeIncreaseButton setHidden:NO];
+    [_addImageButton setHidden:YES];
+    [_playbackSpeedButton setHidden:NO];
+    [_playbackSpeedDecreaseButton setHidden:NO];
+    [_playbackSpeedIncreaseButton setHidden:NO];
+
     double pct = 0;
     int atLine;
     float offset = _trackLineSpacing;
-    double pctInc = 1.0/numMarkers;
+    double pctInc = 1.0/(numMarkers-1);
     float startTime = _clipStartTime;
     float timeInc = (_clipEndTime - _clipStartTime)/numMarkers;
 
@@ -650,8 +676,8 @@ type=CTLABEL;
         BarMarker *barMarker = BarMarker.new;
         barMarker.markerNum = i+1;
         barMarker.pctAlongClip = pct;
-        barMarker.pctAlongLine = pctAlongLine;
-        barMarker.onLine = atLine;
+        barMarker.pctAlongBeginLine = pctAlongLine;
+        barMarker.beginLine = atLine;
         barMarker.fromTime = startTime;
         startTime += timeInc;
         barMarker.toTime = startTime;
@@ -687,7 +713,9 @@ type=CTLABEL;
             lastPoint = curLoc;
             for (BarMarker* marker in _barMarkers)
             {
-                DPOINT barLoc = CGPointToDPOINT(marker.label.frame.origin);
+                DPOINT barLoc;
+                barLoc.x = marker.label.frame.origin.x;
+                barLoc.y = marker.label.frame.origin.y + marker.label.frame.size.height;
                 float dist = ldistpp (&curLoc,&barLoc);
                 if (dist < minDist)
                 {
@@ -695,11 +723,13 @@ type=CTLABEL;
                     _selectedBarMarker = marker;
                 }
             }
+            if (_selectedBarMarker)
+                [_selectedBarMarker.label setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:0.0 alpha:0.5]];
+
             [_selectedBarMarker.label setBackgroundColor:UIColor.redColor];
         }
             break;
         case UIGestureRecognizerStateEnded:
-            [_selectedBarMarker.label setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:0.0 alpha:0.5]];
             NSLog (@"Ended");
             break;
         case UIGestureRecognizerStateChanged:
@@ -708,15 +738,15 @@ type=CTLABEL;
             float xdiff = curLoc.x - lastPoint.x;
             CGRect frame = _selectedBarMarker.label.frame;
             frame.origin.x += xdiff;
-            if ((curLoc.y - frame.origin.y > _trackLineSpacing) && _selectedBarMarker.onLine < _numTrackLines)
+            if ((curLoc.y - (frame.origin.y + frame.size.height) > _trackLineSpacing) && _selectedBarMarker.beginLine < _numTrackLines)
             {
                 frame.origin.y += _trackLineSpacing;
-                _selectedBarMarker.onLine++;
+                _selectedBarMarker.beginLine++;
             }
-            else if ((frame.origin.y - curLoc.y  > _trackLineSpacing) && _selectedBarMarker.onLine > 1)
+            else if (((frame.origin.y + frame.size.height) - curLoc.y  > _trackLineSpacing) && _selectedBarMarker.beginLine > 0)
             {
                 frame.origin.y -= _trackLineSpacing;
-                _selectedBarMarker.onLine--;
+                _selectedBarMarker.beginLine--;
             }
             [_selectedBarMarker.label setFrame:frame];
             lastPoint = curLoc;
@@ -1045,6 +1075,117 @@ type=CTLABEL;
     return pctAlongLine;
 }
 
+- (double) timeAlongLineInClip:(CGPoint)location
+                        onLine:(int *)pOnLine
+                         inBar:(int *) pinBar
+{
+    double rtn = 0;
+    int onLine;
+    int markerNum = 0;
+    BarMarker *bar = nil;
+    double pctOnLine = [self pctAlongLineInClip:location onLine:&onLine];
+    
+    if (_barMarkers.count < 1)
+    {
+        rtn = pctOnLine * (_clipEndTime - _clipStartTime) + _clipStartTime;
+    }
+    else
+    {
+        for (BarMarker *bm in _barMarkers)
+        {
+            if (bm.endLine >= onLine && bm.beginLine <= onLine)
+            {
+                double totBarDist = [self totDistInBar:bm];
+                double distInBar = [self barDistAtPctInBarLine:pctOnLine
+                                                      onLine:onLine
+                                                       inBar:bm];
+                if (distInBar < 0 || distInBar > totBarDist)
+                    continue;
+                double pctInBar = distInBar / totBarDist;
+                rtn = bm.fromTime + pctInBar * [self totTimeInBar:bm];
+                markerNum = bm.markerNum;
+                break;
+            }
+        }
+    }
+    *pOnLine = onLine;
+    *pinBar = markerNum;
+    return rtn;
+}
+-(double) barDistAtPctInBarLine:(double)pctOnLine
+                        onLine:(int)onLine
+                       inBar:(BarMarker *)bm
+{
+    double rtn = -1;
+    
+    double lineLen = _trackLineWidths[bm.beginLine];
+    double distToStart = bm.pctAlongBeginLine * lineLen;
+    if (bm.beginLine == bm.endLine)
+    {
+        if (pctOnLine < bm.pctAlongBeginLine || pctOnLine > bm.pctAlongEndLine)
+            rtn = -1;
+        else
+        {
+            double distToLoc = _trackLineWidths[bm.beginLine] * pctOnLine;
+            rtn = distToLoc - distToStart;
+        }
+    }
+    else
+    {
+        if (onLine == bm.beginLine)
+        {
+            if (pctOnLine < bm.pctAlongBeginLine)
+                rtn = -1;
+            else
+                rtn = pctOnLine * _trackLineWidths[onLine] - distToStart;
+        }
+        else
+        {
+            double distAlongLine1 = bm.pctAlongBeginLine * _trackLineWidths[bm.beginLine];
+            double totBarDist = lineLen - distAlongLine1;
+            int line = bm.beginLine + 1;
+            while (line < bm.endLine && line != onLine)
+            {
+                line++;
+                totBarDist += _trackLineWidths[line];
+            }
+            if (line == onLine)
+            {
+                if (line != bm.endLine || pctOnLine <= bm.pctAlongEndLine)
+                    rtn = totBarDist + pctOnLine * _trackLineWidths[line];
+            }
+        }
+    }
+    return rtn;
+}
+
+- (double) totDistInBar:(BarMarker *)bm
+{
+    double totBarDist = 0;
+    double lineLen = _trackLineWidths[bm.beginLine];
+    double distAlongLine1 = bm.pctAlongBeginLine * lineLen;
+    if (bm.beginLine == bm.endLine)
+        totBarDist = bm.pctAlongEndLine * lineLen - distAlongLine1;
+    else
+    {
+        totBarDist = lineLen - distAlongLine1;
+        int line = bm.beginLine + 1;
+        while (line < bm.endLine)
+        {
+            line++;
+            totBarDist += _trackLineWidths[line];
+        }
+        if (line == bm.endLine)
+            totBarDist += bm.pctAlongEndLine * _trackLineWidths[line];
+    }
+    return totBarDist;
+}
+- (double) totTimeInBar:(BarMarker *)bm
+{
+    double time = bm.toTime - bm.fromTime;
+    
+    return time;
+}
 - (double) pctAlongLineInClip:(CGPoint)location
                        onLine:(int *)pOnLine
 {
@@ -1076,72 +1217,83 @@ type=CTLABEL;
     *pOnLine = nearLine;
     return pctAlongLine;
 }
-- (int) barBeginTime:(CGPoint)location
+- (double) barBeginTime:(CGPoint)location
             pctAtBegin:(float*) pctAtBegin
 {
-    int rtn = 0;
+    double rtn = 0;
     double pct = [self pctInClip:location];
     rtn = pct * (_clipEndTime - _clipStartTime) + _clipStartTime;
     if (_numBarsInClip)
     {
-        float barinc = (_clipEndTime - _clipStartTime)/_numBarsInClip;
-        float barstart = _clipStartTime;
-        float barend = barstart + barinc;
-        int   barno = 1;
-        for (int ibar = 0;ibar < _numBarsInClip;ibar++)
+        int onLine, inBar;
+        BarMarker *bm;
+        rtn = [self timeAlongLineInClip:location onLine:&onLine inBar:&inBar];
+        if (inBar > 0)
         {
-            if (rtn >= barstart && rtn <= barend)
-            {
-                rtn = barstart;
-                pct = (barstart - _clipStartTime)/ (_clipEndTime - _clipStartTime);
-                break;
-            }
-            barno++;
-            barstart += barinc;
-            barend += barinc;
+            bm = _barMarkers[inBar-1];
+            rtn = bm.fromTime;
         }
     }
     *pctAtBegin = pct;
     return rtn;
 }
-- (int) barEndTime:(CGPoint)location
+- (double) barEndTime:(CGPoint)location
           pctAtEnd:(float*)pctAtEnd
 {
-    int rtn = 0;
+    double rtn = 0;
     double pct = [self pctInClip:location];
     rtn = pct * (_clipEndTime - _clipStartTime) + _clipStartTime;
     if (_numBarsInClip)
     {
-        float barinc = (_clipEndTime - _clipStartTime)/_numBarsInClip;
-        float barstart = _clipStartTime;
-        float barend = barstart + barinc;
-        int   barno = 1;
-        for (int ibar = 0;ibar < _numBarsInClip;ibar++)
+        int onLine, inBar;
+        BarMarker *bm;
+        rtn = [self timeAlongLineInClip:location onLine:&onLine inBar:&inBar];
+        if (inBar > 0)
         {
-            if (rtn >= barstart && rtn <= barend)
-            {
-                rtn = barend;
-                pct = (barend - _clipStartTime) / (_clipEndTime - _clipStartTime);
-                break;
-            }
-            barno++;
-            barstart += barinc;
-            barend += barinc;
+            bm = _barMarkers[inBar-1];
+            rtn = bm.toTime;
         }
     }
     *pctAtEnd = pct;
     return rtn;
 }
-- (void) setSliderValue:(float) value
+- (void) setSliderValue:(double) value
 {
     static BOOL useBarMarkers = TRUE;
-//    NSLog (@"%f,%f,%f",value,_slider.minimumValue,_slider.maximumValue);
+    static double debugValue = 221.35;
+    double inValue = value;
+    
+    if (!_keepGoing)
+        return;
+//    _keepGoing--;
+    value *= 10;
+    value = IDNINT(value);
+    value /= 10;
+//    if (value >= debugValue)
+//        _keepGoing = 0;
+    NSLog (@"%f,%f,%f",value,_slider.minimumValue,_slider.maximumValue);
     CGPoint pt={0,0};
-    if (value > 122)
-        ii = 1;
+    if (_inTimeTest)
+    {
+        useBarMarkers = FALSE;
+        UIColor *color = UIColor.redColor;
+
+        if ((value < _selectedBarMarker.fromTime && (_selectedBarMarker.fromTime - value) < 0.15) ||
+            (value > _selectedBarMarker.fromTime && (value - _selectedBarMarker.fromTime) < 0.15))
+        {
+            color = UIColor.blueColor;
+        }
+        [NSOperationQueue.mainQueue addOperationWithBlock:^{
+            [self->_selectedBarMarker.label setBackgroundColor:color];
+        }];
+
+        
+    }
     if (_trackLabel)
     {
-        if (useBarMarkers && _barMarkers && _barMarkers.count > 0)
+        if (!_barMarkers || _barMarkers.count < 2)
+            useBarMarkers = FALSE;
+        if (useBarMarkers)
         {
             float cs = _clipStartTime;
             float ce = _clipEndTime;
@@ -1151,31 +1303,81 @@ type=CTLABEL;
             {
                 if (value >= bm.fromTime && value <= bm.toTime)
                 {
-                    float lineLen = _trackLineWidths[bm.onLine];
-                    float distAlongLine = bm.pctAlongLine * lineLen;
-                    CGPoint barStartPoint = DPointToCGPoint(_trackPoints[bm.onLine * 2]);
-                    barStartPoint.x += distAlongLine;
-                    CGPoint barEndPoint = DPointToCGPoint(_trackPoints[bm.onLine * 2]);
-                    barEndPoint.x += lineLen;
-                    if (index + 1 < _barMarkers.count)
+                    double pctInBar = (value - bm.fromTime)/(bm.toTime - bm.fromTime);
+                    if (pctInBar > 0.5)
+                        ii = 1;
+                    if (bm.markerNum == _barMarkers.count)
+                        ii = 1;
+                    double lineLen = _trackLineWidths[bm.beginLine];
+                    double distAlongLine1 = bm.pctAlongBeginLine * lineLen;
+                    double totBarDist;
+                    if (bm.beginLine == bm.endLine)
+                        totBarDist = bm.pctAlongEndLine * lineLen - distAlongLine1;
+                    else
+                        totBarDist = lineLen - distAlongLine1;
+                    int line = bm.beginLine + 1;
+                    while (line < bm.endLine)
                     {
-                        BarMarker *bmNext = _barMarkers[index+1];
-                        if (bm.onLine == bmNext.onLine)
-                        {
-                            distAlongLine = bmNext.pctAlongLine * lineLen;
-                            barEndPoint = DPointToCGPoint(_trackPoints[bmNext.onLine * 2]);
-                            barEndPoint.x += distAlongLine;
-                        }
+                        line++;
+                        totBarDist += _trackLineWidths[line];
+                    }
+                    if (line == bm.endLine)
+                        totBarDist += bm.pctAlongEndLine * _trackLineWidths[line];
+                    double distInBar = totBarDist * pctInBar;
+                    CGPoint barStartPoint;
+                    if (bm.beginLine == bm.endLine)
+                    {
+                        barStartPoint = DPointToCGPoint(_trackPoints[bm.beginLine * 2]);
+                        barStartPoint.x += distAlongLine1;
+                        barStartPoint.x += distInBar;
                     }
                     else
-                        ii = 1;
-                    float distWithinBar = barEndPoint.x - barStartPoint.x;
-                    float pctInBar = (value - bm.fromTime)/(bm.toTime - bm.fromTime);
-                    pt = barStartPoint;
-                    pt.x += pctInBar * distWithinBar;
+                    {
+                        int line = bm.beginLine;
+                        lineLen = _trackLineWidths[line] - distAlongLine1;
+                        double remDist = distInBar;
+                        if (remDist < lineLen)
+                        {
+                            barStartPoint = DPointToCGPoint(_trackPoints[line * 2]);
+                            barStartPoint.x += (distAlongLine1 + remDist);
+                            double x1 = barStartPoint.x + _trackLineBasePoint.x;
+                            double x2 = self.view.frame.origin.x + self.view.frame.size.width;
+                            if (x1 > x2)
+                                ii = 1;
+                        }
+                        else
+                        {
+                            if (_keepGoing > 1001)
+                                _keepGoing = 6;
+                            remDist -= lineLen;
+                            line++;
+                            while (line < bm.endLine)
+                            {
+                                if (remDist <= _trackLineWidths[line])
+                                    break;
+                                remDist -= _trackLineWidths[line];
+                                line++;
+                            }
+                            barStartPoint = DPointToCGPoint(_trackPoints[line * 2]);
+                            barStartPoint.x += remDist;
+                            double x1 = barStartPoint.x + _trackLineBasePoint.x;
+                            double x2 = self.view.frame.origin.x + self.view.frame.size.width;
+                            if (x1 > x2)
+                                ii = 1;
 
+                        }
+                    }
+                    pt = barStartPoint;
+
+                    double x1 = barStartPoint.x + _trackLineBasePoint.x;
+                    double x2 = self.view.frame.origin.x + self.view.frame.size.width;
+                    if (x1 > x2)
+                        ii = 1;
                     pt.x += _trackLineBasePoint.x;
                     pt.y += _trackLineBasePoint.y;
+                    if (pt.x > self.view.frame.origin.x + self.view.frame.size.width)
+                        ii = 1;
+                    break;
                 }
                 index++;
             }
@@ -1221,7 +1423,7 @@ type=CTLABEL;
         {
             NSString *fileName = [NSString stringWithFormat:@"%@/%li.png",_imagesDirectory,imageToLoad];
             _image = [UIImage imageWithContentsOfFile:fileName];
-            _currentImageID = imageToLoad;
+            self.currentImageID = imageToLoad;
             if (_inFullScreen)
             {
                 [_fullScreenImageDisplay setImage:_image];
@@ -1242,7 +1444,7 @@ type=CTLABEL;
         /*
         else if (!imageToLoad && _currentImageID > -1)
         {
-            _currentImageID = -1;
+            self.currentImageID = -1;
             [_ImageDisplay setImage:nil];
             [_ImageDisplay setHidden:NO];
             [_fullScreenButton setHidden:YES];
@@ -1262,7 +1464,9 @@ type=CTLABEL;
         [self.sliderTextLabel setText:sliderText];
         if (self.trackLabel && self.numTrackLines)
             self.trackLabel.center = pt;
+        ii = 1;
     }];
+    return;
 }
 
 -(void) setSliderRange
@@ -1564,6 +1768,7 @@ void showAlert(NSString *text)
 
 - (IBAction)continueTapped:(id)sender {
     BOOL rtn=FALSE;
+    _keepGoing = TRUE;
     if (_currentClip < 0)
     {
         _beginTime = _currentSongStartTime;
@@ -1658,7 +1863,7 @@ void showAlert(NSString *text)
         _endTime = _appSoundPlayer.currentTime;
     else
         _endTime = _currentYTTime;
-    _numBarsInClip = 0;
+    _numBarsInClip = 2;
     NSNumber *bTime = [NSNumber numberWithInt:_beginTime];
     NSNumber *eTime = [NSNumber numberWithInt:_endTime];
     NSNumber *nBars = [NSNumber numberWithInt:_numBarsInClip];
@@ -1753,7 +1958,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
 
 -(void) computeBarPctOnLine:(BarMarker*) marker
 {
-    int onLine = marker.onLine;
+    int onLine = marker.beginLine;
     if (onLine < _numTrackLines)
     {
         DPOINT tp = _trackPoints[onLine*2];
@@ -1762,7 +1967,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         double pct = (pt.x - tp.x)/_trackLineWidths[onLine];
         pct = max (0,pct);
         pct = min (1,pct);
-        marker.pctAlongLine = pct;
+        marker.pctAlongBeginLine = pct;
     }
     return;
 }
@@ -1794,7 +1999,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     for (BarMarker* marker in _barMarkers)
     {
         [self computeBarPctOnLine:marker];
-        NSString *cmd = [NSString stringWithFormat:@"INSERT INTO SUBCLIPS ('ClipID','StartTime','EndTime','Line','PCTAlongLine','PCTAlongClip') VALUES(%i,%f,%f,%i,%f,%f)",_currentClipID,marker.fromTime,marker.toTime,marker.onLine,marker.pctAlongLine,marker.pctAlongClip];
+        NSString *cmd = [NSString stringWithFormat:@"INSERT INTO SUBCLIPS ('ClipID','StartTime','EndTime','Line','PCTAlongLine','PCTAlongClip') VALUES(%i,%f,%f,%i,%f,%f)",_currentClipID,marker.fromTime,marker.toTime,marker.beginLine,marker.pctAlongBeginLine,marker.pctAlongClip];
         [self executeCmd:cmd];
     }
     [self close:opened];
@@ -1819,22 +2024,81 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         bm.clipID = sqlite3_column_int(statement,  i++);
         bm.fromTime = sqlite3_column_double(statement, i++);
         bm.toTime = sqlite3_column_double(statement, i++);
-        bm.onLine = sqlite3_column_int(statement,  i++);
-        bm.pctAlongLine = sqlite3_column_double(statement, i++);
+        bm.beginLine = sqlite3_column_int(statement,  i++);
+        bm.pctAlongBeginLine = sqlite3_column_double(statement, i++);
         bm.pctAlongClip = sqlite3_column_double(statement, i++);
+        if (n > 1)
+        {
+            int index = n - 2;
+            BarMarker *bmPrev = _barMarkers[index];
+            bmPrev.toTime = bm.fromTime - 0.05;
+            bmPrev.endLine = bm.beginLine;
+            bmPrev.pctAlongEndLine = bm.pctAlongBeginLine - 0.001;
+        }
         [_barMarkers addObject:bm];
         n++;
     }
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
 
     [self close:opened];
+    if (_barMarkers.count > 0)
+    {
+        BarMarker * bm =_barMarkers[0];
+        double minTime = bm.fromTime;
+        bm = _barMarkers.lastObject;
+        double maxTime = bm.toTime;
+        bm.fromTime = maxTime;
+        NSNumber *bTime = [NSNumber numberWithInt:IDNINT(minTime*10)];
+        NSNumber *eTime = [NSNumber numberWithInt:IDNINT(maxTime*10)];
+        _beginTimes[clipID-1] = bTime;
+        _endTimes[clipID] = eTime;
+        int index = bm.markerNum - 2;
+        if (index > -1)
+        {
+            bm = _barMarkers[index];
+            bm.toTime = maxTime;
+        }
+    }
+
 
 }
+
+- (IBAction)barTimeIncreaseTapped:(id)sender
+{
+    if (_selectedBarMarker)
+    {
+        _selectedBarMarker.fromTime += 0.1;
+    }
+}
+- (IBAction)barTimeDecreaseTapped:(id)sender
+{
+    if (_selectedBarMarker && _selectedBarMarker.fromTime >= 0.1)
+    {
+        _selectedBarMarker.fromTime -= 0.1;
+    }
+}
+
+- (IBAction)barTimeTestTapped:(id)sender
+{
+    if (_selectedBarMarker)
+    {
+        float startTime = max (0,_selectedBarMarker.fromTime - 3);
+        float endTime = _selectedBarMarker.fromTime + 3;
+        _inTimeTest = YES;
+        _beginTime = startTime;
+        _endTime = endTime;
+        [self playSegmentTapped:nil];
+    }
+}
+
 - (IBAction)saveTapped:(id)sender {
     _clipEditStatus = 0;
     [self displayImageHighlightButtons:NO];
     [self saveBarMarkers];
     [self clearBarMarkers];
+    [_barTimeTestButton setHidden:YES];
+    [_barTimeDecreaseButton setHidden:YES];
+    [_barTimeIncreaseButton setHidden:YES];
 
     [_beginButton setHidden:NO];
     [_endButton setHidden:NO];
@@ -1848,6 +2112,10 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_addImageButton setHidden:YES];
     [_priorClipButton setHidden:NO];
     [_nextClipButton setHidden:NO];
+    [_playbackSpeedButton setHidden:YES];
+    [_playbackSpeedDecreaseButton setHidden:YES];
+    [_playbackSpeedIncreaseButton setHidden:YES];
+
     [self playSegmentButton:NO];
     [self loopSegmentButton:NO];
 
@@ -2005,7 +2273,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _endTimes = NSMutableArray.new;
     _barsInClip = NSMutableArray.new;
     _currentClip = -1;
-    _currentImageID = -1;
+    self.currentImageID = -1;
     _currentClipID = -1;
     [self removeHighlightFromView:_ImageDisplay];
     [self retrieveSong:_currentPracticeGroupID setTimes:YES];
@@ -2231,7 +2499,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (IBAction)playSegmentTapped:(id)sender {
     _inLoop = NO;
-    _currentImageID = -1;
+    _keepGoing = 1000;
+    //self.currentImageID = -1;
     [_delayLabel setHidden:YES];
     [_delaySwitch setHidden:YES];
     [_recordLabel setHidden:YES];
@@ -2259,7 +2528,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_appSoundPlayer setCurrentTime:_beginTime];
         [self playSegmentButton:YES];
         [self loopSegmentButton:NO];
-        if (!_tempClipStatus)
+        if (!_tempClipStatus && !_inTimeTest)
             self.endTime = _clipEndTime;
         [self continueTapped:nil];
     }
@@ -2425,6 +2694,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (_currentClip < 0)
         return;
     _currentClipID = (int) _clipIDs[_currentClip].integerValue;
+    [self loadBarMarkers:_currentClipID];
     _beginTime = (int)_beginTimes[_currentClip].integerValue/10.0;
     _endTime = (int)_endTimes[_currentClip].integerValue/10.0;
     _numBarsInClip = (int)_barsInClip[_currentClip].integerValue;
@@ -2443,7 +2713,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     {
         [_addImageButton setHidden:YES];
     }
-    [self loadBarMarkers:_currentClipID];
     [self setCurrentPositiion:_currentSongType == SONG];
     [self updateClipButtons];
     [self stopTapped:nil];
@@ -3311,7 +3580,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_marginDecreaseButton setHidden:YES];
     [_marginSelectionButton setHidden:YES];
     [_ImageDisplay setImage:nil];
-    _currentImageID = -1;
+    self.currentImageID = -1;
 }
 - (IBAction)marginSelectionTapped:(id)sender
 {
@@ -3500,7 +3769,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     {
         NSString *fileName = [NSString stringWithFormat:@"%@/%li.png",_imagesDirectory,imageToLoad];
         _image = [UIImage imageWithContentsOfFile:fileName];
-        _currentImageID = imageToLoad;
+        self.currentImageID = imageToLoad;
         [_ImageDisplay setImage:_image];
         [_ImageDisplay setHidden:NO];
         [_fullScreenButton setHidden:NO];
@@ -3512,7 +3781,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     else if (!imageToLoad && _currentImageID > -1)
     {
-        _currentImageID = -1;
+        self.currentImageID = -1;
         [_ImageDisplay setImage:nil];
         [_ImageDisplay setHidden:NO];
         [self removeHighlightFromView:_ImageDisplay];
@@ -4022,6 +4291,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_loopSegmentButton setFrame:_saveLoopSegmentFrame];
     [_sliderTextLabel setFrame:_saveSliderTextLabelFrame];
     [self setPlayAndRecordButtonLocation];
+    [_playbackSpeedButton setHidden:YES];
+    [_playbackSpeedDecreaseButton setHidden:YES];
+    [_playbackSpeedIncreaseButton setHidden:YES];
 
     _haveTempHighlight = NO;
     [self setupClip];
@@ -4042,10 +4314,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     SQLOK(__FILE__,__LINE__,SQLitePrepare(_database, query.UTF8String, -1, &statement, 0), _database);
     if (sqlite3_step(statement) == SQLITE_ROW)
     {
-        _currentImageID = sqlite3_column_int64(statement, 0);
+        self.currentImageID = sqlite3_column_int64(statement, 0);
     }
     else
-        _currentImageID = 0;
+        self.currentImageID = 0;
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
     
     NSString *path = [NSString stringWithFormat:@"%@/%li.png",_imagesDirectory,_currentImageID];
@@ -4060,7 +4332,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_marginSelectionButton setHidden:YES];
     [_imageEndAtButton setHidden:YES];
     [_ImageDisplay setImage:nil];
-    _currentImageID = -1;
+    self.currentImageID = -1;
     CloseTRANS2 (&_hTranImageToView);
     CloseTRANS2 (&_hTranViewToImage);
 
@@ -4080,7 +4352,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     while (sqlite3_step(statement) == SQLITE_ROW)
     {
         int i=0;
-        long _currentImageID = sqlite3_column_int64(statement, i++);
+        long currentImageID = sqlite3_column_int64(statement, i++);
         long pgID = sqlite3_column_int64(statement, i++);
         float ft = sqlite3_column_double(statement, i++);
         float tt = sqlite3_column_double(statement, i++);
