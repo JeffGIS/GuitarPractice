@@ -109,7 +109,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property (nonatomic) MPMediaItemCollection      *userMediaItemCollection;
 @property (nonatomic) MPMusicPlayerController    *musicPlayer;
 @property MPMediaPickerController *picker;
-@property int currentTime;
+@property float currentTime;
 @property (nonatomic)double beginTime;
 @property (nonatomic)double endTime;
 @property float timerInterval;
@@ -164,6 +164,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property BOOL inTimeTest;
 @property float clipEndTime,clipStartTime;
 @property int numBarsInClip;
+@property BOOL creatingBarMarkers;
 @property BOOL inFullScreen;
 @property SystemSoundID leadInTick;
 @property BOOL recording;
@@ -551,13 +552,17 @@ type=CTLABEL;
     
     double dist = pct * _totTrackLineWidth;
     int online = 0;
+    double tlw = _trackLineWidths[online];
     while (dist > _trackLineWidths[online])
     {
-        dist -=  _trackLineWidths[online];
+        tlw = _trackLineWidths[online];
         if (online >= _numTrackLines - 1)
             break;
         else
+        {
+            dist -=  _trackLineWidths[online];
             online++;
+        }
     }
     DPOINT pt = _trackPoints[online*2];
     pt.x += dist;
@@ -638,12 +643,14 @@ type=CTLABEL;
     return;
 }
 
-- (void) clearBarMarkers
+- (void) clearBarMarkers:(BOOL)screenOnly
 {
     for (BarMarker *barMarker in _barMarkers)
     {
         [barMarker.label removeFromSuperview];
     }
+    if (screenOnly)
+        return;
     _barMarkers = NSMutableArray.new;
     if (_panBarMarker)
         [_ImageDisplay removeGestureRecognizer:_panBarMarker];
@@ -651,7 +658,7 @@ type=CTLABEL;
 }
 - (void) createBarMarkers:(int)numMarkers
 {
-    [self clearBarMarkers];
+    [self clearBarMarkers:NO];
     _selectedBarMarker = nil;
     if (!_numTrackLines)
         return;
@@ -663,13 +670,14 @@ type=CTLABEL;
     [_playbackSpeedDecreaseButton setHidden:NO];
     [_playbackSpeedIncreaseButton setHidden:NO];
 
+    _creatingBarMarkers = TRUE;
     double pct = 0;
     int atLine;
     float offset = _trackLineSpacing;
-    double pctInc = 1.0/(numMarkers-1);
+    double pctInc = 1.0/(numMarkers);
     float startTime = _clipStartTime;
     float timeInc = (_clipEndTime - _clipStartTime)/numMarkers;
-
+    numMarkers++;
     for (int i = 0;i<numMarkers;i++)
     {
         double pctAlongLine = 0;
@@ -683,7 +691,8 @@ type=CTLABEL;
         barMarker.pctAlongBeginLine = pctAlongLine;
         barMarker.beginLine = atLine;
         barMarker.fromTime = startTime;
-        startTime += timeInc;
+        if (barMarker.markerNum < numMarkers)
+            startTime += timeInc;
         barMarker.toTime = startTime;
         [barMarker.label setText:[NSString stringWithFormat:@"%i",i+1]];
         barMarker.label.numberOfLines = 2;
@@ -752,6 +761,9 @@ type=CTLABEL;
                 frame.origin.y -= _trackLineSpacing;
                 _selectedBarMarker.beginLine--;
             }
+            float pct = [self pctInClip:frame.origin];
+            float newTime = _clipStartTime + pct * (_clipEndTime - _clipStartTime);
+            _selectedBarMarker.fromTime = newTime;
             [_selectedBarMarker.label setFrame:frame];
             lastPoint = curLoc;
         }
@@ -1344,7 +1356,7 @@ type=CTLABEL;
     }
     if (_trackLabel)
     {
-        if (!_barMarkers || _barMarkers.count < 2)
+        if (_creatingBarMarkers || !_barMarkers || _barMarkers.count < 2)
             useBarMarkers = FALSE;
         if (useBarMarkers)
         {
@@ -1435,10 +1447,10 @@ type=CTLABEL;
                 index++;
             }
         }
-        else if (_numTrackLines)
+        else if (_numTrackLines && (_clipEndTime - _clipStartTime) > 0)
         {
             int onLine = 0;
-            double pctAlongClip = (value - _beginTime)/(_endTime - _beginTime);
+            double pctAlongClip = (value - _clipStartTime)/(_clipEndTime - _clipStartTime);
             double distAlongClip = pctAlongClip * _totTrackLineWidth;
             double distAlongLines = _trackLineWidths[0];
             
@@ -1858,6 +1870,9 @@ void showAlert(NSString *text)
     [_stepAheadButton setHidden:NO];
     [_changeBeginButton setSelected:YES];
     [_changeEndButton setSelected:NO];
+    _currentTime = _appSoundPlayer.currentTime;
+
+    _beginTime = _currentTime;
     _clipEditStatus = 1;
 }
 
@@ -1866,6 +1881,9 @@ void showAlert(NSString *text)
     [_stepAheadButton setHidden:NO];
     [_changeBeginButton setSelected:NO];
     [_changeEndButton setSelected:YES];
+    _currentTime = _appSoundPlayer.currentTime;
+
+    _endTime = _currentTime;
     _clipEditStatus = 2;
 }
 
@@ -2026,6 +2044,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
 }
 - (void) saveBarMarkers
 {
+    _creatingBarMarkers = FALSE;
+
     if (!_barMarkers || !_barMarkers.count)
         return;
     BOOL opened = [self open];
@@ -2061,7 +2081,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
 
 - (void) loadBarMarkers:(int)clipID
 {
-    [self clearBarMarkers];
+    [self clearBarMarkers:NO];
     BOOL opened = [self open];
     NSString *query = [NSString stringWithFormat:@"SELECT * FROM SUBCLIPS WHERE CLIPID = %i",clipID];
     sqlite3_stmt *statement = NULL;
@@ -2103,8 +2123,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         bm.fromTime = maxTime;
         NSNumber *bTime = [NSNumber numberWithInt:IDNINT(minTime*10)];
         NSNumber *eTime = [NSNumber numberWithInt:IDNINT(maxTime*10)];
-        _beginTimes[clipID-1] = bTime;
-        _endTimes[clipID] = eTime;
+        _beginTimes[_currentClip] = bTime;
+        _endTimes[_currentClip] = eTime;
         int index = bm.markerNum - 2;
         if (index > -1)
         {
@@ -2122,6 +2142,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     if (_selectedBarMarker)
     {
         _selectedBarMarker.fromTime += 0.1;
+        [self updateSliderText:_selectedBarMarker.fromTime];
+
     }
 }
 - (IBAction)barTimeDecreaseTapped:(id)sender
@@ -2129,6 +2151,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     if (_selectedBarMarker && _selectedBarMarker.fromTime >= 0.1)
     {
         _selectedBarMarker.fromTime -= 0.1;
+        [self updateSliderText:_selectedBarMarker.fromTime];
     }
 }
 
@@ -2149,20 +2172,14 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _clipEditStatus = 0;
     [self displayImageHighlightButtons:NO];
     [self saveBarMarkers];
-    [self clearBarMarkers];
+    [self clearBarMarkers:NO];
     [_barTimeTestButton setHidden:YES];
     [_barTimeDecreaseButton setHidden:YES];
     [_barTimeIncreaseButton setHidden:YES];
 
     [_beginButton setHidden:NO];
     [_endButton setHidden:NO];
-    [_changeEndButton setHidden:YES];
-    [_changeBeginButton setHidden:YES];
-    [_saveButton setEnabled:NO];
-    [_cancelEditButton setEnabled:NO];
-    [_saveButton setHidden:YES];
-    [_cancelEditButton setHidden:YES];
-    [_deleteClipButton setHidden:YES];
+    [self displayClipEditButtons:NO];
     [_addImageButton setHidden:YES];
     [_priorClipButton setHidden:NO];
     [_nextClipButton setHidden:NO];
@@ -2174,7 +2191,6 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [self loopSegmentButton:NO];
 
     BOOL opened = [self open];
-    NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
     
     NSString *cmd = [NSString stringWithFormat:@"UPDATE CLIPS SET STARTTIME=%i,ENDTIME=%i, BARS=%i WHERE CLIPID=%i",IDNINT(10*_beginTime),IDNINT(10*_endTime),_numBarsInClip,_currentClipID];
     [self executeCmd:cmd];
@@ -2190,15 +2206,9 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_beginButton setHidden:NO];
     [_endButton setHidden:NO];
     [self displayImageHighlightButtons:NO];
-    [self clearBarMarkers];
+    [self clearBarMarkers:NO];
 
-    [_changeEndButton setHidden:YES];
-    [_changeBeginButton setHidden:YES];
-    [_saveButton setEnabled:NO];
-    [_cancelEditButton setEnabled:NO];
-    [_saveButton setHidden:YES];
-    [_cancelEditButton setHidden:YES];
-    [_deleteClipButton setHidden:YES];
+    [self displayClipEditButtons:NO];
     [_addImageButton setHidden:YES];
     [_priorClipButton setHidden:NO];
     [_nextClipButton setHidden:NO];
@@ -2221,15 +2231,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     label = [NSString stringWithFormat:@"Bars: %i",_numBarsInClip];
     [_highlightBarsLabel setText:label];
 
-    [_changeEndButton setHidden:NO];
-    [_changeBeginButton setHidden:NO];
-    [_changeBeginButton setSelected:NO];
-    [_changeEndButton setSelected:NO];
-    [_cancelEditButton setEnabled:YES];
-    [_cancelEditButton setHidden:NO];
-    [_saveButton setHidden:NO];
-    [_saveButton setEnabled:YES];
-    [_deleteClipButton setEnabled:YES];
+    [self displayClipEditButtons:YES];
     [_addImageButton setHidden:_currentSongType != SONG];
     [_priorClipButton setHidden:YES];
     [_nextClipButton setHidden:YES];
@@ -3163,19 +3165,17 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (void) deleteClip:(int)clipID
 {
     BOOL opened = [self open];
-    NSString *title2 = [_currentSongTitle stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
     
-    NSString *cmd = [NSString stringWithFormat:@"DELETE FROM CLIPS WHERE ID = %i",clipID];
+    NSString *cmd = [NSString stringWithFormat:@"DELETE FROM CLIPS WHERE CLIPID = %i",clipID];
+    [self executeCmd:cmd];
+    cmd = [NSString stringWithFormat:@"DELETE FROM SUBCLIPS WHERE CLIPID = %i",clipID];
     [self executeCmd:cmd];
     [self close:opened];
-    [self retrieveSong:title2 setTimes:NO];
+    [self displayClipEditButtons:NO];
+    _currentClip--;
+    [self retrieveSong:_currentPracticeGroupID setTimes:NO];
     [self updateNumClipsLabel];
     [self updateClipButtons];
-    [_saveButton setEnabled:NO];
-    [_cancelEditButton setEnabled:NO];
-    [_deleteClipButton setEnabled:NO];
-    _currentClip--;
-    [self retrieveSong:title2 setTimes:NO];
 
 }
 -(void) updateNumClipsLabel
@@ -3344,12 +3344,17 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     }
     _beginTime = _tempClipStart;
     _endTime = _tempClipEnd;
+    [self updateSliderText:value];
+}
+
+-(void) updateSliderText:(float)value
+{
     NSString *sliderText = [NSString stringWithFormat:@"%.1f",value];
     [NSOperationQueue.mainQueue addOperationWithBlock:^{
         [self.sliderTextLabel setText:sliderText];
     }];
-}
 
+}
 - (IBAction)tempClipEditButtonTapped:(id)sender
 {
     NSString *currentTitle = [_tempClipEditButton titleForState:UIControlStateNormal];
@@ -4007,12 +4012,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     frame.size.height -= 16;
     [_imageFrame setHidden:YES];
     [_ImageDisplay setHidden:YES];
-    [self createTransforms:_fullScreenImageDisplay];
     if (_currentSongType == SONG)
     {
         [_fullScreenImageDisplay setFrame:frame];
         [_fullScreenImageDisplay setImage:_image];
         [_fullScreenImageDisplay setHidden:NO];
+        [self createTransforms:_fullScreenImageDisplay];
         [self.playerView setHidden:YES];
     }
     else
@@ -4097,6 +4102,25 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         ii=1;
 }
 
+- (void) displayClipEditButtons:(BOOL)show
+{
+    show = !show;
+    [_changeEndButton setHidden:show];
+    [_changeBeginButton setHidden:show];
+    [_changeBeginButton setSelected:show];
+    [_changeEndButton setSelected:show];
+    [_cancelEditButton setEnabled:!show];
+    [_cancelEditButton setHidden:show];
+    [_saveButton setHidden:show];
+    [_saveButton setEnabled:!show];
+    [_deleteClipButton setHidden:show];
+    [_deleteClipButton setEnabled:!show];
+    [_highlightBarsStepper setHidden:show];
+    [_highlightBarsLabel setHidden:show];
+    [_highlightLinesLabel setHidden:show];
+    [_highlightLinesStepper setHidden:show];
+
+}
 - (IBAction)highlightLinesChanged:(id)sender {
     _numHighlightLines = _highlightLinesStepper.value;
     NSString *label = [NSString stringWithFormat:@"Lines: %i",_numHighlightLines];
