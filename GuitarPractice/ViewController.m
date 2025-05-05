@@ -213,6 +213,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property AudioEngine * audioEngine;
 @property int keepGoing;
 @property float loopDelay;
+@property CAShapeLayer *highlightLayer;
 
 @end
 
@@ -4049,10 +4050,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 -(void) removeHighlightFromView:(UIView *)view
 {
-    NSArray *sublayers = view.layer.sublayers.copy;
-    for (CALayer *layer in sublayers)
+    if (_highlightLayer)
     {
-        [layer removeFromSuperlayer];
+        _highlightLayer.path = nil;
+        [_highlightLayer removeFromSuperlayer];
+        _highlightLayer = nil;
     }
     if (_trackLabel)
     {
@@ -4224,10 +4226,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         }
     }
     [highlightPath closePath];
-    CAShapeLayer *highlightLayer = CAShapeLayer.layer;
-    highlightLayer.path = highlightPath.CGPath;
-    highlightLayer.fillColor = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:0.5].CGColor;
-    [view.layer addSublayer:highlightLayer];
+    _highlightLayer = CAShapeLayer.new;
+    _highlightLayer.path = highlightPath.CGPath;
+    _highlightLayer.fillColor = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:0.5].CGColor;
+    [view.layer addSublayer:_highlightLayer];
     
     if (_trackLabel)
         [_trackLabel removeFromSuperview];
