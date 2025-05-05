@@ -649,12 +649,17 @@ type=CTLABEL;
     {
         [barMarker.label removeFromSuperview];
     }
+    if (_panBarMarker)
+    {
+        [_panBarMarker cancelsTouchesInView];
+        [_panBarMarker setEnabled:NO];
+        [_panBarMarker setDelegate:nil];
+        [_ImageDisplay removeGestureRecognizer:_panBarMarker];
+        _panBarMarker = nil;
+    }
     if (screenOnly)
         return;
     _barMarkers = NSMutableArray.new;
-    if (_panBarMarker)
-        [_ImageDisplay removeGestureRecognizer:_panBarMarker];
-    _panBarMarker = nil;
 }
 - (void) createBarMarkers:(int)numMarkers
 {
@@ -2177,12 +2182,10 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_barTimeDecreaseButton setHidden:YES];
     [_barTimeIncreaseButton setHidden:YES];
 
-    [_beginButton setHidden:NO];
-    [_endButton setHidden:NO];
+    [self displayClipAddButtons:YES];
+    [self displayClipSelectButtons:YES];
     [self displayClipEditButtons:NO];
     [_addImageButton setHidden:YES];
-    [_priorClipButton setHidden:NO];
-    [_nextClipButton setHidden:NO];
     [_playbackSpeedButton setHidden:YES];
     [_playbackSpeedDecreaseButton setHidden:YES];
     [_playbackSpeedIncreaseButton setHidden:YES];
@@ -2195,6 +2198,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     NSString *cmd = [NSString stringWithFormat:@"UPDATE CLIPS SET STARTTIME=%i,ENDTIME=%i, BARS=%i WHERE CLIPID=%i",IDNINT(10*_beginTime),IDNINT(10*_endTime),_numBarsInClip,_currentClipID];
     [self executeCmd:cmd];
     [self close:opened];
+    [_appSoundPlayer stop];
+
     [self retrieveSong:_currentPracticeGroupID setTimes:NO];
     [self setCurrentPositiion:NO];
 
@@ -2221,9 +2226,11 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
 - (IBAction)clipButtonTapped:(id)sender {
     [_timer invalidate];
     _timer = nil;
-    [_beginButton setHidden:YES];
-    [_endButton setHidden:YES];
+    [self displayClipAddButtons:NO];
+    [self displayClipEditButtons:YES];
     [self displayImageHighlightButtons:YES];
+    [self displayClipPlayButtons:NO];
+    [self displayClipSelectButtons:NO];
     [_highlightBarsStepper setValue:_numBarsInClip];
     [_highlightLinesStepper setValue:_numHighlightLines];
     NSString *label = [NSString stringWithFormat:@"Lines: %i",_numHighlightLines];
@@ -2231,12 +2238,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     label = [NSString stringWithFormat:@"Bars: %i",_numBarsInClip];
     [_highlightBarsLabel setText:label];
 
-    [self displayClipEditButtons:YES];
     [_addImageButton setHidden:_currentSongType != SONG];
-    [_priorClipButton setHidden:YES];
-    [_nextClipButton setHidden:YES];
-    [_playSegmentButton setHidden:YES];
-    [_loopSegmentButton setHidden:YES];
      if (_currentSongType == SONG)
     {
         [_appSoundPlayer pause];
@@ -2543,6 +2545,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
             [self.playerView playVideo];
         }
     }
+    return;
 }
 long ConvertCoord (LPDPOINT DPoint, int from, int to)
 {
@@ -2725,8 +2728,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_nextClipButton setEnabled:YES];
     if (_currentClip < 0)
     {
-        [_playSegmentButton setHidden:YES];
-        [_loopSegmentButton setHidden:YES];
+        [self displayClipPlayButtons:NO];
     }
 }
 - (IBAction)priorClipTapped:(id)sender
@@ -3166,12 +3168,16 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     BOOL opened = [self open];
     
+    [self removeHighlightFromView:_ImageDisplay];
     NSString *cmd = [NSString stringWithFormat:@"DELETE FROM CLIPS WHERE CLIPID = %i",clipID];
     [self executeCmd:cmd];
     cmd = [NSString stringWithFormat:@"DELETE FROM SUBCLIPS WHERE CLIPID = %i",clipID];
     [self executeCmd:cmd];
     [self close:opened];
+    [self deleteHighlightForClip:clipID];
     [self displayClipEditButtons:NO];
+    [self displayClipAddButtons:YES];
+    [self displayClipSelectButtons:YES];
     _currentClip--;
     [self retrieveSong:_currentPracticeGroupID setTimes:NO];
     [self updateNumClipsLabel];
@@ -3193,17 +3199,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 -(void) newSongButtonSettings
 {
     BOOL st = _beginTimes.count == 0;
-    [_playSegmentButton setHidden:st];
-    [_loopSegmentButton setHidden:st];
-    [_nextClipButton setHidden:st];
-    [_priorClipButton setHidden:st];
+    [self displayClipAddButtons:YES];
+    [self displayClipSelectButtons:!st];
     [_priorClipButton setEnabled:_currentClip > 1];
     if (_currentClip <= 0)
         [_nextClipButton setTitle:@"First Clip" forState:UIControlStateNormal];
     else
         [_nextClipButton setTitle:@"Next Clip" forState:UIControlStateNormal];
-    [_beginButton setHidden:NO];
-    [_endButton setHidden:YES];
     [_addImageButton setHidden:NO];
     [_pauseButton setHidden:YES];
     [_continueButton setHidden:NO];
@@ -3235,24 +3237,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self toggleMonitor];
 }
 
-/*
-- (void) testMonitorx
-{
-    //_audioController = [[AudioController alloc] init];
-    static BOOL monOn = FALSE;
-    if (monOn)
-    {
-        [AudioController closeAudioController];
-        monOn = FALSE;
-    }
-    else
-    {
-        [AudioController initAudioController];
-        [AudioController playButtonPressed];
-        monOn = TRUE;
-    }
-    return;
-}*/
 - (void) toggleMonitor
 {
     //_audioController = [[AudioController alloc] init];
@@ -3487,130 +3471,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [self presentViewController:effectsVC animated:NO completion:nil];
     }
     return;
-}
-
-- (void) startMonitor3
-{
-    NSError *error=nil;
-    
-    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-
-    [audioSession setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:(AVAudioSessionCategoryOptionAllowBluetooth )
-                                           error:&error];
-//
-    [audioSession setActive:YES error:&error];
-    _audioEngine = [[AVAudioEngine alloc] init];
-
-    AVAudioEngine *engine = _audioEngine;
-    AVAudioInputNode *mic = [engine inputNode];
-    mic.volume = 1;
-    AVAudioOutputNode *speaker = [engine outputNode];
-
-    //[engine reset];
-    [engine prepare];
-    
-    AVAudioMixerNode *mainMixer = engine.mainMixerNode;
-    [engine connect:mic to:mainMixer format:nil];
-
-    AVAudioFormat *mixerOutputFormat = [mainMixer outputFormatForBus:0];
-    AVAudioPlayerNode *playerNodeForMixer = [[AVAudioPlayerNode alloc] init];
-    
-    AVAudioUnitReverb *reverb = [[AVAudioUnitReverb alloc]init];
-    reverb.wetDryMix = 50;
-
-//    [reverb loadFactoryPreset:AVAudioUnitReverbPresetCathedral];
-    [engine attachNode:reverb];
-    [engine attachNode:playerNodeForMixer];
-    [engine connect:playerNodeForMixer to:reverb format:mixerOutputFormat];
-    
-    // connect the reverb effect to mixer input bus 0
-   // [engine connect:reverb to:mainMixer fromBus:0 toBus:0 format:mixerOutputFormat];
-    [engine startAndReturnError:&error];
-    return;
-/*
-    
-    AVAudioPlayerNode *playerNodeForMonitor = [[AVAudioPlayerNode alloc] init];
-    [engine attachNode:playerNodeForMonitor];
-    
-    AVAudioMixerNode *audioMixer = [[AVAudioMixerNode alloc] init];
-    [engine attachNode:audioMixer];
-    
-    AVAudioPlayerNode *playerNodeForOutput = [[AVAudioPlayerNode alloc] init];
-    [engine attachNode:playerNodeForOutput];
-    
-    AVAudioMixerNode *micMixer = [[AVAudioMixerNode alloc] init];
-    [engine attachNode:micMixer];
-    
-    
-    AVAudioInputNode *mic = [engine inputNode];
-    [engine connect:mic to:micMixer format:[mic inputFormatForBus:0]];
-    [engine connect:micMixer to:audioMixer format:mixerOutputFormat];
-    [engine connect:playerNodeForMixer to:audioMixer format:mixerOutputFormat];
-    
-    [engine connect:playerNodeForMonitor to:micMixer format:mixerOutputFormat];
-    
-    
-//    [engine connect:mic to:mainMixer format:mixerOutputFormat];
-    [engine connect:playerNodeForOutput to:mainMixer format:mixerOutputFormat];
-    [engine connect:playerNodeForMonitor to:mainMixer format:mixerOutputFormat];
-
-    AVAudioFile *bgAudioFile = [[AVAudioFile alloc] initForReading:self.bgMusicURL error:&error];
-    
-    __weak DEKaraokeController *weakSelf = self;
-    [playerNodeForMixer scheduleFile:bgAudioFile atTime:nil completionHandler:^{
-        [playerNodeForOutput stop];
-        [weakSelf stop];
-        if (musicFinishCallback != nil){
-            dispatch_async(dispatch_get_main_queue(), ^{
-               musicFinishCallback();
-            });
-           
-        }
-    }];
-    
-    [playerNodeForOutput scheduleFile:bgAudioFile atTime:nil completionHandler:nil];
-    
-    
-    
-    
-    
-    
-    AVAudioFormat *tapFormat = [audioMixer outputFormatForBus:0];
-    
-    AVAudioFile *outputFile = [[AVAudioFile alloc] initForWriting:self.outputURL settings:
-                               [tapFormat settings] error:&error];
-    
-    [audioMixer installTapOnBus:0 bufferSize:4096 format:tapFormat
-                          block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when) {
-                              NSError *error;
-                              BOOL success = NO;
-                              
-                              success = [outputFile writeFromBuffer:buffer error:&error];
-                              NSAssert(success, @"error writing buffer data to file, %@", [error localizedDescription]);
-                          }];
-    
-    self.audioMixer = audioMixer;
-    
-    [micMixer installTapOnBus:0 bufferSize:4096 format:tapFormat
-                        block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when) {
-                            [weakSelf meterLevel:buffer callback:powerLevelChangedCallback];
-                            
-                        }];
-    
-    
-    
-    [engine reset];
-    [engine prepare];
-    [engine startAndReturnError:&error];
-    
-    [playerNodeForMixer play];
-    [playerNodeForMonitor play];
-    [playerNodeForOutput play];
-    
-    self.isRunning = YES;
-    
-  */
-   
 }
 
 
@@ -3991,6 +3851,17 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     return rtn;
 }
 
+- (BOOL) deleteHighlightForClip:(int) clipID
+{
+    BOOL st = FALSE;
+    BOOL opened = [self open];
+    
+    NSString *cmd = [NSString stringWithFormat:@"DELETE FROM CLIPHIGHLIGHT WHERE CLIPID = %i",clipID];
+    [self executeCmd:cmd];
+    [self close:opened];
+
+    return st;
+}
 -(void) createTransforms:(UIImageView*)view
 {
     CGRect viewFrame = [self imageRectInView:view];
@@ -4102,6 +3973,26 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         ii=1;
 }
 
+- (void) displayClipPlayButtons:(BOOL)show
+{
+    show = !show;
+    [_playSegmentButton setHidden:show];
+    [_loopSegmentButton setHidden:show];
+}
+- (void) displayClipAddButtons:(BOOL)show
+{
+    show = !show;
+    [_beginButton setHidden:show];
+    [_endButton setHidden:show];
+}
+- (void) displayClipSelectButtons:(BOOL)show
+{
+    show = !show;
+    [_priorClipButton setHidden:show];
+    [_nextClipButton setHidden:show];
+    [_playSegmentButton setHidden:show];
+    [_loopSegmentButton setHidden:show];
+}
 - (void) displayClipEditButtons:(BOOL)show
 {
     show = !show;
