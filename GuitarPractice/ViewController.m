@@ -4062,7 +4062,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
     if (_trackPoints)
     {
-        _trackLabel = 0;
         free (_trackPoints);
         free (_trackLineWidths);
     }
@@ -4076,9 +4075,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     _savedNumTrackLines = _numTrackLines;
     _savedNumHighlightLines = _numHighlightLines;
-    _savedTrackPoints = malloc (sizeof(DPOINT)*_numTrackLines*2 + 4);
+    _savedTrackPoints = (LPDPOINT)malloc (sizeof(DPOINT)*_numTrackLines*2 + 4);
     memmove (_savedTrackPoints,_trackPoints,sizeof(DPOINT)*_numTrackLines*2 + 4);
-    _savedTrackLineWidths = malloc (sizeof(double)*_numTrackLines + 4);
+    _savedTrackLineWidths = (LPDOUBLE)malloc (sizeof(double)*_numTrackLines + 4);
     memmove (_savedTrackLineWidths,_trackLineWidths,sizeof(double)*_numTrackLines + 4);
     _savedTrackLineSpacing = _trackLineSpacing;
     _savedTotTrackLineWidth = _totTrackLineWidth;
@@ -4093,11 +4092,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _numHighlightLines = _savedNumHighlightLines;
     if (_trackPoints)
         free (_trackPoints);
-    _trackPoints = malloc (sizeof(DPOINT)*_numTrackLines*2 + 4);
+    _trackPoints = (LPDPOINT)malloc (sizeof(DPOINT)*_numTrackLines*2 + 4);
     memmove (_trackPoints,_savedTrackPoints,sizeof(DPOINT)*_numTrackLines*2 + 4);
     if (_trackLineWidths)
         free (_trackLineWidths);
-    _trackLineWidths = malloc (sizeof(double)*_numTrackLines + 4);
+    _trackLineWidths = (LPDOUBLE)malloc (sizeof(double)*_numTrackLines + 4);
     memmove (_trackLineWidths,_savedTrackLineWidths,sizeof(double)*_numTrackLines + 4);
     _trackLineSpacing = _savedTrackLineSpacing;
     _totTrackLineWidth = _savedTotTrackLineWidth;
@@ -4128,8 +4127,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     CGPoint viewPoint2 = TranCGPoint(imagePoint2, hTranImageToView);
     _numTrackLines = numLines;
     _numHighlightLines = numLines;
-    _trackPoints = malloc (sizeof(DPOINT)*_numTrackLines*2 + 4);
-    _trackLineWidths = malloc (sizeof(double)*_numTrackLines + 4);
+    _trackPoints = (LPDPOINT)malloc (sizeof(DPOINT)*_numTrackLines*2 + 4);
+    _trackLineWidths = (LPDOUBLE)malloc (sizeof(double)*_numTrackLines + 4);
     int lineHeight = (imagePoint2.y - imagePoint1.y)/numLines;
     _trackLineSpacing = (viewPoint2.y - viewPoint1.y)/numLines;
     CGPoint pt = imagePoint1;
