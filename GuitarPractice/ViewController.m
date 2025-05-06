@@ -263,7 +263,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 
     _tapGestureRecognizer.delegate = self;
     self.currentImageID = -1;
-    _numHighlightLines = 1;
+    _numHighlightLines = 0;
     _inFullScreen = NO;
     _maxLeadInTicks = 2;
     _effectsArray = NSMutableArray.new;
@@ -1940,7 +1940,8 @@ void showAlert(NSString *text)
         _endTime = _appSoundPlayer.currentTime;
     else
         _endTime = _currentYTTime;
-    _numBarsInClip = 2;
+    _numBarsInClip = 1;
+    _numHighlightLines = 0;
     NSNumber *bTime = [NSNumber numberWithInt:_beginTime];
     NSNumber *eTime = [NSNumber numberWithInt:_endTime];
     NSNumber *nBars = [NSNumber numberWithInt:_numBarsInClip];
@@ -2255,6 +2256,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_tapToEditLabel setHidden:YES];
     NSString *labelText = [NSString stringWithFormat:@"Edit Clip %i",_currentClip+1];
     [_clipButton setTitle:labelText forState:UIControlStateNormal];
+    [self createBarMarkers:_numBarsInClip];
+
     _clipEditStatus = 1;
     
 }
@@ -2757,7 +2760,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (void) setupClip
 {
     if (_currentClip < 0)
+    {
+        [_clipButton setHidden:YES];
         return;
+    }
     _currentClipID = (int) _clipIDs[_currentClip].integerValue;
     [self loadBarMarkers:_currentClipID];
     _beginTime = (int)_beginTimes[_currentClip].integerValue/10.0;
@@ -3394,8 +3400,11 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (void) setPlaybackSpeed:(int)playbackSpeed
 {
+    BOOL restart = FALSE;
     if (_currentSongType == SONG)
     {
+        if (_appSoundPlayer.playing)
+            restart = TRUE;
         [_appSoundPlayer stop];
         if (playbackSpeed == 10)
             _appSoundPlayer.enableRate = NO;
@@ -3404,7 +3413,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
             _appSoundPlayer.enableRate = YES;
             _appSoundPlayer.rate = playbackSpeed / 10.0;
         }
-        [_appSoundPlayer play];
+        if (restart)
+            [_appSoundPlayer play];
     }
     else
     {
