@@ -157,7 +157,9 @@
 @property (weak, nonatomic) IBOutlet UIButton *barTimeIncreaseButton;
 @property (weak, nonatomic) IBOutlet UIButton *barTimeTestButton;
 - (IBAction)barTimeIncreaseTapped:(id)sender;
+- (IBAction) barTimeIncreaseDown:(id)sender;
 - (IBAction)barTimeDecreaseTapped:(id)sender;
+- (IBAction) barTimeDecreaseDown:(id)sender;
 - (IBAction)barTimeTestTapped:(id)sender;
 
 - (void) toggleMonitor;

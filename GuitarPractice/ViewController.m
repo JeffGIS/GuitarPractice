@@ -544,6 +544,19 @@ type=CTLABEL;
     return;
 }
 
+- (CGPoint) pointAtPCT:(double)pct
+             andOffset:(double)offset
+           onTrackLine:(int)online
+{
+    CGPoint rtn = {0,0};
+    DPOINT pt = _trackPoints[online*2];
+    double dist = pct * _trackLineWidths[online];
+    pt.x += dist;
+    pt.y -= offset;
+    rtn = DPointToCGPoint(pt);
+    return rtn;
+}
+
 - (CGPoint) PointOnTrackLinesAtPCT:(double)pct
                          andOffset:(double)off
                             onLine:(int*)atLine
@@ -668,6 +681,7 @@ type=CTLABEL;
     _selectedBarMarker = nil;
     if (!_numTrackLines)
         return;
+    float offset = _trackLineSpacing;
     [_barTimeTestButton setHidden:NO];
     [_barTimeDecreaseButton setHidden:NO];
     [_barTimeIncreaseButton setHidden:NO];
@@ -679,7 +693,6 @@ type=CTLABEL;
     _creatingBarMarkers = TRUE;
     double pct = 0;
     int atLine;
-    float offset = _trackLineSpacing;
     double pctInc = 1.0/(numMarkers);
     float startTime = _clipStartTime;
     float timeInc = (_clipEndTime - _clipStartTime)/numMarkers;
@@ -700,20 +713,32 @@ type=CTLABEL;
         if (barMarker.markerNum < numMarkers)
             startTime += timeInc;
         barMarker.toTime = startTime;
-        [barMarker.label setText:[NSString stringWithFormat:@"%i",i+1]];
-        barMarker.label.numberOfLines = 2;
-        barMarker.label.lineBreakMode = UILineBreakModeCharacterWrap;
-        barMarker.label.backgroundColor = [UIColor colorWithRed:1 green:1 blue:0.0 alpha:1];
-        CGRect frame = CGRectMake(pt.x,pt.y,9,offset);
-        [barMarker.label setFrame:frame];
-        [_ImageDisplay addSubview:barMarker.label];
         [_barMarkers addObject:barMarker];
         pct += pctInc;
     }
+    return;
+}
+
+- (void)editBarMarkers
+{
+    float offset = _trackLineSpacing;
     _panBarMarker = UIPanGestureRecognizer.new;
     [_panBarMarker addTarget:self action:@selector(barMarkerDragged:)];
     [_ImageDisplay addGestureRecognizer:_panBarMarker];
-    return;
+    for (BarMarker *bm in _barMarkers)
+    {
+        [bm.label setText:[NSString stringWithFormat:@"%i",bm.markerNum]];
+        bm.label.numberOfLines = 2;
+        bm.label.lineBreakMode = UILineBreakModeCharacterWrap;
+        bm.label.backgroundColor = [UIColor colorWithRed:1 green:1 blue:0.0 alpha:1];
+        CGPoint pt = [self pointAtPCT:bm.pctAlongBeginLine
+                            andOffset:offset
+                          onTrackLine:bm.beginLine];
+        CGRect frame = CGRectMake(pt.x,pt.y,9,offset);
+        [bm.label setFrame:frame];
+        [_ImageDisplay addSubview:bm.label];
+    }
+
 }
 
 - (void)barMarkerDragged:(UIPanGestureRecognizer *)gesture
@@ -2143,9 +2168,25 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
 
 
 }
+- (IBAction) barTimeIncreaseDown:(id)sender
+{
+    _buttonTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(barTimeIncreaseTapped:) userInfo:nil repeats:YES];
 
+}
+- (IBAction) barTimeDecreaseDown:(id)sender
+{
+    _buttonTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(barTimeDecreaseTapped:) userInfo:nil repeats:YES];
+
+}
 - (IBAction)barTimeIncreaseTapped:(id)sender
 {
+    if (_buttonTimer && sender != _buttonTimer)
+    {
+        NSLog (@"barTimeIncrease up");
+        [_buttonTimer invalidate];
+        _buttonTimer = 0;
+    }
+
     if (_selectedBarMarker)
     {
         _selectedBarMarker.fromTime += 0.1;
@@ -2155,7 +2196,14 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
 }
 - (IBAction)barTimeDecreaseTapped:(id)sender
 {
-    if (_selectedBarMarker && _selectedBarMarker.fromTime >= 0.1)
+    if (_buttonTimer && sender != _buttonTimer)
+    {
+        NSLog (@"barTimeDecrease up");
+        [_buttonTimer invalidate];
+        _buttonTimer = 0;
+    }
+
+     if (_selectedBarMarker && _selectedBarMarker.fromTime >= 0.1)
     {
         _selectedBarMarker.fromTime -= 0.1;
         [self updateSliderText:_selectedBarMarker.fromTime];
@@ -2256,7 +2304,9 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [_tapToEditLabel setHidden:YES];
     NSString *labelText = [NSString stringWithFormat:@"Edit Clip %i",_currentClip+1];
     [_clipButton setTitle:labelText forState:UIControlStateNormal];
-    [self createBarMarkers:_numBarsInClip];
+    if (!_barMarkers || _barMarkers.count < 1)
+        [self createBarMarkers:_numBarsInClip];
+    [self editBarMarkers];
 
     _clipEditStatus = 1;
     
@@ -2738,7 +2788,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)priorClipTapped:(id)sender
 {
     [_deleteClipButton setEnabled:NO];
-
+    [self displayClipEditButtons:NO];
     if (_currentClip > 0)
     {
         _currentClip--;
@@ -2748,7 +2798,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (IBAction)nextClipTapped:(id)sender {
     [_deleteClipButton setEnabled:NO];
-    
+    [self displayClipEditButtons:NO];
+
     if ([_nextClipButton.titleLabel.text isEqual:@"First Clip"])
         _currentClip = -1;
     if (_currentClip < (int)_beginTimes.count-1)
@@ -4036,6 +4087,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     NSString *label = [NSString stringWithFormat:@"Bars: %i",_numBarsInClip];
     [_highlightBarsLabel setText:label];
     [self createBarMarkers:_numBarsInClip];
+    [self editBarMarkers];
 }
 
 - (IBAction)delayChanged:(id)sender {

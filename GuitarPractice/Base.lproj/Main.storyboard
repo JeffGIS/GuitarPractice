@@ -763,6 +763,7 @@
                                     </backgroundConfiguration>
                                 </buttonConfiguration>
                                 <connections>
+                                    <action selector="barTimeDecreaseDown:" destination="BYZ-38-t0r" eventType="touchDown" id="uXW-xO-eCP"/>
                                     <action selector="barTimeDecreaseTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="zu8-d8-npz"/>
                                 </connections>
                             </button>
@@ -795,6 +796,7 @@
                                     </backgroundConfiguration>
                                 </buttonConfiguration>
                                 <connections>
+                                    <action selector="barTimeIncreaseDown:" destination="BYZ-38-t0r" eventType="touchDown" id="ypQ-N3-GjM"/>
                                     <action selector="barTimeIncreaseTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="a7m-BG-OYP"/>
                                 </connections>
                             </button>
