@@ -155,6 +155,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property NSMutableArray <UIFont*>*filledButtonTitleFontArray,*filledButtonSubTitleFontArray;
 @property UITapGestureRecognizer *tapGestureRecognizer;
 @property UITapGestureRecognizer *tapGestureRecognizerFullScreen;
+@property UITapGestureRecognizer *tapBarMarker;
 @property UILongPressGestureRecognizer *longPressRecognizerFullScreen;
 @property BOOL haveStartLocation;
 @property int highlightPointNumber;
@@ -671,6 +672,14 @@ type=CTLABEL;
         [_ImageDisplay removeGestureRecognizer:_panBarMarker];
         _panBarMarker = nil;
     }
+    if (_tapBarMarker)
+    {
+        [_tapBarMarker cancelsTouchesInView];
+        [_tapBarMarker setEnabled:NO];
+        [_tapBarMarker setDelegate:nil];
+        [_ImageDisplay removeGestureRecognizer:_tapBarMarker];
+        _tapBarMarker = nil;
+    }
     if (screenOnly)
         return;
     _barMarkers = NSMutableArray.new;
@@ -682,13 +691,7 @@ type=CTLABEL;
     if (!_numTrackLines)
         return;
     float offset = _trackLineSpacing;
-    [_barTimeTestButton setHidden:NO];
-    [_barTimeDecreaseButton setHidden:NO];
-    [_barTimeIncreaseButton setHidden:NO];
     [_addImageButton setHidden:YES];
-    [_playbackSpeedButton setHidden:NO];
-    [_playbackSpeedDecreaseButton setHidden:NO];
-    [_playbackSpeedIncreaseButton setHidden:NO];
 
     _creatingBarMarkers = TRUE;
     double pct = 0;
@@ -721,7 +724,11 @@ type=CTLABEL;
 
 - (void)editBarMarkers
 {
+    [self displayBarTimeButtons:YES];
     float offset = _trackLineSpacing;
+    _tapBarMarker = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(barMarkerDragged:)];
+    [_ImageDisplay addGestureRecognizer:_tapBarMarker];
+
     _panBarMarker = UIPanGestureRecognizer.new;
     [_panBarMarker addTarget:self action:@selector(barMarkerDragged:)];
     [_ImageDisplay addGestureRecognizer:_panBarMarker];
@@ -748,6 +755,10 @@ type=CTLABEL;
     DPOINT curLoc = CGPointToDPOINT(pt);
     switch (gesture.state)
     {
+        case UIGestureRecognizerStateEnded:
+            NSLog (@"Ended");
+            if (gesture != _tapBarMarker)
+                break;
         case UIGestureRecognizerStateBegan:
         {
             NSLog (@"Began");
@@ -759,7 +770,7 @@ type=CTLABEL;
             {
                 DPOINT barLoc;
                 barLoc.x = marker.label.frame.origin.x;
-                barLoc.y = marker.label.frame.origin.y + marker.label.frame.size.height;
+                barLoc.y = marker.label.frame.origin.y + marker.label.frame.size.height * 0.75;
                 float dist = ldistpp (&curLoc,&barLoc);
                 if (dist < minDist)
                 {
@@ -768,13 +779,12 @@ type=CTLABEL;
                 }
             }
             if (_selectedBarMarker)
+            {
                 [_selectedBarMarker.label setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:0.0 alpha:0.5]];
-
-            [_selectedBarMarker.label setBackgroundColor:UIColor.redColor];
+                [_selectedBarMarker.label setBackgroundColor:UIColor.redColor];
+                [self updateSliderText:_selectedBarMarker.fromTime];
+            }
         }
-            break;
-        case UIGestureRecognizerStateEnded:
-            NSLog (@"Ended");
             break;
         case UIGestureRecognizerStateChanged:
         {
@@ -796,6 +806,7 @@ type=CTLABEL;
             float newTime = _clipStartTime + pct * (_clipEndTime - _clipStartTime);
             _selectedBarMarker.fromTime = newTime;
             [_selectedBarMarker.label setFrame:frame];
+            [self updateSliderText:_selectedBarMarker.fromTime];
             lastPoint = curLoc;
         }
             break;
@@ -2228,10 +2239,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [self displayImageHighlightButtons:NO];
     [self saveBarMarkers];
     [self clearBarMarkers:NO];
-    [_barTimeTestButton setHidden:YES];
-    [_barTimeDecreaseButton setHidden:YES];
-    [_barTimeIncreaseButton setHidden:YES];
-
+    [self displayBarTimeButtons:NO];
     [self displayClipAddButtons:YES];
     [self displayClipSelectButtons:YES];
     [self displayClipEditButtons:NO];
@@ -2263,6 +2271,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [self displayImageHighlightButtons:NO];
     [self clearBarMarkers:NO];
 
+    [self displayBarTimeButtons:NO];
     [self displayClipEditButtons:NO];
     [_addImageButton setHidden:YES];
     [_priorClipButton setHidden:NO];
@@ -4074,6 +4083,23 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_highlightLinesStepper setHidden:show];
 
 }
+
+- (void) displayBarTimeButtons:(BOOL)show
+{
+    show = !show;
+    [_barTimeTestButton setHidden:show];
+    [_barTimeDecreaseButton setHidden:show];
+    [_barTimeIncreaseButton setHidden:show];
+}
+
+- (void) displayPlaybackSpeedButtons:(BOOL)show
+{
+    show = !show;
+    [_playbackSpeedButton setHidden:show];
+    [_playbackSpeedDecreaseButton setHidden:show];
+    [_playbackSpeedIncreaseButton setHidden:show];
+}
+
 - (IBAction)highlightLinesChanged:(id)sender {
     _numHighlightLines = _highlightLinesStepper.value;
     NSString *label = [NSString stringWithFormat:@"Lines: %i",_numHighlightLines];
