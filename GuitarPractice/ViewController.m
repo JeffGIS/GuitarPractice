@@ -3621,8 +3621,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
             _clipEndTime = _endTime;
             [_tempClipEditButton setTitle:@"Edit" forState:UIControlStateNormal];
             [_tempClipEditButton setHidden:NO];
-            [self createTempHighlight:_tempHighlightPCT1
-                                toPCT:_tempHighlightPCT2];
+            if (_numHighlightLines)
+                [self createTempHighlight:_tempHighlightPCT1
+                                    toPCT:_tempHighlightPCT2];
         break;
     case 2://reset
             [_tempClipEditButton setHidden:YES];
@@ -3636,8 +3637,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
             _clipEndTime = _endTime;
 
             _haveTempHighlight = NO;
-            [self displayHighlightForClip:_currentClipID
-                                   inView:_fullScreenImageDisplay];
+            if (_numHighlightLines)
+                [self displayHighlightForClip:_currentClipID
+                                       inView:_fullScreenImageDisplay];
 
         break;
     }
