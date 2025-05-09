@@ -220,7 +220,7 @@
                                 </connections>
                             </button>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="3lz-1F-37j">
-                                <rect key="frame" x="420" y="10" width="140" height="48"/>
+                                <rect key="frame" x="420" y="20" width="140" height="48"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="21"/>
                                 <state key="normal" title="Add Image">
@@ -260,13 +260,46 @@
                                     <action selector="saveImagePicked:" destination="BYZ-38-t0r" eventType="touchUpInside" id="yCU-U1-1kJ"/>
                                 </connections>
                             </button>
-                            <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="eg1-oz-GZp">
-                                <rect key="frame" x="805" y="20" width="112" height="38"/>
+                            <button hidden="YES" opaque="NO" contentMode="center" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="wordWrap" translatesAutoresizingMaskIntoConstraints="NO" id="eg1-oz-GZp">
+                                <rect key="frame" x="863" y="20" width="159" height="38"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="filled" title="Left Margin" titleAlignment="center"/>
+                                <buttonConfiguration key="configuration" style="filled" title="Set Left\n Margin" cornerStyle="capsule" titleAlignment="center"/>
                                 <connections>
                                     <action selector="marginSelectionTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="VY7-Ja-Qw0"/>
+                                </connections>
+                            </button>
+                            <button hidden="YES" autoresizesSubviews="NO" opaque="NO" contentMode="left" fixedFrame="YES" insetsLayoutMarginsFromSafeArea="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="wordWrap" translatesAutoresizingMaskIntoConstraints="NO" id="WJN-qs-RWK">
+                                <rect key="frame" x="830" y="20" width="65" height="38"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <inset key="contentEdgeInsets" minX="4" minY="0.0" maxX="0.0" maxY="0.0"/>
+                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                <state key="normal" image="arrowshape.left.fill" catalog="system"/>
+                                <buttonConfiguration key="configuration" style="filled" image="arrowshape.left.fill" catalog="system" cornerStyle="capsule">
+                                    <color key="baseForegroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    <color key="baseBackgroundColor" systemColor="systemBlueColor"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="marginDecreaseButtonDown:" destination="BYZ-38-t0r" eventType="touchDown" id="6Vi-jS-cLH"/>
+                                    <action selector="marginDecreaseButtonTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ppA-P1-dis"/>
+                                </connections>
+                            </button>
+                            <button hidden="YES" opaque="NO" multipleTouchEnabled="YES" contentMode="right" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WBZ-Cr-TV0">
+                                <rect key="frame" x="990" y="20" width="65" height="38"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <inset key="contentEdgeInsets" minX="0.0" minY="0.0" maxX="2" maxY="0.0"/>
+                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                <state key="normal" image="arrowshape.right.fill" catalog="system"/>
+                                <buttonConfiguration key="configuration" style="filled" image="arrowshape.right.fill" catalog="system" cornerStyle="capsule">
+                                    <fontDescription key="titleFontDescription" type="system" pointSize="62"/>
+                                    <color key="baseForegroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    <color key="baseBackgroundColor" systemColor="systemBlueColor"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="marginIncreaseButtonDown:" destination="BYZ-38-t0r" eventType="touchDown" id="n0B-9I-sr7"/>
+                                    <action selector="marginIncreaseButtonTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="F7R-kg-3wF"/>
                                 </connections>
                             </button>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="HAa-kO-X7u">
@@ -437,36 +470,6 @@
                                 </state>
                                 <connections>
                                     <action selector="stepAheadTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Dxi-vr-9fu"/>
-                                </connections>
-                            </button>
-                            <button hidden="YES" autoresizesSubviews="NO" opaque="NO" contentMode="left" fixedFrame="YES" insetsLayoutMarginsFromSafeArea="NO" contentHorizontalAlignment="left" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WJN-qs-RWK">
-                                <rect key="frame" x="925" y="10" width="40" height="28"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="62"/>
-                                <inset key="contentEdgeInsets" minX="4" minY="0.0" maxX="0.0" maxY="0.0"/>
-                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                                <state key="normal" title="&lt;">
-                                    <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                </state>
-                                <connections>
-                                    <action selector="marginDecreaseButtonDown:" destination="BYZ-38-t0r" eventType="touchDown" id="6Vi-jS-cLH"/>
-                                    <action selector="marginDecreaseButtonTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ppA-P1-dis"/>
-                                </connections>
-                            </button>
-                            <button hidden="YES" opaque="NO" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="right" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="WBZ-Cr-TV0">
-                                <rect key="frame" x="980" y="10" width="40" height="28"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="62"/>
-                                <inset key="contentEdgeInsets" minX="0.0" minY="0.0" maxX="2" maxY="0.0"/>
-                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                                <state key="normal" title="&gt;">
-                                    <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                </state>
-                                <connections>
-                                    <action selector="marginIncreaseButtonDown:" destination="BYZ-38-t0r" eventType="touchDown" id="n0B-9I-sr7"/>
-                                    <action selector="marginIncreaseButtonTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="F7R-kg-3wF"/>
                                 </connections>
                             </button>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" preferredBehavioralStyle="pad" translatesAutoresizingMaskIntoConstraints="NO" id="RK3-NL-3xV">
@@ -1037,6 +1040,8 @@
         </scene>
     </scenes>
     <resources>
+        <image name="arrowshape.left.fill" catalog="system" width="128" height="104"/>
+        <image name="arrowshape.right.fill" catalog="system" width="128" height="104"/>
         <image name="hsvLoop.png" width="128" height="128"/>
         <image name="hsvPause.png" width="128" height="128"/>
         <image name="hsvPlay.png" width="128" height="128"/>
@@ -1048,11 +1053,14 @@
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
+        <systemColor name="systemBlueColor">
+            <color red="0.0" green="0.47843137250000001" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
         <systemColor name="systemGray2Color">
-            <color red="0.68235294117647061" green="0.68235294117647061" blue="0.69803921568627447" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.68235294120000001" green="0.68235294120000001" blue="0.69803921570000005" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemMintColor">
-            <color red="0.0" green="0.7803921568627451" blue="0.74509803921568629" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.0" green="0.78039215689999997" blue="0.74509803919999995" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemYellowColor">
             <color red="1" green="0.80000000000000004" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>

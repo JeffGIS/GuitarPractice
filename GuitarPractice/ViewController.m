@@ -3582,9 +3582,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     _adjustingLeftMargin = !_adjustingLeftMargin;
     if (_adjustingLeftMargin)
-        [_marginSelectionButton setTitle:@"Set Left Margin" forState:UIControlStateNormal];
+        [_marginSelectionButton setTitle:@"Set Left\n Margin" forState:UIControlStateNormal];
     else
-        [_marginSelectionButton setTitle:@"Set Right Margin" forState:UIControlStateNormal];
+        [_marginSelectionButton setTitle:@"Set Right\n  Margin" forState:UIControlStateNormal];
 
 
 }
@@ -4556,7 +4556,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _adjustingLeftMargin = YES;
     _leftMargin = 0;
     _rightMargin = _currentImage.size.width;
-    [_marginSelectionButton setTitle:@"Set Left Margin" forState:UIControlStateNormal];
+    [_marginSelectionButton setTitle:@"Set Left\nMargin" forState:UIControlStateNormal];
     [self createTransforms:_ImageDisplay];
 
     _inAddImageMode = YES;
