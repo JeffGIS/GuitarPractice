@@ -3487,7 +3487,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)imageEndAtTapped:(id)sender
 {
     if (sender)
+    {
         _imageEndAt = _slider.value;
+        [_saveImageButton setEnabled:YES];
+    }
     UIButtonConfiguration *config = _imageEndAtButton.configuration;
     NSString *subTitle = _imageEndAtButton.configuration.subtitle;
     subTitle = [NSString stringWithFormat:@"%.1f",_imageEndAt];
@@ -3504,7 +3507,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)imageStartAtTapped:(id)sender
 {
     if (sender)
+    {
         _imageStartAt = _slider.value;
+        [_saveImageButton setEnabled:YES];
+    }
     UIButtonConfiguration *config = _imageStartAtButton.configuration;
     NSString *subTitle = _imageStartAtButton.configuration.subtitle;
     subTitle = [NSString stringWithFormat:@"%.1f",_imageStartAt];
@@ -3568,13 +3574,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (IBAction)cancelImagePicked:(id)sender {
     _inAddImageMode = NO;
-    [_saveImageButton setHidden:YES];
-    [_cancelImageButton setHidden:YES];
-    [_imageEndAtButton setHidden:YES];
-    [_imageStartAtButton setHidden:YES];
-    [_marginIncreaseButton setHidden:YES];
-    [_marginDecreaseButton setHidden:YES];
-    [_marginSelectionButton setHidden:YES];
+    [self displayAddImageButtons:NO];
+    [self clearMargins];
     [_ImageDisplay setImage:nil];
     self.currentImageID = -1;
 }
@@ -3672,13 +3673,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (IBAction)marginDecreaseButtonDown:(id)sender
 {
-    NSLog(@"Increase temp down");
+    NSLog(@"Decrease button down");
     _buttonTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(marginDecreaseButtonTapped:) userInfo:nil repeats:YES];
 
 }
 - (IBAction)marginIncreaseButtonDown:(id)sender
 {
-    NSLog(@"Increase temp down");
+    NSLog(@"Increase button down");
     _buttonTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(marginIncreaseButtonTapped:) userInfo:nil repeats:YES];
 }
 
@@ -3687,7 +3688,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     if (_buttonTimer && sender != _buttonTimer)
     {
-        NSLog (@"Decrease temp up");
+        NSLog (@"Increase temp up");
         [_buttonTimer invalidate];
         _buttonTimer = 0;
     }
@@ -3706,25 +3707,32 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 - (void)adjustMargin:(int) amount
 {
+    [_saveImageButton setEnabled:YES];
     if (_adjustingLeftMargin)
         _leftMargin += amount;
     else
         _rightMargin += amount;
     [self displayMargins];
 }
+
+- (void) clearMargins
+{
+    if (_leftMarginMarker)
+        [_leftMarginMarker removeFromSuperview];
+    if (_rightMarginMarker)
+        [_rightMarginMarker removeFromSuperview];
+
+}
 - (void)displayMargins
 {
     CGPoint imagePoint1, imagePoint2;
-    if (_leftMarginMarker)
-        [_leftMarginMarker removeFromSuperview];
-    else
+    [self clearMargins];
+    if (!_leftMarginMarker)
     {
         _leftMarginMarker = UILabel.new;
         _leftMarginMarker.backgroundColor = UIColor.greenColor;
     }
-    if (_rightMarginMarker)
-        [_rightMarginMarker removeFromSuperview];
-    else
+    if (!_rightMarginMarker)
     {
         _rightMarginMarker = UILabel.new;
         _rightMarginMarker.backgroundColor = UIColor.greenColor;
@@ -4046,6 +4054,17 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         ii=1;
 }
 
+- (void) displayAddImageButtons:(BOOL)show
+{
+    show = !show;
+    [_saveImageButton setHidden:show];
+    [_cancelImageButton setHidden:show];
+    [_imageEndAtButton setHidden:show];
+    [_imageStartAtButton setHidden:show];
+    [_marginIncreaseButton setHidden:show];
+    [_marginDecreaseButton setHidden:show];
+    [_marginSelectionButton setHidden:show];
+}
 - (void) displayClipPlayButtons:(BOOL)show
 {
     show = !show;
@@ -4425,13 +4444,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     BOOL st = [UIImagePNGRepresentation(_currentImage) writeToFile:path atomically:YES];
     [self close:opened];
 
-    [_saveImageButton setHidden:YES];
-    [_cancelImageButton setHidden:YES];
-    [_imageStartAtButton setHidden:YES];
-    [_marginIncreaseButton setHidden:YES];
-    [_marginDecreaseButton setHidden:YES];
-    [_marginSelectionButton setHidden:YES];
-    [_imageEndAtButton setHidden:YES];
+    [self displayAddImageButtons:NO];
+
     [_ImageDisplay setImage:nil];
     self.currentImageID = -1;
     CloseTRANS2 (&_hTranImageToView);
@@ -4440,6 +4454,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _images = [self getImagesForPracticeGroup:_currentPracticeGroupID];
     _inAddImageMode = NO;
     [self updateNumClipsLabel];
+    
+    [self clearMargins];
 }
 -(void) testImages
 {
@@ -4541,14 +4557,8 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _currentImage = [UIImage imageWithData:_imageData];
     [_ImageDisplay setImage:_currentImage];
     [_ImageDisplay setHidden:NO];
-    [_imageStartAtButton setHidden:NO];
-    [_marginIncreaseButton setHidden:NO];
-    [_marginDecreaseButton setHidden:NO];
-    [_marginSelectionButton setHidden:NO];
-    [_imageEndAtButton setHidden:NO];
-    [_saveImageButton setHidden:NO];
+    [self displayAddImageButtons:YES];
     [_saveImageButton setEnabled:NO];
-    [_cancelImageButton setHidden:NO];
     _imageStartAt = _imageEndAt = 0;
     [self imageEndAtTapped:nil];
     [self imageStartAtTapped:nil];
