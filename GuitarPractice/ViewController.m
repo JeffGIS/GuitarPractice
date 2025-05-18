@@ -207,7 +207,9 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property float saveClipStart, saveClipEnd;
 @property NSMutableArray *barMarkers;
 @property UIPanGestureRecognizer *panBarMarker;
+@property UIPanGestureRecognizer *dragClipMarker;
 @property BarMarker *selectedBarMarker;
+@property UILabel *clipMarker;
 @property SystemSoundID soundID;
 @property float widthFactor;
 //@property(nonatomic,strong) AVAudioEngine *AVaudioEngine;
@@ -253,8 +255,8 @@ typedef NS_ENUM(NSInteger, ControlTypes)
     [self createAllViewsArray];
     _hTranImageToView = _hTranViewToImage = 0;
     //_ImageDisplay.backgroundColor = [UIColor grayColor];
-    _tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapFrom:)];
-    [_ImageDisplay addGestureRecognizer:_tapGestureRecognizer];
+//    _tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapFrom:)];
+//    [_ImageDisplay addGestureRecognizer:_tapGestureRecognizer];
     _tapGestureRecognizerFullScreen = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleFullScreenTapFrom:)];
     [_fullScreenImageDisplay addGestureRecognizer:_tapGestureRecognizerFullScreen];
     _longPressRecognizerFullScreen = [[UILongPressGestureRecognizer alloc]
@@ -628,7 +630,7 @@ type=CTLABEL;
         case 1:
             _highlightPoint1 = location;
             _highlightPointNumber++;
-            [_imageHighlightInstructions setText:@"Tap end point"];
+            [_imageHighlightInstructions setText:@"Drag the green dot to the bottom of the tab at the end of the clip"];
             break;
         case 2:
         {
@@ -811,11 +813,88 @@ type=CTLABEL;
         }
             break;
         default:
-            NSLog (@"State:%i",gesture.state);
+            NSLog (@"State:%i",(int)gesture.state);
             break;
     }
 }
 
+- (void)clipMarkerDragged:(UIPanGestureRecognizer *)gesture
+{
+    static DPOINT lastPoint;
+    CGPoint pt = [gesture locationInView:_ImageDisplay];
+    DPOINT curLoc = CGPointToDPOINT(pt);
+    switch (gesture.state)
+    {
+        case UIGestureRecognizerStateEnded:
+            NSLog (@"Ended");
+            switch (_highlightPointNumber)
+            {
+                case 1:
+                    _highlightPoint1 = _clipMarker.center;
+                    _highlightPointNumber++;
+                    _clipMarker.backgroundColor = UIColor.greenColor;
+                    CGPoint center;
+                    center.x = _ImageDisplay.frame.size.width / 2;
+                    center.y = _ImageDisplay.frame.size.height /2;
+
+                    _clipMarker.center = center;
+                    [_imageHighlightInstructions setText:@"Drag the green dot to the bottom of the tab at the end of the clip"];
+                    break;
+                case 2:
+                {
+                    UIImageView *view = _ImageDisplay;
+                    _highlightPoint2 = _clipMarker.center;
+                    _highlightRect = _ImageDisplay.frame;
+                    CGRect viewFrame = [self imageRectInView:_ImageDisplay];
+                    CGRect imageFrame = CGRectMake(0,0,  view.image.size.width, view.image.size.height);
+                    HANDLE hTranImageToView = STRANCGRect (imageFrame,viewFrame);
+                    HANDLE hTranViewToImage = STRANCGRect (viewFrame,imageFrame);
+                    CGPoint imagePoint1 = TranCGPoint(_highlightPoint1,hTranViewToImage);
+                    CGPoint imagePoint2 = TranCGPoint(_highlightPoint2,hTranViewToImage);
+                    [self createHighlight:imagePoint1
+                                   point2:imagePoint2
+                                 numLines:_numHighlightLines
+                                   inView:_ImageDisplay
+                                    hTran:hTranImageToView
+                                 doUpdate:YES];
+                    CloseTRANS2 (&hTranImageToView);
+                    CloseTRANS2 (&hTranViewToImage);
+                    [_imageHighlightInstructions setText:@""];
+                    if (_dragClipMarker)
+                    {
+                        [_dragClipMarker cancelsTouchesInView];
+                        [_dragClipMarker setEnabled:NO];
+                        [_dragClipMarker setDelegate:nil];
+                        [_ImageDisplay removeGestureRecognizer:_dragClipMarker];
+                        _dragClipMarker = nil;
+                    }
+                    if (_clipMarker)
+                        [_clipMarker removeFromSuperview];                                 }
+                    break;
+            }
+        case UIGestureRecognizerStateBegan:
+        {
+            NSLog (@"Began");
+            lastPoint = curLoc;
+        }
+            break;
+        case UIGestureRecognizerStateChanged:
+        {
+            NSLog (@"Changed");
+            float xdiff = curLoc.x - lastPoint.x;
+            float ydiff = curLoc.y - lastPoint.y;
+            CGPoint newCenter = _clipMarker.center;
+            newCenter.x += xdiff;
+            newCenter.y += ydiff;
+            _clipMarker.center = newCenter;
+            lastPoint = curLoc;
+        }
+            break;
+        default:
+            NSLog (@"State:%i",(int)gesture.state);
+            break;
+    }
+}
 
 -(void) createAllViewsArray
 {
@@ -1533,6 +1612,7 @@ type=CTLABEL;
             self.currentImageID = imageToLoad;
             if (_inFullScreen)
             {
+                [self displayClipAddButtons:NO];
                 [_fullScreenImageDisplay setImage:_image];
                 [_fullScreenImageDisplay setHidden:NO];
                 [_highlightLinesLabel setHidden:YES];
@@ -1542,6 +1622,7 @@ type=CTLABEL;
             }
             else
             {
+                [self displayClipAddButtons:YES];
                 [_ImageDisplay setImage:_image];
                 [_ImageDisplay setHidden:NO];
                 [_fullScreenReturnButton setHidden:YES];
@@ -1553,6 +1634,7 @@ type=CTLABEL;
         {
             self.currentImageID = -1;
             [_ImageDisplay setImage:nil];
+            [self displayClipAddButtons:NO];
             [_ImageDisplay setHidden:NO];
             [_fullScreenButton setHidden:YES];
             [self removeHighlightFromView:_ImageDisplay];
@@ -1709,8 +1791,6 @@ type=CTLABEL;
             if (url)
             {
                 [popoverTableView hide:YES];
-                [_beginButton setEnabled:YES];
-                [_endButton setEnabled:NO];
                 if (_currentSongType == SONG)
                 {
                     _images = [self getImagesForPracticeGroup:_currentPracticeGroupID];
@@ -2396,10 +2476,10 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     _currentClip = -1;
     self.currentImageID = -1;
     _currentClipID = -1;
+    [self displayClipAddButtons:NO];
     [self removeHighlightFromView:_ImageDisplay];
     [self retrieveSong:_currentPracticeGroupID setTimes:YES];
     [_clipButton setTitle:@"" forState:UIControlStateNormal];
-    [_clipButton setHidden:YES];
     [self updateClipButtons];
     //[_tapToEditLabel setHidden:YES];
     //[self playTapped:nil];
@@ -2571,13 +2651,13 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         NSString * clipText = [NSString stringWithFormat:@"Clip %i of %lu (%.1f seconds)\nTap to Edit",_currentClip+1,(unsigned long)_beginTimes.count,nseconds];
         [_clipButton setTitle:clipText forState:UIControlStateNormal];
         [_clipButton setHidden:NO];
-        _tapToEditLabel.text = @"Tap to Edit";
+        _tapToEditLabel.text = [NSString stringWithFormat:@"Tap to edit Clip %i or tap Mark Begin to add a clip",_currentClip+1];;
         [_tapToEditLabel setHidden:NO];
     }
     else
     {
         [_clipButton setHidden:YES];
-        _tapToEditLabel.text = @"Tap Mark Begin to Add a Clip";
+        _tapToEditLabel.text = @"Tap Mark Begin to add a clip";
         [self updateClipButtons];
         [self playSegmentButton:NO];
         [self loopSegmentButton:NO];
@@ -3266,7 +3346,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 -(void) newSongButtonSettings
 {
     BOOL st = _beginTimes.count == 0;
-    [self displayClipAddButtons:YES];
     [self displayClipSelectButtons:!st];
     [_priorClipButton setEnabled:_currentClip > 1];
     if (_currentClip <= 0)
@@ -3487,10 +3566,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)imageEndAtTapped:(id)sender
 {
     if (sender)
-    {
         _imageEndAt = _slider.value;
-        [_saveImageButton setEnabled:YES];
-    }
+    else
+        _imageEndAt = _currentSongDuration;
+    [_saveImageButton setEnabled:YES];
     UIButtonConfiguration *config = _imageEndAtButton.configuration;
     NSString *subTitle = _imageEndAtButton.configuration.subtitle;
     subTitle = [NSString stringWithFormat:@"%.1f",_imageEndAt];
@@ -3507,10 +3586,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)imageStartAtTapped:(id)sender
 {
     if (sender)
-    {
         _imageStartAt = _slider.value;
-        [_saveImageButton setEnabled:YES];
-    }
+    else
+        _imageStartAt = 0;
+    [_saveImageButton setEnabled:YES];
     UIButtonConfiguration *config = _imageStartAtButton.configuration;
     NSString *subTitle = _imageStartAtButton.configuration.subtitle;
     subTitle = [NSString stringWithFormat:@"%.1f",_imageStartAt];
@@ -3577,6 +3656,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self displayAddImageButtons:NO];
     [self clearMargins];
     [_ImageDisplay setImage:nil];
+    [self displayClipAddButtons:NO];
     self.currentImageID = -1;
 }
 - (IBAction)marginSelectionTapped:(id)sender
@@ -3777,6 +3857,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _image = [UIImage imageWithContentsOfFile:fileName];
         self.currentImageID = imageToLoad;
         [_ImageDisplay setImage:_image];
+        [self displayClipAddButtons:YES];
         [_ImageDisplay setHidden:NO];
         [_fullScreenButton setHidden:NO];
         [_highlightLinesLabel setHidden:YES];
@@ -3789,6 +3870,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     {
         self.currentImageID = -1;
         [_ImageDisplay setImage:nil];
+        [self displayClipAddButtons:NO];
         [_ImageDisplay setHidden:NO];
         [self removeHighlightFromView:_ImageDisplay];
 
@@ -3838,6 +3920,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     NSString *fileName = [NSString stringWithFormat:@"%@/%i_%i.png",_imagesDirectory,clipID,fileNum];
     _image = [UIImage imageWithContentsOfFile:fileName];
     [_ImageDisplay setImage:_image];
+    [self displayClipAddButtons:YES];
     [_ImageDisplay setHidden:NO];
     [_fullScreenButton setHidden:NO];
     [self displayImageHighlightButtons:NO];
@@ -3968,6 +4051,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     {
         [_fullScreenImageDisplay setFrame:frame];
         [_fullScreenImageDisplay setImage:_image];
+        [self displayClipAddButtons:NO];
         [_fullScreenImageDisplay setHidden:NO];
         [self createTransforms:_fullScreenImageDisplay];
         [self.playerView setHidden:YES];
@@ -4073,9 +4157,16 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 - (void) displayClipAddButtons:(BOOL)show
 {
+    if (show)
+    {
+        [_beginButton setEnabled:YES];
+        [_endButton setEnabled:NO];
+    }
     show = !show;
+    [_clipButton setHidden:show];
     [_beginButton setHidden:show];
     [_endButton setHidden:show];
+    [_tapToEditLabel setHidden:show];
 }
 - (void) displayClipSelectButtons:(BOOL)show
 {
@@ -4122,11 +4213,33 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 }
 
 - (IBAction)highlightLinesChanged:(id)sender {
+    [self clearBarMarkers:NO];
     _numHighlightLines = _highlightLinesStepper.value;
     NSString *label = [NSString stringWithFormat:@"Lines: %i",_numHighlightLines];
     [_highlightLinesLabel setText:label];
-    [_imageHighlightInstructions setText:@"Tap Begin Point"];
+    [_imageHighlightInstructions setText:@"Drag the red dot to the top of the tab at the start of the clip"];
     _highlightPointNumber = 1;
+    if (_dragClipMarker)
+    {
+        [_dragClipMarker cancelsTouchesInView];
+        [_dragClipMarker setEnabled:NO];
+        [_dragClipMarker setDelegate:nil];
+        [_ImageDisplay removeGestureRecognizer:_dragClipMarker];
+        _dragClipMarker = nil;
+    }
+    if (_clipMarker)
+        [_clipMarker removeFromSuperview];
+    _dragClipMarker = UIPanGestureRecognizer.new;
+    [_dragClipMarker addTarget:self action:@selector(clipMarkerDragged:)];
+    _dragClipMarker.delegate = self;
+    [_ImageDisplay addGestureRecognizer:_dragClipMarker];
+    _clipMarker = UILabel.new;
+    _clipMarker.backgroundColor = UIColor.redColor;
+    CGPoint center;
+    center.x = _ImageDisplay.frame.size.width / 2;
+    center.y = _ImageDisplay.frame.size.height /2;
+    _clipMarker.frame = CGRectMake(center.x,center.y, 15, 15);
+    [_ImageDisplay addSubview:_clipMarker];
 
 }
 - (IBAction)highlightBarsChanged:(id)sender {
@@ -4447,6 +4560,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self displayAddImageButtons:NO];
 
     [_ImageDisplay setImage:nil];
+    [self displayClipAddButtons:NO];
+
     self.currentImageID = -1;
     CloseTRANS2 (&_hTranImageToView);
     CloseTRANS2 (&_hTranViewToImage);
@@ -4558,6 +4673,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     [_ImageDisplay setImage:_currentImage];
     [_ImageDisplay setHidden:NO];
     [self displayAddImageButtons:YES];
+    [self displayClipAddButtons:NO];
     [_saveImageButton setEnabled:NO];
     _imageStartAt = _imageEndAt = 0;
     [self imageEndAtTapped:nil];
