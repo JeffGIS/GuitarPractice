@@ -160,7 +160,6 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property BOOL haveStartLocation;
 @property int highlightPointNumber;
 @property CGPoint highlightPoint1, highlightPoint2;
-@property CGRect highlightRect;
 @property int numHighlightLines, savedNumHighlightLines;
 @property BOOL inTimeTest;
 @property float clipEndTime,clipStartTime;
@@ -636,7 +635,6 @@ type=CTLABEL;
         {
             UIImageView *view = _ImageDisplay;
             _highlightPoint2 = location;
-            _highlightRect = _ImageDisplay.frame;
             CGRect viewFrame = [self imageRectInView:_ImageDisplay];
             CGRect imageFrame = CGRectMake(0,0,  view.image.size.width, view.image.size.height);
             HANDLE hTranImageToView = STRANCGRect (imageFrame,viewFrame);
@@ -841,24 +839,7 @@ type=CTLABEL;
                     [_imageHighlightInstructions setText:@"Drag the green dot to the bottom of the tab at the end of the clip"];
                     break;
                 case 2:
-                {
-                    UIImageView *view = _ImageDisplay;
                     _highlightPoint2 = _clipMarker.center;
-                    _highlightRect = _ImageDisplay.frame;
-                    CGRect viewFrame = [self imageRectInView:_ImageDisplay];
-                    CGRect imageFrame = CGRectMake(0,0,  view.image.size.width, view.image.size.height);
-                    HANDLE hTranImageToView = STRANCGRect (imageFrame,viewFrame);
-                    HANDLE hTranViewToImage = STRANCGRect (viewFrame,imageFrame);
-                    CGPoint imagePoint1 = TranCGPoint(_highlightPoint1,hTranViewToImage);
-                    CGPoint imagePoint2 = TranCGPoint(_highlightPoint2,hTranViewToImage);
-                    [self createHighlight:imagePoint1
-                                   point2:imagePoint2
-                                 numLines:_numHighlightLines
-                                   inView:_ImageDisplay
-                                    hTran:hTranImageToView
-                                 doUpdate:YES];
-                    CloseTRANS2 (&hTranImageToView);
-                    CloseTRANS2 (&hTranViewToImage);
                     [_imageHighlightInstructions setText:@""];
                     if (_dragClipMarker)
                     {
@@ -869,17 +850,19 @@ type=CTLABEL;
                         _dragClipMarker = nil;
                     }
                     if (_clipMarker)
-                        [_clipMarker removeFromSuperview];                                 }
+                        [_clipMarker removeFromSuperview];
+                    [_highlightBarsLabel setEnabled:YES];
+                    [_highlightBarsStepper setEnabled:YES];
+                    [self highlightBarsChanged:nil];
                     break;
+                default:
+                    return;
             }
         case UIGestureRecognizerStateBegan:
-        {
             NSLog (@"Began");
             lastPoint = curLoc;
-        }
-            break;
+            return;
         case UIGestureRecognizerStateChanged:
-        {
             NSLog (@"Changed");
             float xdiff = curLoc.x - lastPoint.x;
             float ydiff = curLoc.y - lastPoint.y;
@@ -887,13 +870,32 @@ type=CTLABEL;
             newCenter.x += xdiff;
             newCenter.y += ydiff;
             _clipMarker.center = newCenter;
+            _highlightPoint2 = newCenter;
             lastPoint = curLoc;
-        }
             break;
         default:
             NSLog (@"State:%i",(int)gesture.state);
-            break;
+            return;
     }
+    if (_highlightPointNumber == 2)
+    {
+        UIImageView *view = _ImageDisplay;
+        CGRect viewFrame = [self imageRectInView:_ImageDisplay];
+        CGRect imageFrame = CGRectMake(0,0,  view.image.size.width, view.image.size.height);
+        HANDLE hTranImageToView = STRANCGRect (imageFrame,viewFrame);
+        HANDLE hTranViewToImage = STRANCGRect (viewFrame,imageFrame);
+        CGPoint imagePoint1 = TranCGPoint(_highlightPoint1,hTranViewToImage);
+        CGPoint imagePoint2 = TranCGPoint(_highlightPoint2,hTranViewToImage);
+        [self createHighlight:imagePoint1
+                       point2:imagePoint2
+                     numLines:_numHighlightLines
+                       inView:_ImageDisplay
+                        hTran:hTranImageToView
+                     doUpdate:YES];
+        CloseTRANS2 (&hTranImageToView);
+        CloseTRANS2 (&hTranViewToImage);
+    }
+    return;
 }
 
 -(void) createAllViewsArray
@@ -4239,6 +4241,9 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     center.x = _ImageDisplay.frame.size.width / 2;
     center.y = _ImageDisplay.frame.size.height /2;
     _clipMarker.frame = CGRectMake(center.x,center.y, 15, 15);
+    _clipMarker.clipsToBounds = YES;
+    _clipMarker.layer.cornerRadius = _clipMarker.frame.size.width / 2;
+
     [_ImageDisplay addSubview:_clipMarker];
 
 }
