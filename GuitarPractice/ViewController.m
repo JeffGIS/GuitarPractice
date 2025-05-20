@@ -2077,7 +2077,7 @@ void showAlert(NSString *text)
     [self retrieveSong:_currentPracticeGroupID setTimes:NO];
     [self updateNumClipsLabel];
     [self updateClipButtons];
-    
+    [self setCurrentPositiion:NO];
 }
 
 
