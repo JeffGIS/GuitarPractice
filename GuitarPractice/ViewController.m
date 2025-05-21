@@ -174,6 +174,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property BOOL recordingNewSong;
 @property NSString *NewSongFile;
 @property BOOL playerIsPlaying;
+@property BOOL isPlaying;
 @property BOOL monOn;
 @property int numTrackLines, savedNumTrackLines;
 @property float trackLineSpacing, savedTrackLineSpacing;
@@ -509,9 +510,23 @@ type=CTLABEL;
 {
     if (_panBarMarker || _tempClipStatus > 0)
         return;
-    [self stopTapped:nil];
+    NSLog (@"State:%i",recognizer.state);
     if (recognizer.state == 3)
     {
+        _isPlaying = FALSE;
+        if (_currentSongType == SONG)
+        {
+            if (_appSoundPlayer.playing)
+            {
+                _isPlaying = TRUE;
+                [_appSoundPlayer stop];
+            }
+            else
+            {
+                if (_playerIsPlaying)
+                    [_playerView pauseVideo];
+            }
+        }
         CGPoint location = [recognizer locationInView:_fullScreenImageDisplay];
         NSLog (@"Long press at:%.1f %.1f  state=%i",location.x,location.y,(int)recognizer.state);
         _haveStartLocation = YES;
@@ -525,11 +540,28 @@ type=CTLABEL;
 {
     if (_panBarMarker || _tempClipStatus > 0)
         return;
-    if (!_haveStartLocation && !_numBarsInClip)
-        return;
-    [self stopTapped:nil];
+    if (!_haveStartLocation)
+    {
+        if ( !_numBarsInClip)
+            return;
+        _isPlaying = FALSE;
+    }
+    if (_currentSongType == SONG)
+    {
+        if (_appSoundPlayer.playing)
+        {
+            _isPlaying = TRUE;
+            [_appSoundPlayer stop];
+        }
+        else
+        {
+            if (_playerIsPlaying)
+                [_playerView pauseVideo];
+        }
+    }
     CGPoint location = [recognizer locationInView:_fullScreenImageDisplay];
     NSLog (@"Tap at:%.1f %.1f]",location.x,location.y);
+
     if (!_haveStartLocation)
         _beginTime = [self barBeginTime:location
                              pctAtBegin:&_tempHighlightPCT1];
@@ -543,6 +575,11 @@ type=CTLABEL;
     [self createTempHighlight:_tempHighlightPCT1
                         toPCT:_tempHighlightPCT2];
     [self restoreTrackData];
+    if (_isPlaying)
+    {
+        [_appSoundPlayer setCurrentTime:_beginTime];
+        [_appSoundPlayer play];
+    }
     return;
 }
 
