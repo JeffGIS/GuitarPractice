@@ -4071,6 +4071,18 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     SQLOK(__FILE__,__LINE__,SQLiteFinalize(statement),_database);
 
     [self close:opened];
+    if (view == _fullScreenImageDisplay)
+    {
+        [_fullScreenButton setHidden:YES];
+        [_fullScreenReturnButton setHidden:NO];
+    }
+    else
+    {
+        [_fullScreenButton setHidden:NO];
+        [_fullScreenReturnButton setHidden:YES];
+    }
+
+
     if (_haveTempHighlight)
     {
         [self createTempHighlight:_tempHighlightPCT1
