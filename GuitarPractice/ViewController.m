@@ -161,6 +161,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property int highlightPointNumber;
 @property CGPoint highlightPoint1, highlightPoint2;
 @property int numHighlightLines, savedNumHighlightLines;
+@property BOOL haveHighlight;
 @property BOOL inTimeTest;
 @property float clipEndTime,clipStartTime;
 @property int numBarsInClip;
@@ -1302,7 +1303,7 @@ type=CTLABEL;
     int onLine = bm.beginLine;
     DPOINT tp = _trackPoints[onLine*2];
     DPOINT pt = tp;
-    float tw = _trackLineWidths[onLine] * bm.pctAlongBeginLine;
+    double tw = _trackLineWidths[onLine] * bm.pctAlongBeginLine;
     pt.x += tw;
     _distToFirstTrack = ldistp (tp,pt);
     return;
@@ -1375,7 +1376,7 @@ type=CTLABEL;
     double lineLen = _trackLineWidths[bm.beginLine];
     double distAlongLine1 = bm.pctAlongBeginLine * lineLen;
     if (bm.beginLine == bm.endLine)
-        totBarDist = bm.pctAlongEndLine * lineLen - distAlongLine1;
+        totBarDist = max (0,bm.pctAlongEndLine) * lineLen - distAlongLine1;
     else
     {
         totBarDist = lineLen - distAlongLine1;
@@ -1386,7 +1387,7 @@ type=CTLABEL;
             totBarDist += _trackLineWidths[line];
         }
         if (line == bm.endLine)
-            totBarDist += bm.pctAlongEndLine * _trackLineWidths[line];
+            totBarDist += max (0,bm.pctAlongEndLine) * _trackLineWidths[line];
     }
     return totBarDist;
 }
@@ -1536,7 +1537,7 @@ type=CTLABEL;
                     double distAlongLine1 = bm.pctAlongBeginLine * lineLen;
                     double totBarDist;
                     if (bm.beginLine == bm.endLine)
-                        totBarDist = bm.pctAlongEndLine * lineLen - distAlongLine1;
+                        totBarDist = max (0,bm.pctAlongEndLine) * lineLen - distAlongLine1;
                     else
                         totBarDist = lineLen - distAlongLine1;
                     int line = bm.beginLine + 1;
@@ -1546,7 +1547,7 @@ type=CTLABEL;
                         totBarDist += _trackLineWidths[line];
                     }
                     if (line == bm.endLine)
-                        totBarDist += bm.pctAlongEndLine * _trackLineWidths[line];
+                        totBarDist += max (0,bm.pctAlongEndLine) * _trackLineWidths[line];
                     double distInBar = totBarDist * pctInBar;
                     CGPoint barStartPoint;
                     if (bm.beginLine == bm.endLine)
@@ -2202,7 +2203,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     if (onLine < _numTrackLines)
     {
         DPOINT tp = _trackPoints[onLine*2];
-        float tw = _trackLineWidths[onLine];
+        double tw = _trackLineWidths[onLine];
         CGPoint pt = marker.label.frame.origin;
         double pct = (pt.x - tp.x)/_trackLineWidths[onLine];
         pct = max (0,pct);
@@ -2275,7 +2276,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
             BarMarker *bmPrev = _barMarkers[index];
             bmPrev.toTime = bm.fromTime - 0.05;
             bmPrev.endLine = bm.beginLine;
-            bmPrev.pctAlongEndLine = bm.pctAlongBeginLine - 0.001;
+            bmPrev.pctAlongEndLine = bm.pctAlongBeginLine - 0.00001;
         }
         [_barMarkers addObject:bm];
         n++;
@@ -2420,6 +2421,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     [self displayClipPlayButtons:NO];
     [self displayClipSelectButtons:NO];
     [_highlightBarsStepper setValue:_numBarsInClip];
+    [_highlightBarsStepper setEnabled:_haveHighlight];
+    [_highlightBarsLabel setEnabled:_haveHighlight];
     [_highlightLinesStepper setValue:_numHighlightLines];
     NSString *label = [NSString stringWithFormat:@"Lines: %i",_numHighlightLines];
     [_highlightLinesLabel setText:label];
@@ -2982,6 +2985,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_tapToEditLabel setHidden:NO];
     _inLoop = NO;
     _numTrackLines = 0;
+    _haveHighlight = FALSE;
     if ([self displayImageAtTime:_beginTime inGroup:_currentPracticeGroupID])
     {
         [_addImageButton setHidden:YES];
@@ -3338,7 +3342,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 {
     BOOL opened = [self open];
 
-    NSString *query = [NSString stringWithFormat:@"SELECT ClipID,StartTime,EndTime,Bars FROM CLIPS WHERE PracticeGroupID = %li ORDER BY StartTime",(long)_currentPracticeGroupID];
+    NSString *query = [NSString stringWithFormat:@"SELECT ClipID,StartTime,EndTime,Bars FROM CLIPS WHERE PracticeGroupID = %li ORDER BY ClipID",(long)_currentPracticeGroupID];
     
     sqlite3_stmt *statement = NULL;
     
@@ -3941,7 +3945,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
     }
     else if (imageToLoad)
-        [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
+        _haveHighlight = [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
     [_addImageButton setHidden:YES];
 
     return rtn;
@@ -4552,10 +4556,19 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self.view addSubview:_trackLabel];
     _trackLabel.center = pt2;
     _totTrackLineWidth = 0;
+    static BOOL displayLines = FALSE;
     for (int i = 0;i<_numTrackLines;i++)
     {
         _trackLineWidths[i] = ldistp(_trackPoints[i*2], _trackPoints[i*2+1]);
         _totTrackLineWidth += _trackLineWidths[i];
+        if (displayLines)
+        {
+            UILabel *tlwLabel = UILabel.new;
+            tlwLabel.backgroundColor = UIColor.redColor;
+            CGRect frame = CGRectMake(_trackPoints[i*2].x, _trackPoints[i*2].y, _trackLineWidths[i], 4);
+            [tlwLabel setFrame:frame];
+            [view addSubview:tlwLabel];
+        }
     }
     if (update)
     {
