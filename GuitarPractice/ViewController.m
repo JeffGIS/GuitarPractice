@@ -262,7 +262,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
     [_fullScreenImageDisplay addGestureRecognizer:_tapGestureRecognizerFullScreen];
     _longPressRecognizerFullScreen = [[UILongPressGestureRecognizer alloc]
                                           initWithTarget:self action:@selector(handleLongPress:)];
-    //_longPressRecognizerFullScreen.minimumPressDuration = 2;
+    _longPressRecognizerFullScreen.minimumPressDuration = 1;
     [_fullScreenImageDisplay addGestureRecognizer:_longPressRecognizerFullScreen];
 
     _tapGestureRecognizer.delegate = self;
@@ -512,7 +512,7 @@ type=CTLABEL;
     if (_panBarMarker || _tempClipStatus > 0)
         return;
     NSLog (@"State:%i",recognizer.state);
-    if (recognizer.state == 3)
+    if (recognizer.state == 1 || recognizer.state == 3)
     {
         _isPlaying = FALSE;
         if (_currentSongType == SONG)
@@ -530,9 +530,20 @@ type=CTLABEL;
         }
         CGPoint location = [recognizer locationInView:_fullScreenImageDisplay];
         NSLog (@"Long press at:%.1f %.1f  state=%i",location.x,location.y,(int)recognizer.state);
-        _haveStartLocation = YES;
+        _beginTime = [self barBeginTime:location
+                                 pctAtBegin:&_tempHighlightPCT1];
+        if (recognizer.state == 3)
+            _haveStartLocation = YES;
         _beginTime = [self barBeginTime:location
                              pctAtBegin:&_tempHighlightPCT1];
+        _endTime = [self barEndTime:location
+                         pctAtEnd:&_tempHighlightPCT2];
+        _tempClipStatus = -2;
+        [self saveTrackData];
+        [self createTempHighlight:_tempHighlightPCT1
+                            toPCT:_tempHighlightPCT2];
+        [self restoreTrackData];
+        _tempClipStatus = -1;
     }
     return;
 
@@ -3396,6 +3407,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self displayClipAddButtons:YES];
     [self displayClipSelectButtons:YES];
     [self displayImageHighlightButtons:NO];
+    [self clearBarMarkers:NO];
     _currentClip--;
     [self retrieveSong:_currentPracticeGroupID setTimes:NO];
     [self updateNumClipsLabel];
@@ -4535,7 +4547,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [highlightPath closePath];
     _highlightLayer = CAShapeLayer.new;
     _highlightLayer.path = highlightPath.CGPath;
-    _highlightLayer.fillColor = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:0.5].CGColor;
+    if (_tempClipStatus == -2)
+        _highlightLayer.fillColor = [UIColor colorWithRed:0.25 green:1 blue:0.25 alpha:0.5].CGColor;
+    else
+        _highlightLayer.fillColor = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:0.5].CGColor;
     [view.layer addSublayer:_highlightLayer];
     
     if (_trackLabel)
