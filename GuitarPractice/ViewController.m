@@ -155,6 +155,8 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property NSMutableArray <UIFont*>*filledButtonTitleFontArray,*filledButtonSubTitleFontArray;
 @property UITapGestureRecognizer *tapGestureRecognizer;
 @property UITapGestureRecognizer *tapGestureRecognizerFullScreen;
+@property UITapGestureRecognizer *twoTapGestureRecognizerFullScreen;
+@property CGPoint twoTapStartLocation;
 @property UITapGestureRecognizer *tapBarMarker;
 @property UILongPressGestureRecognizer *longPressRecognizerFullScreen;
 @property BOOL haveStartLocation;
@@ -259,11 +261,14 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 //    _tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapFrom:)];
 //    [_ImageDisplay addGestureRecognizer:_tapGestureRecognizer];
     _tapGestureRecognizerFullScreen = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleFullScreenTapFrom:)];
+    _twoTapGestureRecognizerFullScreen = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleFullScreenTwoTapFrom:)];
+    _twoTapGestureRecognizerFullScreen.numberOfTapsRequired = 2;
     [_fullScreenImageDisplay addGestureRecognizer:_tapGestureRecognizerFullScreen];
-    _longPressRecognizerFullScreen = [[UILongPressGestureRecognizer alloc]
-                                          initWithTarget:self action:@selector(handleLongPress:)];
-    _longPressRecognizerFullScreen.minimumPressDuration = 1;
-    [_fullScreenImageDisplay addGestureRecognizer:_longPressRecognizerFullScreen];
+    [_fullScreenImageDisplay addGestureRecognizer:_twoTapGestureRecognizerFullScreen];
+//    _longPressRecognizerFullScreen = [[UILongPressGestureRecognizer alloc]
+//                                          initWithTarget:self action:@selector(handleLongPress:)];
+//    _longPressRecognizerFullScreen.minimumPressDuration = 1;
+//    [_fullScreenImageDisplay addGestureRecognizer:_longPressRecognizerFullScreen];
 
     _tapGestureRecognizer.delegate = self;
     self.currentImageID = -1;
@@ -548,6 +553,44 @@ type=CTLABEL;
     return;
 
 }
+- (void) handleFullScreenTwoTapFrom: (UITapGestureRecognizer *)recognizer
+{
+    CGPoint location = [recognizer locationInView:_fullScreenImageDisplay];
+    NSLog (@"TwoTap at:%.1f %.1f]",location.x,location.y);
+    if ( !_numBarsInClip)
+        return;
+    _isPlaying = FALSE;
+    
+    if (_currentSongType == SONG)
+    {
+        if (_appSoundPlayer.playing)
+        {
+            _isPlaying = TRUE;
+            [_appSoundPlayer stop];
+        }
+        else
+        {
+            if (_playerIsPlaying)
+                [_playerView pauseVideo];
+        }
+    }
+    
+    _endTime = [self barEndTime:location
+                       pctAtEnd:&_tempHighlightPCT2];
+    _haveStartLocation = YES;
+    _twoTapStartLocation = location;
+    _tempClipStatus = -2;
+    [self saveTrackData];
+    [self createTempHighlight:_tempHighlightPCT1
+                        toPCT:_tempHighlightPCT2];
+    [self restoreTrackData];
+    if (_isPlaying)
+    {
+        [_appSoundPlayer setCurrentTime:_beginTime];
+        [_appSoundPlayer play];
+    }
+    return;
+}
 - (void) handleFullScreenTapFrom: (UITapGestureRecognizer *)recognizer
 {
     if (_panBarMarker || _tempClipStatus > 0)
@@ -573,16 +616,21 @@ type=CTLABEL;
     }
     CGPoint location = [recognizer locationInView:_fullScreenImageDisplay];
     NSLog (@"Tap at:%.1f %.1f]",location.x,location.y);
-
+    
     if (!_haveStartLocation)
         _beginTime = [self barBeginTime:location
                              pctAtBegin:&_tempHighlightPCT1];
     _endTime = [self barEndTime:location
-                     pctAtEnd:&_tempHighlightPCT2];
+                       pctAtEnd:&_tempHighlightPCT2];
+    if (_endTime < _beginTime)
+    {
+        _beginTime = [self barBeginTime:location
+                             pctAtBegin:&_tempHighlightPCT1];
+        _endTime = [self barEndTime:_twoTapStartLocation
+                             pctAtEnd:&_tempHighlightPCT2];
+    }
     _haveStartLocation = NO;
     _tempClipStatus = -1;
-    //_tempHighlightPCT1 = max(0,(_beginTime - _clipStartTime) /(_clipEndTime - _clipStartTime));
-    //_tempHighlightPCT2 = min (1,(_endTime - _clipStartTime) /(_clipEndTime - _clipStartTime));
     [self saveTrackData];
     [self createTempHighlight:_tempHighlightPCT1
                         toPCT:_tempHighlightPCT2];
