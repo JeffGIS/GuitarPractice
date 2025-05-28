@@ -584,6 +584,7 @@ type=CTLABEL;
     [self createTempHighlight:_tempHighlightPCT1
                         toPCT:_tempHighlightPCT2];
     [self restoreTrackData];
+    _tempClipStatus = -1;
     if (_isPlaying)
     {
         [_appSoundPlayer setCurrentTime:_beginTime];
@@ -4539,23 +4540,29 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self frameToPoints:view.frame
                  points:(CGPoint *)framePoints];
     UIBezierPath *highlightPath = UIBezierPath.new;
-    [highlightPath moveToPoint: vpoint];
-    vpoint.x = vw;
-    [highlightPath addLineToPoint:vpoint];
-    vpoint.y = vh;
-    [highlightPath addLineToPoint:vpoint];
-    vpoint.x = 0;
-    [highlightPath addLineToPoint:vpoint];
-    vpoint.y = 0;
-    [highlightPath addLineToPoint:vpoint];
-    vpoint = TranCGPoint (imagePoint1,hTranImageToView);
-    [highlightPath moveToPoint: vpoint];
+    if (_tempClipStatus != -2)
+    {
+        [highlightPath moveToPoint: vpoint];
+        vpoint.x = vw;
+        [highlightPath addLineToPoint:vpoint];
+        vpoint.y = vh;
+        [highlightPath addLineToPoint:vpoint];
+        vpoint.x = 0;
+        [highlightPath addLineToPoint:vpoint];
+        vpoint.y = 0;
+        [highlightPath addLineToPoint:vpoint];
+        vpoint = TranCGPoint (imagePoint1,hTranImageToView);
+        [highlightPath moveToPoint: vpoint];
+    }
     if (numLines == 1)
     {
         ipoint = imagePoint1;
         ipoint.y = imagePoint2.y;
         vpoint = TranCGPoint (ipoint,hTranImageToView);
-        [highlightPath addLineToPoint: vpoint];
+        if (_tempClipStatus == -2)
+            [highlightPath moveToPoint: vpoint];
+        else
+            [highlightPath addLineToPoint: vpoint];
         ipoint = imagePoint2;
         vpoint = TranCGPoint (ipoint,hTranImageToView);
         [highlightPath addLineToPoint:vpoint];
@@ -4589,7 +4596,10 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         for (int i=7;i>0;i--)
         {
             vpoint = TranCGPoint (points[i],hTranImageToView);
-            [highlightPath addLineToPoint:vpoint];
+            if (i == 7 &&_tempClipStatus == -2)
+                [highlightPath moveToPoint: vpoint];
+            else
+                [highlightPath addLineToPoint:vpoint];
         }
     }
     [highlightPath closePath];
