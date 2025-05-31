@@ -574,7 +574,9 @@ type=CTLABEL;
                 [_playerView pauseVideo];
         }
     }
-    
+    if (!_trackLineWidths)
+        return;
+
     _endTime = [self barEndTime:location
                        pctAtEnd:&_tempHighlightPCT2];
     _haveStartLocation = YES;
@@ -618,6 +620,8 @@ type=CTLABEL;
     CGPoint location = [recognizer locationInView:_fullScreenImageDisplay];
     NSLog (@"Tap at:%.1f %.1f]",location.x,location.y);
     
+    if (!_trackLineWidths)
+        return;
     if (!_haveStartLocation)
         _beginTime = [self barBeginTime:location
                              pctAtBegin:&_tempHighlightPCT1];
@@ -878,7 +882,7 @@ type=CTLABEL;
             }
             if (_selectedBarMarker)
             {
-                [_selectedBarMarker.label setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:0.0 alpha:0.5]];
+                [_selectedBarMarker.label setBackgroundColor:[UIColor colorWithRed:1 green:0 blue:0.0 alpha:0.5]];
                 [self updateSliderText:_selectedBarMarker.fromTime];
             }
         }
@@ -2056,6 +2060,8 @@ void showAlert(NSString *text)
 
 - (IBAction)continueTapped:(id)sender {
     BOOL rtn=FALSE;
+    if (sender)
+        _inTimeTest = FALSE;
     _keepGoing = TRUE;
     if (_currentClip < 0)
     {
@@ -2823,6 +2829,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 - (IBAction)playSegmentTapped:(id)sender {
     _inLoop = NO;
+    if (sender)
+        _inTimeTest = FALSE;
     _keepGoing = 1000;
     //self.currentImageID = -1;
     [_delayLabel setHidden:YES];
@@ -2866,6 +2874,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         float stime = _appSoundPlayer.currentTime;
         if (_appSoundPlayer.currentTime >= _endTime)
         {
+            _inTimeTest = FALSE;
             if (_inLoop)
             {
                 if (_appSoundPlayer.playing)
@@ -3087,6 +3096,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 
 -(void) initLoop
 {
+    _inTimeTest = FALSE;
     if (_currentClip >= 0 && (int)_beginTimes.count > _currentClip)
     {
         _currentClipID = _clipIDs[_currentClip].integerValue;
