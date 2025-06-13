@@ -220,6 +220,7 @@ typedef NS_ENUM(NSInteger, ControlTypes)
 @property int keepGoing;
 @property float loopDelay;
 @property CAShapeLayer *highlightLayer;
+@property CGRect highlightRect;
 
 @end
 
@@ -1014,8 +1015,10 @@ type=CTLABEL;
     _allButtonsArray = NSMutableArray.new;
     [_allButtonsArray addObject:_fullScreenButton];
     [_allButtonsArray addObject:_fullScreenReturnButton];
-    [_allButtonsArray addObject:_playSegmentButton];
+    [_allButtonsArray addObject:_zoomInButton];
+    [_allButtonsArray addObject:_zoomOutButton];
     [_allButtonsArray addObject:_loopSegmentButton];
+    [_allButtonsArray addObject:_playSegmentButton];
     [_allButtonsArray addObject:_selectCollectionButton];
     [_allButtonsArray addObject:_playButton];
     [_allButtonsArray addObject:_beginButton];
@@ -3817,6 +3820,22 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     return;
 }
 
+- (void) zoomInButtonTapped:(id)sender
+{
+    [_zoomInButton setHidden:YES];
+    [_zoomOutButton setHidden:NO];
+    [self zoomToHighlight:_highlightRect];
+    return;
+
+}
+- (void) zoomOutButtonTapped:(id)sender
+{
+    [_zoomInButton setHidden:NO];
+    [_zoomOutButton setHidden:YES];
+    [self fullScreenTapped:nil];
+    return;
+
+}
 - (IBAction)tempClipTapped:(id)sender
 {
     if (_currentSongType == SONG)
@@ -4193,26 +4212,29 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [self hideAllViews:YES];
     _inFullScreen = YES;
     CGRect frame = _imageFrame.frame;
-    frame.origin.x = 0;
-    frame.size.width = self.view.frame.size.width;
-    frame.origin.y += 16;
-    frame.size.height -= 16;
-    [_imageFrame setHidden:YES];
-    [_ImageDisplay setHidden:YES];
-    if (_currentSongType == SONG)
+//    if (sender)
     {
-        [_fullScreenImageDisplay setFrame:frame];
-        [_fullScreenImageDisplay setImage:_image];
-        [self displayClipAddButtons:NO];
-        [_fullScreenImageDisplay setHidden:NO];
-        [self createTransforms:_fullScreenImageDisplay];
-        [self.playerView setHidden:YES];
-    }
-    else
-    {
-        [self.playerView setFrame:frame];
-        [self.playerView setHidden:NO];
-        [_fullScreenImageDisplay setHidden:YES];
+        frame.origin.x = 0;
+        frame.size.width = self.view.frame.size.width;
+        frame.origin.y += 16;
+        frame.size.height -= 16;
+        [_imageFrame setHidden:YES];
+        [_ImageDisplay setHidden:YES];
+        if (_currentSongType == SONG)
+        {
+            [_fullScreenImageDisplay setFrame:frame];
+            [_fullScreenImageDisplay setImage:_image];
+            [self displayClipAddButtons:NO];
+            [_fullScreenImageDisplay setHidden:NO];
+            [self createTransforms:_fullScreenImageDisplay];
+            [self.playerView setHidden:YES];
+        }
+        else
+        {
+            [self.playerView setFrame:frame];
+            [self.playerView setHidden:NO];
+            [_fullScreenImageDisplay setHidden:YES];
+        }
     }
     [_selectCollectionButton setHidden:YES];
     [_songTitleLabel setHidden:YES];
@@ -4220,11 +4242,14 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_currentCollectionLabel setHidden:YES];
     
     [_fullScreenReturnButton setHidden:NO];
-    _saveSliderTextLabelFrame = _sliderTextLabel.frame;
-    frame = _fullScreenButton.frame;
-    frame.origin.y += frame.size.height + 2;
-    frame.size.height = _sliderTextLabel.frame.size.height;
-    [_sliderTextLabel setFrame:frame];
+    if (sender)
+    {
+        _saveSliderTextLabelFrame = _sliderTextLabel.frame;
+        frame = _fullScreenButton.frame;
+        frame.origin.y += frame.size.height + 2;
+        frame.size.height = _sliderTextLabel.frame.size.height;
+        [_sliderTextLabel setFrame:frame];
+    }
     [_sliderTextLabel setHidden:NO];
     [_monitorButton setHidden:YES];
     [_monitorVolumeSlider setHidden:YES];
@@ -4232,25 +4257,43 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_playbackSpeedButton setHidden:NO];
     [_playbackSpeedDecreaseButton setHidden:NO];
     [_playbackSpeedIncreaseButton setHidden:NO];
-    [_tempClipButton setHidden:NO];
-    frame = _playSegmentButton.frame;
-    _savePlaySegmentFrame = frame;
-    frame.origin.x = frame.size.width/2;
-    frame.origin.y = 20;
-    [_playSegmentButton setFrame:frame];
+    [_tempClipButton setHidden:YES];
+    [_zoomInButton setHidden:NO];
+    if (sender)
+    {
+        frame = _playSegmentButton.frame;
+        _savePlaySegmentFrame = frame;
+        frame.origin.x = frame.size.width/2;
+        frame.origin.y = 20;
+        [_playSegmentButton setFrame:frame];
+    }
 
     [_playSegmentButton setHidden:NO];
-    frame = _loopSegmentButton.frame;
-    _saveLoopSegmentFrame = frame;
-    frame.origin.x = _playSegmentButton.frame.origin.x + _savePlaySegmentFrame.size.width + 100 * _widthFactor;
-    frame.origin.y = 20;
-    [_loopSegmentButton setFrame:frame];
+    if (sender)
+    {
+        frame = _loopSegmentButton.frame;
+        _saveLoopSegmentFrame = frame;
+        frame.origin.x = _playSegmentButton.frame.origin.x + _savePlaySegmentFrame.size.width + 100 * _widthFactor;
+        frame.origin.y = 20;
+        [_loopSegmentButton setFrame:frame];
+    }
     [_recordLabel setHidden:YES];
     [_recordSwitch setHidden:YES];
     [_loopSegmentButton setHidden:NO];
     [self displayHighlightForClip:_currentClipID
                            inView:_fullScreenImageDisplay];
 }
+
+- (void) zoomToHighlight:(CGRect) rect
+{
+    CGImageRef imageRef = CGImageRetain(_image.CGImage);
+    CGImageRef newImageRef = CGImageCreateWithImageInRect(imageRef,rect);
+    UIImage *newImage = [UIImage imageWithCGImage:newImageRef];
+    CGImageRelease (imageRef);
+    CGImageRelease (newImageRef);
+    [_fullScreenImageDisplay setImage:newImage];
+}
+
 - (void) setPlayAndRecordButtonLocation
 {
     CGRect frame = _playSegmentButton.frame;
@@ -4484,6 +4527,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     _distToFirstTrack = _savedDistToFirstTrack;
     return;
 }
+
 -(void) createHighlight:(CGPoint)imagePoint1
                  point2:(CGPoint)imagePoint2
                numLines:(int)numLines
@@ -4491,6 +4535,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
                   hTran:(HANDLE)hTranImageToView
                doUpdate:(BOOL)update
 {
+    DPOINT ipt1 = CGPointToDPOINT(imagePoint1);
+    DPOINT ipt2 = CGPointToDPOINT(imagePoint2);
+    MNMXCORD bounds;
+    DBoundsInit(&bounds);
+    AddDPointToMinMax(&ipt1, &bounds);
+    AddDPointToMinMax(&ipt2, &bounds);
     UIViewContentMode am = view.contentMode;
     if (am == UIViewContentModeScaleAspectFill)
         am = 0;
@@ -4539,10 +4589,12 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     for (int i=0;i<np;i++)
     {
         DPOINT tp = _trackPoints[i];
+        AddDPointToMinMax(&tp, &bounds);
         _trackPoints[i] = TranPoint (&tp,hTranImageToView);
         tp = _trackPoints[i];
         ii = 1;
     }
+    _highlightRect = MNMXCORDtoCGRect(&bounds);
 
     CGPoint vpoint={0,0};
     CGPoint ipoint={0,0};
@@ -4693,6 +4745,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     
     [_fullScreenImageDisplay setHidden:YES];
     [_fullScreenReturnButton setHidden:YES];
+    [_zoomInButton setHidden:YES];
     [_monitorButton setHidden:NO];
     [_tunerButton setHidden:NO];
     [_monitorVolumeSlider setHidden:NO];
@@ -4700,6 +4753,8 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_playSegmentButton setFrame:_savePlaySegmentFrame];
     [_loopSegmentButton setFrame:_saveLoopSegmentFrame];
     [_sliderTextLabel setFrame:_saveSliderTextLabelFrame];
+    [_sliderTextLabel setHidden:YES];
+    [_sliderTextLabel setHidden:NO];
     [self setPlayAndRecordButtonLocation];
     [_playbackSpeedButton setHidden:YES];
     [_playbackSpeedDecreaseButton setHidden:YES];

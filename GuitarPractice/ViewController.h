@@ -95,6 +95,10 @@
 @property (weak, nonatomic) IBOutlet UIButton *tempClipEditButton;
 @property (weak, nonatomic) IBOutlet UIButton *decreaseTempButton;
 @property (weak, nonatomic) IBOutlet UIButton *increaseTempButton;
+@property (weak, nonatomic) IBOutlet UIButton *zoomInButton;
+@property (weak, nonatomic) IBOutlet UIButton *zoomOutButton;
+- (IBAction)zoomInButtonTapped:(id)sender;
+- (IBAction)zoomOutButtonTapped:(id)sender;
 - (IBAction)tempClipTapped:(id)sender;
 
 - (IBAction)touchMargin:(id)sender;
