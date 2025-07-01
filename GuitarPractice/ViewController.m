@@ -1581,6 +1581,8 @@ type=CTLABEL;
 
         
     }
+    if (!_trackLabel)
+        [self createTrackLabel];
     if (_trackLabel)
     {
         if (_creatingBarMarkers || !_barMarkers || _barMarkers.count < 2)
@@ -1733,23 +1735,7 @@ type=CTLABEL;
                 [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
             }
         }
-        /*
-        else if (!imageToLoad && _currentImageID > -1)
-        {
-            self.currentImageID = -1;
-            [_ImageDisplay setImage:nil];
-            [self displayClipAddButtons:NO];
-            [_ImageDisplay setHidden:NO];
-            [_fullScreenButton setHidden:YES];
-            [self removeHighlightFromView:_ImageDisplay];
-        }
-        else if (!imageToLoad)
-        {
-            [_fullScreenImageDisplay setHidden:YES];
-            [_ImageDisplay setHidden:NO];
-            [_fullScreenButton setHidden:YES];
-        }*/
-            
+           
     }
     [self.slider setValue:value];
     NSString *sliderText = [NSString stringWithFormat:@"%.1f",value];
@@ -2616,7 +2602,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     {
         [_appSoundPlayer stop];
         [_appSoundPlayer setCurrentTime:0];
-        [self setCurrentPositiion:YES];
+        [self setCurrentPositiion:NO];
     }
     else
     {
@@ -2627,7 +2613,6 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
     }
     [self playSegmentButton:NO];
     [self loopSegmentButton:NO];
-    [self continueTapped:nil];
 }
 
 - (void) loopSegmentButton:(BOOL) setSelected
@@ -2791,10 +2776,10 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         [_appSoundPlayer stop];
         if (_timer)
             [_timer invalidate];
+        [self setSliderValue:_beginTime];
+        [_appSoundPlayer setCurrentTime:_beginTime];
         if (doPlay)
         {
-            [self setSliderValue:_beginTime];
-            [_appSoundPlayer setCurrentTime:_beginTime];
             _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
             [_pauseButton setHidden:NO];
             [_continueButton setHidden:YES];
@@ -2805,8 +2790,6 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         {
             [_pauseButton setHidden:YES];
             [_continueButton setHidden:NO];
-
-            [_appSoundPlayer setCurrentTime:_slider.value];
         }
     }
     else
@@ -3038,7 +3021,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (_currentClip < 0)
     {
         [_clipButton setHidden:YES];
-        [_fullScreenButton setHidden:YES];
         return;
     }
     _currentClipID = (int) _clipIDs[_currentClip].integerValue;
@@ -3445,6 +3427,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (setTime)
     {
         _currentClip = -1;
+        [self clearBarMarkers:NO];
         [self updateNumClipsLabel];
         [self setSliderValue:_beginTime];
         //_appSoundPlayer.currentTime = _beginTime;
@@ -4333,18 +4316,38 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     if (show)
         ii=1;
 }
-
+    
+    - (void) displaySongSelectionButtons:(BOOL)show
+    {
+        show = !show;
+        [_selectCollectionButton setHidden:show];
+        [_songTitleLabel setHidden:show];
+        [_numClipsLabel setHidden:show];
+        [_currentCollectionLabel setHidden:show];
+        [_selectSongButton setHidden:show];
+        [_nextSongButton setHidden:show];
+    }
+    
+    - (void) displayBottomRowButtons:(BOOL)show
+    {
+        show = !show;
+        [_monitorButton setHidden:show];
+        [_tunerButton setHidden:show];
+        [_monitorVolumeSlider setHidden:show];
+        [_effectsButton setHidden:show];
+    }
+    
 - (void) displayAddImageButtons:(BOOL)show
-{
-    show = !show;
-    [_saveImageButton setHidden:show];
-    [_cancelImageButton setHidden:show];
-    [_imageEndAtButton setHidden:show];
-    [_imageStartAtButton setHidden:show];
-    [_marginIncreaseButton setHidden:show];
-    [_marginDecreaseButton setHidden:show];
-    [_marginSelectionButton setHidden:show];
-}
+    {
+        show = !show;
+        [_saveImageButton setHidden:show];
+        [_cancelImageButton setHidden:show];
+        [_imageEndAtButton setHidden:show];
+        [_imageStartAtButton setHidden:show];
+        [_marginIncreaseButton setHidden:show];
+        [_marginDecreaseButton setHidden:show];
+        [_marginSelectionButton setHidden:show];
+    }
 - (void) displayClipPlayButtons:(BOOL)show
 {
     show = !show;
@@ -4456,19 +4459,48 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
 - (IBAction)recordChanged:(id)sender {
     _recording = _recordSwitch.on;
 }
--(void) frameToPoints:(CGRect)frame
-               points:(CGPoint*)points
-{
-    points[0] = frame.origin;
-    points[1] = frame.origin;
-    points[1].x += frame.size.width;
-    points[2] = frame.origin;
-    points[2].x += frame.size.width;
-    points[2].y += frame.size.height;
-    points[3] = frame.origin;;
-    points[3].y += frame.size.height;
-
-}
+    -(void) frameToPoints:(CGRect)frame
+    points:(CGPoint*)points
+    {
+        points[0] = frame.origin;
+        points[1] = frame.origin;
+        points[1].x += frame.size.width;
+        points[2] = frame.origin;
+        points[2].x += frame.size.width;
+        points[2].y += frame.size.height;
+        points[3] = frame.origin;;
+        points[3].y += frame.size.height;
+        
+    }
+    
+    - (void) createTrackLabel
+    {
+        UIView * view;
+        if (_inFullScreen)
+            view = _fullScreenImageDisplay;
+        else
+            view = _ImageDisplay;
+        if (_trackLabel)
+            [_trackLabel removeFromSuperview];
+        _trackLabel = UILabel.new;
+        _trackLabel.frame = CGRectMake(0,0,50,50);
+        _trackLabel.backgroundColor = UIColor.clearColor;//[UIColor colorWithRed:0.1 green:0.9 blue:0.1 alpha:0.5];
+        _trackLabel.textColor = UIColor.greenColor;
+        _trackLabel.font =[UIFont boldSystemFontOfSize:40];
+        _trackLabel.adjustsFontSizeToFitWidth = YES;
+        _trackLabel.textAlignment = NSTextAlignmentCenter;
+        
+        _trackLabel.text = @"^";
+        CGPoint pt2 = view.frame.origin;
+        _trackLineBasePoint = pt2;
+        if (_trackPoints)
+        {
+            pt2.x += _trackPoints[0].x;
+            pt2.y += _trackPoints[0].y;
+        }
+        [self.view addSubview:_trackLabel];
+        _trackLabel.center = pt2;
+    }
 -(void) removeHighlightFromView:(UIView *)view
 {
     if (_highlightLayer)
@@ -4673,23 +4705,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         _highlightLayer.fillColor = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:0.5].CGColor;
     [view.layer addSublayer:_highlightLayer];
     
-    if (_trackLabel)
-        [_trackLabel removeFromSuperview];
-    _trackLabel = UILabel.new;
-    _trackLabel.frame = CGRectMake(0,0,50,50);
-    _trackLabel.backgroundColor = UIColor.clearColor;//[UIColor colorWithRed:0.1 green:0.9 blue:0.1 alpha:0.5];
-    _trackLabel.textColor = UIColor.greenColor;
-    _trackLabel.font =[UIFont boldSystemFontOfSize:40];
-    _trackLabel.adjustsFontSizeToFitWidth = YES;
-    _trackLabel.textAlignment = NSTextAlignmentCenter;
-   
-    _trackLabel.text = @"^";
-    CGPoint pt2 = view.frame.origin;
-    _trackLineBasePoint = pt2;
-    pt2.x += _trackPoints[0].x;
-    pt2.y += _trackPoints[0].y;
-    [self.view addSubview:_trackLabel];
-    _trackLabel.center = pt2;
+    [self createTrackLabel];
     _totTrackLineWidth = 0;
     static BOOL displayLines = FALSE;
     for (int i = 0;i<_numTrackLines;i++)
@@ -4738,18 +4754,13 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_imageFrame setHidden:NO];
         [_ImageDisplay setHidden:NO];
     }
-    [_selectCollectionButton setHidden:NO];
-    [_songTitleLabel setHidden:NO];
-    [_numClipsLabel setHidden:NO];
-    [_currentCollectionLabel setHidden:NO];
+    [self displaySongSelectionButtons:YES];
     
     [_fullScreenImageDisplay setHidden:YES];
     [_fullScreenReturnButton setHidden:YES];
+    [_fullScreenButton setHidden:NO];
     [_zoomInButton setHidden:YES];
-    [_monitorButton setHidden:NO];
-    [_tunerButton setHidden:NO];
-    [_monitorVolumeSlider setHidden:NO];
-    [_effectsButton setHidden:NO];
+    [self displayBottomRowButtons:YES];
     [_playSegmentButton setFrame:_savePlaySegmentFrame];
     [_loopSegmentButton setFrame:_saveLoopSegmentFrame];
     [_sliderTextLabel setFrame:_saveSliderTextLabelFrame];
@@ -4759,7 +4770,6 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_playbackSpeedButton setHidden:YES];
     [_playbackSpeedDecreaseButton setHidden:YES];
     [_playbackSpeedIncreaseButton setHidden:YES];
-
     _haveTempHighlight = NO;
     [self setupClip];
     [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
@@ -4935,6 +4945,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _currentClip = -1;
     _currentClipID = -1;
     [self removeHighlightFromView:_ImageDisplay];
+    [self displaySongSelectionButtons:YES];
     [_playButton setEnabled:YES];
     [_beginButton setEnabled:YES];
     [_endButton setEnabled:YES];
@@ -4945,7 +4956,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     [_fullScreenButton setHidden:NO];
     [_saveButton setEnabled:NO];
     [_ImageDisplay setHidden:YES];
-    [_tunerButton setHidden:NO];
+    [self displayBottomRowButtons:YES];
     _YouTubeName = _currentSongTitle;
     [self retrieveSong:_currentPracticeGroupID
               setTimes:YES];
