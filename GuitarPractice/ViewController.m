@@ -308,6 +308,11 @@ typedef NS_ENUM(NSInteger, ControlTypes)
     first = FALSE;
     return;
 }
+
+- (void)resignedActive
+{
+    return;
+}
 - (void) adjustControls
 {
 
@@ -1731,6 +1736,7 @@ type=CTLABEL;
                 [self displayClipAddButtons:YES];
                 [_ImageDisplay setImage:_image];
                 [_ImageDisplay setHidden:NO];
+                [_imageFrame setHidden:NO];
                 [_fullScreenReturnButton setHidden:YES];
                 [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
             }
@@ -1860,10 +1866,12 @@ type=CTLABEL;
         [_linkNameLabel setHidden:NO];
         [_playerView setHidden:YES];
         [_ImageDisplay setHidden:YES];
+        [_imageFrame setHidden:YES];
         [self displayImageHighlightButtons:NO];
         [_startTimeSaveButton setHidden:NO];
         [_startTimeCancelButton setHidden:NO];
         [_pasteURLButton setHidden:NO];
+        [_pasteURLButton setEnabled:NO];
         
     }
     else if (stringBeginsWithString (popoverTableView.title,@"Verify Delete"))
@@ -2077,6 +2085,7 @@ void showAlert(NSString *text)
             [_continueButton setHidden:YES];
             [_playerView setHidden:NO];
             [_ImageDisplay setHidden:YES];
+            [_imageFrame setHidden:YES];
             [self.playerView playVideo];
             [_timer invalidate];
             _timer = [NSTimer scheduledTimerWithTimeInterval:_timerInterval target:self selector:@selector(checkTime:) userInfo:nil repeats:YES];
@@ -4003,6 +4012,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         [_ImageDisplay setImage:_image];
         [self displayClipAddButtons:YES];
         [_ImageDisplay setHidden:NO];
+        [_imageFrame setHidden:NO];
         [_fullScreenButton setHidden:NO];
         [self displayImageHighlightButtons:NO];
         [self displayHighlightForClip:_currentClipID inView:_ImageDisplay];
@@ -4064,6 +4074,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     [_ImageDisplay setImage:_image];
     [self displayClipAddButtons:YES];
     [_ImageDisplay setHidden:NO];
+    [_imageFrame setHidden:NO];
     [_fullScreenButton setHidden:NO];
     [self displayImageHighlightButtons:NO];
     _currentFileNum = fileNum;
@@ -4203,6 +4214,7 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
         frame.size.height -= 16;
         [_imageFrame setHidden:YES];
         [_ImageDisplay setHidden:YES];
+        [_imageFrame setHidden:YES];
         if (_currentSongType == SONG)
         {
             [_fullScreenImageDisplay setFrame:frame];
@@ -4914,6 +4926,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     _currentImage = [UIImage imageWithData:_imageData];
     [_ImageDisplay setImage:_currentImage];
     [_ImageDisplay setHidden:NO];
+    [_imageFrame setHidden:NO];
     [self displayAddImageButtons:YES];
     [self displayClipAddButtons:NO];
     [_saveImageButton setEnabled:NO];
@@ -4956,6 +4969,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     [_fullScreenButton setHidden:NO];
     [_saveButton setEnabled:NO];
     [_ImageDisplay setHidden:YES];
+    [_imageFrame setHidden:YES];
     [self displayBottomRowButtons:YES];
     _YouTubeName = _currentSongTitle;
     [self retrieveSong:_currentPracticeGroupID
