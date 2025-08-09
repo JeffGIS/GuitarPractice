@@ -1,4 +1,5 @@
 #import "SceneDelegate.h"
+#import "CCodeLibrary/CRAPI.h"
 
 @interface SceneDelegate ()
 
@@ -41,6 +42,10 @@
 - (void)sceneWillEnterForeground:(UIScene *)scene {
     // Called as the scene transitions from the background to the foreground.
     // Use this method to undo the changes made on entering the background.
+    [NSNotificationCenter.defaultCenter postNotificationName:@"willEnterForeground"
+                                                      object:nil
+                                                    userInfo:nil];
+
     return;
 }
 

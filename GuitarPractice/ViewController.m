@@ -289,6 +289,10 @@ typedef NS_ENUM(NSInteger, ControlTypes)
     CGRect b = self.view.bounds;
     _barMarkers = NSMutableArray.new;
     _panBarMarker = nil;
+    [NSNotificationCenter.defaultCenter addObserver:self
+                                           selector:@selector(willEnterForeground)
+                                               name:@"willEnterForeground"
+                                             object:nil];
     return;
 }
 
@@ -309,6 +313,19 @@ typedef NS_ENUM(NSInteger, ControlTypes)
     return;
 }
 
+- (void)willEnterForeground
+{
+    if (_linkURLField.isHidden)
+        return;
+    UIPasteboard *thePasteboard = [UIPasteboard generalPasteboard];
+    if (thePasteboard.hasStrings)
+    {
+        [_pasteURLButton setEnabled:YES];
+        NSString *pasteboardString = thePasteboard.string;
+        _linkURLField.text = pasteboardString;
+    }
+    return;
+}
 - (void)resignedActive
 {
     return;
@@ -2619,6 +2636,7 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         [self.playerView setHidden:NO];
         [self.playerView pauseVideo];
         [self.playerView seekToSeconds:_currentSongStartTime allowSeekAhead:YES];
+        [self.playerView playVideo];
     }
     [self playSegmentButton:NO];
     [self loopSegmentButton:NO];
