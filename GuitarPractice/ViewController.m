@@ -1241,8 +1241,25 @@ type=CTLABEL;
         [self.playerView pauseVideo];
     }
 }
+- (void)playerViewDidBecomeReady:(nonnull YTPlayerView *)playerView
+{
+    return;
+}
+
+
+- (void)playerView:(nonnull YTPlayerView *)playerView didChangeToQuality:(YTPlaybackQuality)quality
+{
+    return;
+}
+
+
+- (void)playerView:(nonnull YTPlayerView *)playerView receivedError:(YTPlayerError)error
+{
+    return;
+}
+
 - (void)playerView:(YTPlayerView *)playerView didChangeToState:(YTPlayerState)state {
-    NSLog (@"player state %i",state);
+    NSLog (@"player state %i",(int)state);
     switch (state)
     {
         case kYTPlayerStatePlaying:
@@ -2068,8 +2085,11 @@ void showAlert(NSString *text)
 
 - (IBAction)gotoYouTubeTapped:(id)sender
 {
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://www.youtube.com/watch?v=g7xM4QD2v2s"]];
-    
+    //[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"http://www.youtube.com/watch?v=g7xM4QD2v2s"]];
+   // [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://www.youtube.com/watch?v=shorts/rCE-_6RdJhI?si=HMWBUusdJjPKU2Fp"]];
+   // [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://www.youtube.com/watch?v=shorts/si=HMWBUusdJjPKU2Fp"]];
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://youtube.com/shorts/rCE-_6RdJhI?si=HMWBUusdJjPKU2Fp"]];
+
 }
 
 - (IBAction)continueTapped:(id)sender {
@@ -4963,6 +4983,8 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
 }
 - (BOOL) displayYouTubeVideo:(NSString *) link
 {
+    //link = @"https://www.youtube.com/watch?v=ztXYnp1i_3c&t=02m00s";
+    //link = @"www.youtube.com/watch?v=g7xM4QD2v2s";
     [self hideAllViews:YES];
     _slider.maximumValue = _currentSongDuration;
     _slider.minimumValue = 0;
@@ -4993,8 +5015,8 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
     [self retrieveSong:_currentPracticeGroupID
               setTimes:YES];
     [_playerView setHidden:NO];
-    link = textAfterLastChar(link, @"/");
-    NSString *subLink = textBefore(link, @"=");
+    //link = textAfterLastChar(link, @"/");
+    NSString *subLink = textAfter(link, @"=");
     BOOL rtn;
     if (subLink.length > 0)
     {
