@@ -5,8 +5,11 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>NVTuner</string>
+		<string>tonebridge</string>
 	</array>
 	<key>LSApplicationCategoryType</key>
+	<string></string>
+	<key>CFBundleDisplayName</key>
 	<string></string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>

@@ -2656,7 +2656,8 @@ didTapButtonAtIndex:(NSInteger)buttonIndex
         [self.playerView setHidden:NO];
         [self.playerView pauseVideo];
         [self.playerView seekToSeconds:_currentSongStartTime allowSeekAhead:YES];
-        [self.playerView playVideo];
+        [self continueTapped:nil];
+        //[self.playerView playVideo];
     }
     [self playSegmentButton:NO];
     [self loopSegmentButton:NO];
@@ -3791,7 +3792,23 @@ int SQLOKpd(int sqlReturn, sqlite3nv *database, int method)
     return;
 }
 - (IBAction)effectsTapped:(id)sender {
+    NSURL *url = [NSURL URLWithString:@"tonebridge://123"];
     
+    [UIApplication.sharedApplication openURL:url];
+    if ([UIApplication.sharedApplication canOpenURL:url])
+        [UIApplication.sharedApplication openURL:url];
+
+    
+    else
+    {
+        NVAlertView *alert = [NVAlertView showLargeAlertViewinView:self.view
+                                                          delegate:self
+                                                             title:@"Cannot launch ToneBridge"
+                                                   buttonTextArray:@[@"OK"]
+                                                  destructiveIndex:0];
+        
+    }
+    if (1 == 2)
     {
         UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:NSBundle.mainBundle];
         EffectsViewController *effectsVC = [storyboard instantiateViewControllerWithIdentifier:@"EffectsViewController"];
@@ -4984,7 +5001,9 @@ didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id> 
 - (BOOL) displayYouTubeVideo:(NSString *) link
 {
     //link = @"https://www.youtube.com/watch?v=ztXYnp1i_3c&t=02m00s";
-    //link = @"www.youtube.com/watch?v=g7xM4QD2v2s";
+    //link = @"www.youtube.com/watch?v=g7xM4QD2v2s";https://youtu.be/g7xM4QD2v2s?si=GLYPpzqwTvLmwTzW
+    //link = @"ZFTDI8oZPMw";
+    //link = @"https://www.youtube.com/shorts/MUQTBvg1sCY";
     [self hideAllViews:YES];
     _slider.maximumValue = _currentSongDuration;
     _slider.minimumValue = 0;
